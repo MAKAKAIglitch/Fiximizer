@@ -80,8 +80,15 @@ public final class NetworkSocketTuning {
 
         try {
             channel.eventLoop().execute(() -> {
-            if (activeConnection != connection || !channel.isOpen()) return;
-            if (tunedChannel != null && tunedChannel != channel) {
+                // Re-check after scheduling: the setting or connection may have
+                // changed while this task was waiting in the Netty event loop.
+                if (activeConnection != connection
+                        || !FiximizerConfig.ENABLE_NETWORK_TCP_NODELAY.get()
+                        || NetworkCompatibilityDetector.snapshot().externalStackOptimizer()
+                        || !channel.isOpen()) {
+                    return;
+                }
+                if (tunedChannel != null && tunedChannel != channel) {
                 restoreChannel(tunedChannel, previousTcpNoDelay);
                 tunedChannel = null;
                 previousTcpNoDelay = null;
