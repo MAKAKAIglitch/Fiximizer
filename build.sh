@@ -11,6 +11,7 @@ TEMP_EXTRACT_ROOT=""
 TEMP_ARCHIVE=""
 FOUND_JDK_HOME=""
 FOUND_JDK_VERSION=""
+FOUND_JDK_MAJOR=""
 
 info() { printf '\033[1;36m[INFO]\033[0m %s\n' "$*"; }
 ok() { printf '\033[1;32m[ OK ]\033[0m %s\n' "$*"; }
@@ -46,21 +47,46 @@ is_jdk21() {
     return 0
 }
 
+is_gradle_runtime_jdk() {
+    CHECK_HOME=$1
+    [ -x "$CHECK_HOME/bin/java" ] || return 1
+    [ -x "$CHECK_HOME/bin/javac" ] || return 1
+
+    CHECK_JAVA_OUTPUT=$("$CHECK_HOME/bin/java" -version 2>&1) || return 1
+    CHECK_JAVAC_OUTPUT=$("$CHECK_HOME/bin/javac" -version 2>&1) || return 1
+    CHECK_JAVA_MAJOR=$(printf '%s\n' "$CHECK_JAVA_OUTPUT" | sed -n 's/.*version "\([0-9][0-9]*\).*/\1/p' | sed -n '1p')
+    if [ -z "$CHECK_JAVA_MAJOR" ]; then
+        CHECK_JAVA_MAJOR=$(printf '%s\n' "$CHECK_JAVA_OUTPUT" | sed -n 's/^openjdk \([0-9][0-9]*\).*/\1/p' | sed -n '1p')
+    fi
+    CHECK_JAVAC_MAJOR=$(printf '%s\n' "$CHECK_JAVAC_OUTPUT" | awk '{ print $2 }' | sed 's/[^0-9].*$//')
+    [ -n "$CHECK_JAVA_MAJOR" ] && [ "$CHECK_JAVA_MAJOR" = "$CHECK_JAVAC_MAJOR" ] || return 1
+
+    case "$CHECK_JAVA_MAJOR" in
+        21|25) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 try_jdk_candidate() {
     TRY_CANDIDATE=$1
     [ -n "$TRY_CANDIDATE" ] && [ -d "$TRY_CANDIDATE" ] || return 1
 
-    if is_jdk21 "$TRY_CANDIDATE"; then
+    if is_gradle_runtime_jdk "$TRY_CANDIDATE"; then
         FOUND_JDK_HOME=$(CDPATH= cd -P "$TRY_CANDIDATE" && pwd)
         FOUND_JDK_VERSION=$("$FOUND_JDK_HOME/bin/java" -version 2>&1 | sed -n '1p')
+        FOUND_JDK_MAJOR=$(printf '%s\n' "$FOUND_JDK_VERSION" | sed -n 's/.*version "\([0-9][0-9]*\).*/\1/p' | sed -n '1p')
+        if [ -z "$FOUND_JDK_MAJOR" ]; then
+            FOUND_JDK_MAJOR=$(printf '%s\n' "$FOUND_JDK_VERSION" | sed -n 's/^openjdk \([0-9][0-9]*\).*/\1/p' | sed -n '1p')
+        fi
         return 0
     fi
     return 1
 }
 
-find_jdk21() {
+find_gradle_runtime_jdk() {
     FOUND_JDK_HOME=""
     FOUND_JDK_VERSION=""
+    FOUND_JDK_MAJOR=""
 
     if [ -n "${JAVA_HOME:-}" ]; then
         if try_jdk_candidate "$JAVA_HOME"; then
@@ -185,19 +211,20 @@ install_temurin21() {
     ok "Installed project-local JDK 21: $FOUND_JDK_HOME"
 }
 
-printf '\n Fiximizer automatic Linux builder\n Minecraft 1.21.1 | NeoForge 21.1.256+ | Java 21\n\n'
+printf '\n Fiximizer automatic Linux builder\n Minecraft 1.21.1 | NeoForge 21.1.256+ | Gradle JDK 21/25 | Java 21 target\n\n'
 
 [ -f "$PROJECT_ROOT/gradlew" ] || fail "gradlew is missing. Download or clone the complete Fiximizer repository."
 [ -f "$PROJECT_ROOT/gradle/wrapper/gradle-wrapper.jar" ] || fail "Gradle Wrapper JAR is missing from gradle/wrapper/."
 [ -f "$PROJECT_ROOT/gradle.properties" ] || fail "gradle.properties is missing."
 
-if ! find_jdk21; then
+if ! find_gradle_runtime_jdk; then
     install_temurin21
 fi
 
 export JAVA_HOME="$FOUND_JDK_HOME"
 export PATH="$JAVA_HOME/bin:$PATH"
-ok "Using JDK 21: $JAVA_HOME"
+ok "Running Gradle with JDK $FOUND_JDK_MAJOR: $JAVA_HOME"
+info "The mod remains Java 21 bytecode; Gradle resolves the Java 21 compiler toolchain separately."
 printf '%s\n' "$FOUND_JDK_VERSION"
 
 if [ "$#" -eq 0 ]; then
