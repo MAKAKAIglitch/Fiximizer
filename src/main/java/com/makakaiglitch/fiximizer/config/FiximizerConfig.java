@@ -75,9 +75,9 @@ public final class FiximizerConfig {
                 .define("adaptive", true);
 
         MAX_BACKGROUND_WORKERS = BUILDER
-                .comment("Maximum number of Fiximizer-managed background workers.")
+                .comment("Global upper limit for Fiximizer-managed background workers; gameplay profiles may use fewer.")
                 .translation("config.fiximizer.scheduler.max_workers")
-                .defineInRange("maxBackgroundWorkers", 3, 1, 4);
+                .defineInRange("maxBackgroundWorkers", 4, 1, 4);
 
         BUILDER.pop();
         BUILDER.push("gpu");

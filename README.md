@@ -6,7 +6,23 @@ Fiximizer is a modular performance toolkit. It measures the runtime, records Jav
 
 ## Current status
 
-**0.2.0-alpha — profiler and compute foundation**
+**0.3.0-alpha — gameplay profiles and automatic Windows builder**
+
+### Gameplay optimization profiles
+
+Change the active profile from the F8 dashboard. The choice is saved in `config/fiximizer-performance.properties`.
+
+| Profile | Worker cap | Queue cap | GPU policy |
+|---|---:|---:|---|
+| Game smoothness | 2 | 48 | Conservative; only large workloads |
+| Low latency | 2 | 32 | Very conservative; avoids small offloads |
+| Balanced | 3 | 128 | Standard adaptive policy |
+| Maximum performance | 4 | 256 | More permissive offload thresholds |
+| Memory saver | 1 | 16 | OpenCL offload disabled |
+
+Profiles also set task-queue ordering and CPU-load thresholds for reducing worker concurrency. `maxBackgroundWorkers` in the NeoForge config remains a global upper limit.
+
+These settings apply to Fiximizer-owned background tasks. They do not modify Minecraft's render thread, other mods' internal workers, operating-system thread priorities, heap size, or garbage collector. "Memory saver" limits Fiximizer's worker and queue footprint; it does not forcibly reduce the JVM heap.
 
 ### Included
 
@@ -14,12 +30,13 @@ Fiximizer is a modular performance toolkit. It measures the runtime, records Jav
 - Heap, JVM, processor, CPU and thread metrics.
 - Java Flight Recorder (JFR) recording with start/stop controls.
 - An automatic offline hotspot report beside each JFR file: CPU methods ranked by execution-sample share, sampled allocation hotspots, and HIGH / MEDIUM / LOW investigation priorities.
-- JFR captures execution samples, CPU load, thread CPU load, garbage collection and allocation samples. Open JFR files with Java Mission Control or inspect them with the JDK jfr tool.
+- JFR captures execution samples, CPU load, thread CPU load, garbage collection and allocation samples.
 - A scoped profiler API for timing Fiximizer-owned sections.
 - A bounded priority queue for Fiximizer-managed background tasks: CRITICAL, HIGH, NORMAL, and BACKGROUND.
-- Adaptive worker count: the scheduler reduces its own concurrency as system CPU load rises.
+- Adaptive worker count based on the selected gameplay profile and measured system CPU load.
 - Optional GPU telemetry through OSHI and OpenCL device detection through LWJGL.
 - Russian and English translations.
+- One-click Windows build script with isolated JDK 21 discovery/installation and SHA-256 verification, adapted from the builder in the Rusify repository.
 
 ### Important limitations
 
@@ -28,16 +45,17 @@ Fiximizer is a modular performance toolkit. It measures the runtime, records Jav
 - The built-in scoped profiler measures only code explicitly instrumented by Fiximizer.
 - Priority scheduling applies only to Fiximizer-submitted background tasks. It does not change Minecraft, Create, Sable or other mods' thread priorities.
 - OpenCL detection is implemented, but this version does **not** move Minecraft, Create or Sable calculations to the GPU. A workload must have a dedicated, tested OpenCL kernel and enough independent data to outweigh dispatch and transfer costs.
+- The OpenCL runtime/ICD is supplied by the graphics driver. The Windows build script does not install GPU drivers or OpenCL runtimes.
 - GPU monitoring depends on the driver and operating system exposing utilization/sensor data. Unsupported values are shown as unavailable.
 
 ## Compute routing design
 
-The CPU/GPU router is deliberately conservative. A future task can be considered for OpenCL only when all conditions are met:
+The CPU/GPU router is profile-aware. A workload can be considered for OpenCL only when:
 
 1. A verified OpenCL kernel exists for that exact workload.
-2. The workload is large and data-parallel enough to offset transfers and dispatch overhead.
-3. CPU load is high enough to make offload useful.
-4. The GPU has measured headroom and enough memory.
+2. The selected profile allows GPU offload.
+3. Work size and data-transfer volume exceed that profile's thresholds.
+4. CPU load is high enough and the GPU has measured headroom.
 
 The OpenCL ICD/runtime is provided by the graphics driver; Fiximizer bundles the matching LWJGL 3.3.3 Java binding for Minecraft 1.21.1.
 
@@ -50,10 +68,22 @@ The OpenCL ICD/runtime is provided by the graphics driver; Fiximizer bundles the
 
 ## Build
 
-- Windows: gradlew.bat build
-- Linux/macOS: ./gradlew build
+Windows one-click build:
 
-The JAR is generated in build/libs. GitHub Actions builds the project and uploads the JAR as a workflow artifact.
+```bat
+build.bat
+```
+
+The script searches for a full JDK 21. If none is found, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum, and installs it locally under `.tools/jdk-21-temurin`. It does not change system Java settings.
+
+More details: [BUILDING.md](BUILDING.md).
+
+Manual build:
+
+- Windows: `gradlew.bat build`
+- Linux/macOS: `./gradlew build`
+
+The JAR is generated in `build/libs`. GitHub Actions builds the project on Linux and Windows.
 
 ## Design principles
 
@@ -71,8 +101,11 @@ The JAR is generated in build/libs. GitHub Actions builds the project and upload
 - [x] Automatic hotspot and investigation-priority report
 - [x] Fiximizer-scoped profiler API
 - [x] Prioritized adaptive worker scheduler
+- [x] Five gameplay optimization profiles
+- [x] Profile-aware CPU/GPU routing policy
+- [x] Automatic Windows JDK 21 builder
 - [x] GPU telemetry and OpenCL device detection
-- [x] Conservative CPU/GPU routing policy
+- [ ] Thread hotspot analysis in JFR reports
 - [ ] First real OpenCL kernel for a Fiximizer-owned batch workload
 - [ ] Profiling-guided Create / Aeronautics integration
 - [ ] Profiling-guided Sable integration
@@ -80,7 +113,7 @@ The JAR is generated in build/libs. GitHub Actions builds the project and upload
 
 ## Languages
 
-The in-game runtime is Java because it integrates directly with NeoForge and Minecraft's JVM. Python can be useful for additional offline analysis of CSV/JFR-derived reports. Rust is worth considering only for a later, isolated native compute library if profiling proves Java itself is the bottleneck; it is not required for the current design.
+The in-game runtime is Java because it integrates directly with NeoForge and Minecraft's JVM. Python can be useful for additional offline analysis of JFR-derived reports. Rust is worth considering only for a later, isolated native compute library if profiling proves Java itself is the bottleneck; it is not required for the current design.
 
 ## License
 

@@ -1,19 +1,19 @@
 package com.makakaiglitch.fiximizer.gpu;
 
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
+import com.makakaiglitch.fiximizer.scheduler.OptimizationProfile;
+import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 
 import java.util.List;
 
 /**
- * Conservative policy for deciding whether a future Fiximizer-owned kernel
- * should run on CPU or OpenCL. The decision alone does not execute a kernel.
+ * Conservative policy for deciding whether a Fiximizer-owned workload with
+ * a tested OpenCL kernel should run on CPU or GPU.
+ *
+ * The decision alone does not execute a kernel and third-party mod code is
+ * never converted or moved automatically.
  */
 public final class ComputeRouter {
-    private static final long MIN_OPERATIONS_FOR_GPU = 250_000L;
-    private static final long MIN_TRANSFER_BYTES_FOR_GPU = 2L * 1024L * 1024L;
-    private static final double CPU_BUSY_THRESHOLD = 0.75;
-    private static final double GPU_BUSY_THRESHOLD = 75.0;
-
     private ComputeRouter() {
     }
 
@@ -23,22 +23,27 @@ public final class ComputeRouter {
             List<GpuReading> gpuReadings,
             List<OpenClDeviceInfo> openClDevices
     ) {
+        OptimizationProfile profile = OptimizationProfileManager.current();
+
+        if (!profile.openClAllowed()) {
+            return cpu("OpenCL offload is disabled by the " + profile.id() + " profile.");
+        }
         if (workload == null || !workload.hasOpenClKernel()) {
             return cpu("No tested OpenCL kernel is registered for this workload.");
         }
         if (openClDevices == null || openClDevices.isEmpty()) {
             return cpu("No usable OpenCL GPU device was detected.");
         }
-        if (workload.operationCount() < MIN_OPERATIONS_FOR_GPU) {
-            return cpu("Workload is too small to amortize GPU dispatch overhead.");
+        if (workload.operationCount() < profile.minimumGpuOperations()) {
+            return cpu("This profile keeps workloads below its GPU operation threshold on CPU.");
         }
-        if (workload.transferBytes() < MIN_TRANSFER_BYTES_FOR_GPU) {
-            return cpu("Data transfer volume is too small for GPU offload.");
+        if (workload.transferBytes() < profile.minimumGpuTransferBytes()) {
+            return cpu("This profile keeps small data transfers on CPU.");
         }
         if (cpu == null
                 || !Double.isFinite(cpu.systemCpuLoad())
-                || cpu.systemCpuLoad() < CPU_BUSY_THRESHOLD) {
-            return cpu("CPU is not busy enough to justify GPU offload.");
+                || cpu.systemCpuLoad() < profile.openClCpuThreshold()) {
+            return cpu("CPU load is below the current profile's GPU offload threshold.");
         }
 
         double gpuLoad = gpuReadings == null
@@ -52,13 +57,13 @@ public final class ComputeRouter {
         if (!Double.isFinite(gpuLoad) || gpuLoad < 0.0) {
             return cpu("GPU utilization is unavailable; keeping the safe CPU path.");
         }
-        if (gpuLoad >= GPU_BUSY_THRESHOLD) {
-            return cpu("GPU is already busy with rendering or other workloads.");
+        if (gpuLoad >= profile.maximumGpuLoadForOffload()) {
+            return cpu("GPU load is above the current profile's offload limit.");
         }
 
         return new ComputeDecision(
                 ComputeDecision.Target.GPU,
-                "CPU is busy, GPU has headroom, and the workload has a tested OpenCL kernel."
+                "The selected profile allows offload; CPU is busy, GPU has headroom, and a tested kernel exists."
         );
     }
 

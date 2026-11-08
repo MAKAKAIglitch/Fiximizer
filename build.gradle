@@ -43,8 +43,6 @@ neoForge {
 // the neoForge block. Jar-in-Jar packages each required runtime library.
 dependencies {
     jarJar(implementation('com.github.oshi:oshi-core:7.7.3') {
-        // NeoForge/Minecraft provides SLF4J 2.0.9. OSHI's newer facade
-        // is not bundled; use the platform logger already on the classpath.
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }) {
         version {
@@ -53,8 +51,6 @@ dependencies {
         }
     }
 
-    // OSHI 7.x split the public API into oshi-common; Jar-in-Jar does not
-    // automatically embed transitive dependencies.
     jarJar(implementation('com.github.oshi:oshi-common:7.7.3') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }) {
@@ -64,7 +60,6 @@ dependencies {
         }
     }
 
-    // Native Access dependencies used by OSHI's Windows/Linux/macOS backends.
     jarJar(implementation('net.java.dev.jna:jna-jpms:5.19.1')) {
         version {
             strictly '[5.19.1]'
@@ -79,8 +74,6 @@ dependencies {
         }
     }
 
-    // Minecraft 1.21.1 ships LWJGL 3.3.3 core; the OpenCL ICD itself
-    // is supplied by the installed graphics driver.
     jarJar(implementation('org.lwjgl:lwjgl-opencl:3.3.3')) {
         version {
             strictly '[3.3.3]'
@@ -88,11 +81,13 @@ dependencies {
         }
     }
 
-    // Legacy NeoForge runs need explicit runtime classpath entries for libraries.
     additionalRuntimeClasspath('com.github.oshi:oshi-core:7.7.3') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
     additionalRuntimeClasspath 'org.lwjgl:lwjgl-opencl:3.3.3'
+
+    testImplementation platform('org.junit:junit-bom:5.12.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 tasks.named('processResources', ProcessResources).configure {
@@ -114,6 +109,10 @@ tasks.named('processResources', ProcessResources).configure {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 21
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 idea {

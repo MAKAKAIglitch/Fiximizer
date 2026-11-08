@@ -33,5 +33,17 @@
   "config.fiximizer.scheduler.adaptive": "Adapt Fiximizer workers to CPU load",
   "config.fiximizer.scheduler.max_workers": "Maximum background workers",
   "config.fiximizer.gpu.telemetry": "Enable GPU telemetry",
-  "config.fiximizer.gpu.opencl_probe": "Detect OpenCL runtime and GPU devices"
+  "config.fiximizer.gpu.opencl_probe": "Detect OpenCL runtime and GPU devices",
+  "profile.fiximizer.smoothness": "Game smoothness",
+  "profile.fiximizer.smoothness.description": "Stable frame times: reduce background contention with the game",
+  "profile.fiximizer.low_latency": "Low latency",
+  "profile.fiximizer.low_latency.description": "Serve important tasks sooner with a strict queue and conservative GPU offload",
+  "profile.fiximizer.balanced": "Balanced",
+  "profile.fiximizer.balanced.description": "Balance frame pacing, background throughput and resource use",
+  "profile.fiximizer.max_performance": "Maximum performance",
+  "profile.fiximizer.max_performance.description": "More parallel background work and a more permissive GPU policy",
+  "profile.fiximizer.memory_saver": "Memory saver",
+  "profile.fiximizer.memory_saver.description": "Small task queue and one worker; OpenCL offload is disabled",
+  "screen.fiximizer.profile_button": "Optimization profile: %s  •  click to change",
+  "screen.fiximizer.profile_save_failed": "Could not save profile: %s"
 }

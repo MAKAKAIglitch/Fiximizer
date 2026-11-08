@@ -33,5 +33,17 @@
   "config.fiximizer.scheduler.adaptive": "Адаптировать потоки Fiximizer под загрузку CPU",
   "config.fiximizer.scheduler.max_workers": "Максимум фоновых потоков",
   "config.fiximizer.gpu.telemetry": "Включить мониторинг видеокарты",
-  "config.fiximizer.gpu.opencl_probe": "Искать OpenCL runtime и GPU-устройства"
+  "config.fiximizer.gpu.opencl_probe": "Искать OpenCL runtime и GPU-устройства",
+  "profile.fiximizer.smoothness": "Плавность игры",
+  "profile.fiximizer.smoothness.description": "Стабильный frametime: меньше конкуренции фоновых задач с игрой",
+  "profile.fiximizer.low_latency": "Минимальная задержка",
+  "profile.fiximizer.low_latency.description": "Быстрее обслуживает важные задачи; строгая очередь и осторожный GPU offload",
+  "profile.fiximizer.balanced": "Сбалансированный",
+  "profile.fiximizer.balanced.description": "Компромисс между плавностью, скоростью фоновых задач и ресурсами",
+  "profile.fiximizer.max_performance": "Максимальная производительность",
+  "profile.fiximizer.max_performance.description": "Больше параллельных фоновых вычислений и более активная политика GPU",
+  "profile.fiximizer.memory_saver": "Экономия памяти",
+  "profile.fiximizer.memory_saver.description": "Минимальная очередь и один worker; OpenCL offload отключён",
+  "screen.fiximizer.profile_button": "Режим оптимизации: %s  •  нажми, чтобы сменить",
+  "screen.fiximizer.profile_save_failed": "Не удалось сохранить режим: %s"
 }

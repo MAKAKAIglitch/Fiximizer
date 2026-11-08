@@ -12,6 +12,7 @@ import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.profiler.ProfileSectionSnapshot;
 import com.makakaiglitch.fiximizer.profiler.SectionProfiler;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
+import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -19,11 +20,13 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 
 public final class FiximizerScreen extends Screen {
     private final Screen parent;
+    private Button profileButton;
     private Button startProfileButton;
     private Button stopProfileButton;
 
@@ -36,6 +39,11 @@ public final class FiximizerScreen extends Screen {
     protected void init() {
         int centerX = this.width / 2;
         int buttonY = this.height - 28;
+
+        profileButton = this.addRenderableWidget(Button.builder(
+                profileButtonLabel(),
+                button -> cycleOptimizationProfile()
+        ).bounds(centerX - 150, 43, 300, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -58,6 +66,33 @@ public final class FiximizerScreen extends Screen {
         ).bounds(centerX + 90, buttonY, 84, 20).build());
     }
 
+    private void cycleOptimizationProfile() {
+        Minecraft minecraft = Minecraft.getInstance();
+        Path configDirectory = minecraft.gameDirectory.toPath().resolve("config");
+
+        if (OptimizationProfileManager.cycle(configDirectory)) {
+            profileButton.setMessage(profileButtonLabel());
+            DiagnosticsService.sampleNow();
+            if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()
+                    && OptimizationProfileManager.current().openClAllowed()
+                    && !OpenClService.checked()) {
+                OpenClService.probeAsync();
+            }
+        } else {
+            profileButton.setMessage(Component.translatable(
+                    "screen.fiximizer.profile_save_failed",
+                    OptimizationProfileManager.status()
+            ));
+        }
+    }
+
+    private Component profileButtonLabel() {
+        return Component.translatable(
+                "screen.fiximizer.profile_button",
+                Component.translatable(OptimizationProfileManager.current().translationKey())
+        );
+    }
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics, mouseX, mouseY, partialTick);
@@ -76,10 +111,17 @@ public final class FiximizerScreen extends Screen {
                 29,
                 0xA0A0A0
         );
+        graphics.drawCenteredString(
+                this.font,
+                Component.translatable(OptimizationProfileManager.current().descriptionKey()),
+                centerX,
+                67,
+                0xC0C0C0
+        );
 
         DiagnosticsSnapshot snapshot = DiagnosticsService.latest();
         int left = centerX - 190;
-        int y = 49;
+        int y = 86;
 
         if (!snapshot.hasSample()) {
             drawLine(graphics, "screen.fiximizer.waiting_for_sample", left, y, 0xE0C060);
@@ -198,6 +240,9 @@ public final class FiximizerScreen extends Screen {
     }
 
     private String openClLabel() {
+        if (!OptimizationProfileManager.current().openClAllowed()) {
+            return "disabled by selected profile";
+        }
         if (!FiximizerConfig.ENABLE_OPENCL_PROBE.get()) {
             return "disabled";
         }

@@ -16,11 +16,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Priority scheduler for independent background tasks submitted by Fiximizer
- * and its future compatibility modules. It never steals or moves Minecraft's
- * main-thread work.
+ * and its compatibility modules. It never steals or moves Minecraft's main-thread work.
  */
 public final class AdaptiveTaskScheduler {
-    private static final int MAX_QUEUED_TASKS = 128;
     private static final int HARD_MAX_WORKERS = 4;
     private static final AtomicInteger QUEUED_TASKS = new AtomicInteger();
     private static final AtomicLong SEQUENCE = new AtomicLong();
@@ -31,7 +29,7 @@ public final class AdaptiveTaskScheduler {
             30L,
             TimeUnit.SECONDS,
             new PriorityBlockingQueue<>(32, Comparator
-                    .comparingInt((Runnable task) -> ((PrioritizedTask<?>) task).priority.queueOrder())
+                    .comparingInt((Runnable task) -> ((PrioritizedTask<?>) task).queueOrder)
                     .thenComparingLong(task -> ((PrioritizedTask<?>) task).sequence)),
             new FiximizerThreadFactory()
     );
@@ -61,17 +59,20 @@ public final class AdaptiveTaskScheduler {
             );
         }
 
+        OptimizationProfile profile = OptimizationProfileManager.current();
         int pending = QUEUED_TASKS.incrementAndGet();
-        if (pending > MAX_QUEUED_TASKS) {
+        if (pending > profile.queueCapacity()) {
             QUEUED_TASKS.decrementAndGet();
             return CompletableFuture.failedFuture(
-                    new RejectedExecutionException("Fiximizer task queue is full.")
+                    new RejectedExecutionException(
+                            "Fiximizer " + profile.id() + " queue is full (" + profile.queueCapacity() + ")."
+                    )
             );
         }
 
         PrioritizedTask<T> task = new PrioritizedTask<>(
                 taskName,
-                priority,
+                profile.queueOrder(priority),
                 SEQUENCE.getAndIncrement(),
                 callable
         );
@@ -79,7 +80,7 @@ public final class AdaptiveTaskScheduler {
         try {
             EXECUTOR.execute(task);
         } catch (RuntimeException exception) {
-            QUEUED_TASKS.decrementAndGet();
+            QUEUED_TASKS.updateAndGet(value -> Math.max(0, value - 1));
             task.completion.completeExceptionally(exception);
         }
 
@@ -87,34 +88,31 @@ public final class AdaptiveTaskScheduler {
     }
 
     /**
-     * Adapt the number of Fiximizer workers to the latest CPU sample.
+     * Adapt only Fiximizer's worker count to the current system CPU sample.
      * Running tasks are never interrupted when the pool is reduced.
      *
      * @param cpuLoad system CPU load in the range 0..1, or a negative value if unavailable
      */
     public static void adaptToCpuLoad(double cpuLoad) {
+        OptimizationProfile profile = OptimizationProfileManager.current();
         int configuredMaximum = Math.min(
                 HARD_MAX_WORKERS,
-                Math.max(1, FiximizerConfig.MAX_BACKGROUND_WORKERS.get())
+                Math.min(profile.maximumWorkers(), Math.max(1, FiximizerConfig.MAX_BACKGROUND_WORKERS.get()))
         );
 
         int desired = configuredMaximum;
-        if (FiximizerConfig.ADAPTIVE_SCHEDULER_ENABLED.get() && cpuLoad >= 0.0) {
-            if (cpuLoad >= 0.85) {
+        if (FiximizerConfig.ADAPTIVE_SCHEDULER_ENABLED.get()
+                && Double.isFinite(cpuLoad)
+                && cpuLoad >= 0.0) {
+            if (cpuLoad >= profile.singleWorkerAtCpuLoad()) {
                 desired = 1;
-            } else if (cpuLoad >= 0.70) {
-                desired = Math.max(1, configuredMaximum / 2);
-            } else if (cpuLoad >= 0.55) {
+            } else if (cpuLoad >= profile.reduceWorkersAtCpuLoad()) {
                 desired = Math.max(1, configuredMaximum - 1);
             }
         }
 
         desired = Math.min(HARD_MAX_WORKERS, Math.max(1, desired));
-        int currentCoreSize = EXECUTOR.getCorePoolSize();
-
-        if (desired > currentCoreSize) {
-            EXECUTOR.setCorePoolSize(desired);
-        } else if (desired < currentCoreSize) {
+        if (desired != EXECUTOR.getCorePoolSize()) {
             EXECUTOR.setCorePoolSize(desired);
         }
 
@@ -122,12 +120,18 @@ public final class AdaptiveTaskScheduler {
     }
 
     public static SchedulerSnapshot snapshot() {
+        OptimizationProfile profile = OptimizationProfileManager.current();
+        int configuredMaximum = Math.min(
+                HARD_MAX_WORKERS,
+                Math.min(profile.maximumWorkers(), Math.max(1, FiximizerConfig.MAX_BACKGROUND_WORKERS.get()))
+        );
+
         return new SchedulerSnapshot(
                 EXECUTOR.getActiveCount(),
                 QUEUED_TASKS.get(),
                 EXECUTOR.getPoolSize(),
                 targetWorkers,
-                Math.min(HARD_MAX_WORKERS, Math.max(1, FiximizerConfig.MAX_BACKGROUND_WORKERS.get()))
+                configuredMaximum
         );
     }
 
@@ -137,19 +141,19 @@ public final class AdaptiveTaskScheduler {
 
     private static final class PrioritizedTask<T> implements Runnable {
         private final String name;
-        private final TaskPriority priority;
+        private final int queueOrder;
         private final long sequence;
         private final Callable<T> callable;
         private final CompletableFuture<T> completion = new CompletableFuture<>();
 
         private PrioritizedTask(
                 String name,
-                TaskPriority priority,
+                int queueOrder,
                 long sequence,
                 Callable<T> callable
         ) {
             this.name = name.length() > 72 ? name.substring(0, 72) : name;
-            this.priority = priority;
+            this.queueOrder = queueOrder;
             this.sequence = sequence;
             this.callable = callable;
         }

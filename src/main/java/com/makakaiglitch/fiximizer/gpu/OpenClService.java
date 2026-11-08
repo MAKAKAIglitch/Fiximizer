@@ -10,6 +10,7 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.lwjgl.opencl.CL10.CL_DEVICE_GLOBAL_MEM_SIZE;
 import static org.lwjgl.opencl.CL10.CL_DEVICE_NAME;
@@ -22,6 +23,7 @@ import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.memUTF8;
 
 public final class OpenClService {
+    private static final AtomicBoolean STARTED = new AtomicBoolean();
     private static volatile boolean checked;
     private static volatile List<OpenClDeviceInfo> devices = List.of();
     private static volatile String status = "Not checked";
@@ -30,6 +32,10 @@ public final class OpenClService {
     }
 
     public static void probeAsync() {
+        if (!STARTED.compareAndSet(false, true)) {
+            return;
+        }
+
         Thread thread = new Thread(OpenClService::probe, "Fiximizer-OpenCL-Probe");
         thread.setDaemon(true);
         thread.start();
@@ -72,7 +78,7 @@ public final class OpenClService {
                 );
 
                 if (deviceResult == -1) {
-                    continue; // CL_DEVICE_NOT_FOUND for this platform.
+                    continue;
                 }
                 if (deviceResult != CL_SUCCESS) {
                     continue;

@@ -3,6 +3,10 @@
 build/
 out/
 
+### Local build tools ###
+.tools/
+*.previous-*
+
 ### IDEs ###
 .idea/
 *.iml
