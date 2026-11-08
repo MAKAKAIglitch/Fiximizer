@@ -2,12 +2,6 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
-import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
-import com.makakaiglitch.fiximizer.config.FiximizerConfig;
-import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
-import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
-import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
-import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import net.minecraft.client.Minecraft;
@@ -38,24 +32,12 @@ public final class ClientModEvents {
                     Minecraft.getInstance().gameDirectory.toPath().resolve("config")
             );
             MemoryPressureController.reset();
-
             ModIntegrationManager.refresh();
-            SablePhysicsProfiler.registerIfLoaded();
-            DiagnosticsService.sampleNow();
-            StallWatchdog.start(Minecraft.getInstance().gameDirectory.toPath());
 
             Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
                     OptimizationProfileManager.selected().id());
             Fiximizer.LOGGER.info("Detected {} enabled installed integration target(s).",
                     ModIntegrationManager.activeCount());
-
-            if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
-                GpuTelemetryService.start();
-            }
-            if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()
-                    && OptimizationProfileManager.current().openClAllowed()) {
-                OpenClService.probeAsync();
-            }
         });
     }
 }
