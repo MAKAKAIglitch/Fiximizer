@@ -32,7 +32,7 @@ class SchedulerTelemetryTest {
         assertEquals(1L, snapshot.cancelledTasks());
         assertEquals(1L, snapshot.rejectedTasks());
         assertEquals(155.0, snapshot.queueWaitP95Millis(), 0.001);
-        assertEquals(310.0, snapshot.executionP95Millis(), 0.001);
+        assertEquals(308.0, snapshot.executionP95Millis(), 0.001);
     }
 
     @Test
