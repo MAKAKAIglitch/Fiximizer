@@ -1,0 +1,9 @@
+{
+  "homepage": "https://github.com/MAKAKAIglitch/Fiximizer/releases",
+  "1.21.1": {
+    "0.14.0-alpha": "Initial public update metadata for Fiximizer 0.14.0-alpha. See the GitHub release page for the current package and changelog."
+  },
+  "promos": {
+    "1.21.1-latest": "0.14.0-alpha"
+  }
+}
