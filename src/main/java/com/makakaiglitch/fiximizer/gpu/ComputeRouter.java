@@ -35,7 +35,9 @@ public final class ComputeRouter {
         if (workload.transferBytes() < MIN_TRANSFER_BYTES_FOR_GPU) {
             return cpu("Data transfer volume is too small for GPU offload.");
         }
-        if (cpu == null || cpu.systemCpuLoad() < CPU_BUSY_THRESHOLD) {
+        if (cpu == null
+                || !Double.isFinite(cpu.systemCpuLoad())
+                || cpu.systemCpuLoad() < CPU_BUSY_THRESHOLD) {
             return cpu("CPU is not busy enough to justify GPU offload.");
         }
 
@@ -47,7 +49,7 @@ public final class ComputeRouter {
                     .max()
                     .orElse(-1.0);
 
-        if (gpuLoad < 0.0) {
+        if (!Double.isFinite(gpuLoad) || gpuLoad < 0.0) {
             return cpu("GPU utilization is unavailable; keeping the safe CPU path.");
         }
         if (gpuLoad >= GPU_BUSY_THRESHOLD) {

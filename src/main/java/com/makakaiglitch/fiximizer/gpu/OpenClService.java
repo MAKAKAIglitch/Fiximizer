@@ -38,7 +38,7 @@ public final class OpenClService {
     private static void probe() {
         try (MemoryStack stack = stackPush()) {
             IntBuffer platformCount = stack.mallocInt(1);
-            int result = CL10.clGetPlatformIDs(null, platformCount);
+            int result = CL10.clGetPlatformIDs((PointerBuffer) null, platformCount);
 
             if (result != CL_SUCCESS) {
                 setUnavailable("OpenCL platform query failed (" + result + ")");
@@ -52,7 +52,7 @@ public final class OpenClService {
             }
 
             PointerBuffer platforms = stack.mallocPointer(numberOfPlatforms);
-            result = CL10.clGetPlatformIDs(platforms, null);
+            result = CL10.clGetPlatformIDs(platforms, (IntBuffer) null);
             if (result != CL_SUCCESS) {
                 setUnavailable("Unable to enumerate OpenCL platforms (" + result + ")");
                 return;
@@ -67,7 +67,7 @@ public final class OpenClService {
                 int deviceResult = CL10.clGetDeviceIDs(
                         platform,
                         CL_DEVICE_TYPE_GPU,
-                        null,
+                        (PointerBuffer) null,
                         deviceCount
                 );
 
@@ -88,7 +88,7 @@ public final class OpenClService {
                         platform,
                         CL_DEVICE_TYPE_GPU,
                         platformDevices,
-                        null
+                        (IntBuffer) null
                 );
                 if (deviceResult != CL_SUCCESS) {
                     continue;
