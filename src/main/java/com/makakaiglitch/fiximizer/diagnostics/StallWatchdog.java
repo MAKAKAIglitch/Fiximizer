@@ -3,6 +3,7 @@ package com.makakaiglitch.fiximizer.diagnostics;
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
+import com.makakaiglitch.fiximizer.profiler.JfrProfileAnalyzer;
 
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
