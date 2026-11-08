@@ -112,6 +112,49 @@ Prioritize one measured bottleneck at a time. Candidate areas include:
 - **World saving and storage:** measure serialization and I/O stalls; preserve save ordering and data integrity.
 - **Background work:** schedule only independent, explicitly safe work away from critical threads. Never move thread-affine Minecraft work just to increase worker count.
 
+#### 3.1 Memory footprint reduction and safe object deduplication
+
+**Goal:** reduce the amount of live heap retained by a modpack by eliminating proven duplicate data and storing eligible data more compactly. The target is lower real memory retention, not a lower number shown by a single heap-usage sample.
+
+##### Discover what actually occupies memory
+
+- Establish repeatable heap baselines after equivalent world loads and warm-up periods.
+- Use JFR allocation data, class histograms, and opt-in heap-dump analysis to distinguish high allocation rate from long-lived retained objects.
+- Attribute large object groups to Minecraft, individual mods, or shared libraries where evidence allows; mark ambiguous ownership rather than guessing.
+- Track Java heap separately from native/off-heap memory, GPU memory, and total process working set.
+
+##### Deduplicate immutable data
+
+- Prototype content-based canonicalization for high-frequency immutable values such as strings, resource identifiers, and other proven flyweight candidates.
+- Investigate NBT data at the tag/value level. Share only values and structures that are demonstrably immutable; do not share mutable compounds, lists, or backing arrays without copy-on-write or another explicit ownership model.
+- Investigate duplicate baked model data, vertex arrays, BakedQuad data, and VoxelShape-related structures. Share them only where the relevant API and every participating mod treat the data as immutable.
+- Use a hash as a lookup accelerator, then verify full content equality before reusing an object. A hash match alone is never sufficient.
+- Compare custom string canonicalization with JVM-provided G1 String Deduplication. Prefer the built-in JVM mechanism when it already addresses the measured case; expose a JVM Advisor recommendation rather than duplicating its work blindly.
+
+##### Store data more compactly
+
+- Replace eligible object-heavy structures owned by Fiximizer or an integration with primitive arrays, packed representations, shared tables, or indexed storage where benchmarks justify the change.
+- Reduce duplicate collection nodes, wrappers, and repeated metadata only at boundaries where ownership and mutation semantics are known.
+- Keep serialization, world data, networking, and gameplay-visible values byte-for-byte or semantically correct.
+
+##### Bound the deduplication engine and cache lifecycle
+
+- Bound every intern table, index, and cache by entry count and/or memory budget; expose hit, miss, eviction, and estimated-overhead counters.
+- Define explicit invalidation and lifecycle rules for resource reloads, world changes, mod reloads, and configuration changes.
+- Evaluate strong, weak, and lifecycle-scoped references empirically. Reference wrappers, hash tables, cleanup queues, and hashing work also consume memory and CPU.
+- Never perform an unrestricted scan of the Java heap or retain arbitrary objects indefinitely. Do not assume that a lower heap-used reading immediately after a collection proves a lasting reduction.
+- Make each strategy independently configurable, with conservative defaults and a clear disable/fallback path.
+
+##### Compatibility and acceptance criteria
+
+- Detect overlapping memory optimizers and avoid applying duplicate or conflicting transformations. Provide per-feature controls when a compatible coexistence strategy cannot be proven.
+- Add unit tests for equality, hash collisions, concurrency, bounds, eviction, invalidation, and mutation isolation.
+- Benchmark the same world, mod list, Java runtime, heap settings, and warm-up procedure before and after each strategy.
+- Report retained heap / post-GC live set where measurable, allocation rate, GC pause time, process memory, CPU overhead, and client/server tick or frame-time percentiles.
+- Keep the feature opt-in until repeated tests show a net benefit and no data corruption, visual changes, save issues, or compatibility regressions.
+
+**Done when:** each shipped memory strategy demonstrates a repeatable reduction in retained memory on at least one documented workload, accounts for its own table/cache overhead and CPU cost, passes mutation and compatibility tests, and can be disabled without leaving stale shared state. Do not promise a fixed number of megabytes or gigabytes saved across all modpacks.
+
 The first optimization targets will be selected from reproducible profiles of real modpacks, including the maintainer's own test pack. Results that generalize should become reusable core policies or optional adapters.
 
 **Done when:** each shipped optimization has a documented bottleneck, a reproducible before/after benchmark, compatibility checks, and a safe disable/rollback path.
@@ -207,6 +250,7 @@ No blanket rewrite is planned. Java remains the baseline; Kotlin and Rust are in
 - **Correctness before speed.** Never trade world or player-data integrity for a benchmark result.
 - **Small, reversible changes.** Every optimization has its own toggle, preconditions, and fallback.
 - **Low overhead by design.** Bounded data structures, lazy work, sampling budgets, and no unnecessary work on hot threads.
+- **Memory optimizations must respect mutability and ownership.** Share only data proven immutable; bound every deduplication table and account for its own memory and CPU cost.
 - **Respect ownership and thread affinity.** Fiximizer may schedule its own independent work; it must not take over arbitrary third-party or Minecraft tasks.
 - **Compatibility is explicit.** Optional modules are isolated and version-aware.
 - **Be honest about results.** Publish the test conditions and distinguish diagnostics, recommendations, and active optimizations.
@@ -222,6 +266,7 @@ The immediate engineering sequence is:
 4. Repeatable benchmark/baseline export.
 5. The first evidence-backed optimization selected from a real modpack profile.
 6. A reusable optimization-policy and adapter architecture around that work.
+7. A Memory Profiler baseline followed by one narrowly scoped, opt-in deduplication experiment.
 
 Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration is a first-class goal, not an afterthought.
 
