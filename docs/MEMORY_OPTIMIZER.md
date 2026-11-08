@@ -100,3 +100,31 @@ A strategy is accepted only when it lowers retained memory for a documented work
 String identity, weak references, object lifetime, and GC behavior belong to the JVM. Native Rust code cannot automatically reduce Java heap just by being faster at hashing. JNI/FFM boundaries add packaging, memory-accounting, and call-boundary complexity.
 
 Rust may be evaluated later for a measured, CPU-heavy bulk operation on primitive byte buffers (for example, a codec or data transformation) when a large batch amortizes the native-call cost. Such a module must prove a net end-to-end benefit and account for off-heap memory. It is not part of the current string deduplication path.
+
+
+## Runtime-selected JVM memory backend (Java 21 / 25)
+
+Fiximizer compiles for Java 21 but inspects the JVM that is actually running the game. Selection is based on exposed VM capabilities, not only on the version string.
+
+### Java 25+ HotSpot
+
+If the running VM exposes the product option \`UseCompactObjectHeaders\`, the JVM Advisor checks its current value and the loaded-class count. When the option is available, not already enabled, and below the 4,000,000-class limit, the recommended launcher arguments include:
+
+\`-XX:+UseCompactObjectHeaders\`
+
+Compact Object Headers reduce object headers from 96/128 bits to 64 bits on supported 64-bit HotSpot architectures. JDK 25 promotes this from the experimental JDK 24 feature to a product option. It is not enabled by default in JDK 25. The setting takes effect only after restarting Minecraft.
+
+The VM option is queried through \`HotSpotDiagnosticMXBean\`. If a non-HotSpot VM or vendor build does not expose the option, Fiximizer does not guess or add the flag. If the class limit is reached, the flag is not recommended.
+
+### Java 21 and compatible fallback
+
+Java 21 does not expose the JDK 25 Compact Object Headers option. Fiximizer keeps Java 21-compatible bytecode and its bounded explicit String canonicalization API. G1 String Deduplication remains a separate, opt-in recommendation because it may add garbage-collection CPU work.
+
+### Runtime and build compatibility are separate
+
+- The mod's classes are compiled with \`--release 21\`; Java 21 remains the bytecode baseline.
+- Gradle 9.2.1 can run on JDK 21 or JDK 25. The Java 21 compiler toolchain is resolved separately through the configured Foojay resolver.
+- CI builds and runs unit tests with Gradle on both JDK 21 and JDK 25. This verifies the build toolchain and runtime capability detector; it does not replace a full Minecraft 1.21.1 client launch test on JDK 25.
+- Minecraft 1.21.1 / NeoForge's documented runtime baseline remains Java 21. Java 25-specific optimizations are used only when the player is actually running a JVM that exposes them.
+
+No garbage collector is switched automatically. Fiximizer leaves the JVM's selected collector unchanged.
