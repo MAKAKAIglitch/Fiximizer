@@ -22,7 +22,7 @@ public final class CreateContraptionProfiler {
 
     private static final RollingTickWindow WINDOW = new RollingTickWindow(WINDOW_TICKS);
     private static final ThreadLocal<IdentityHashMap<Entity, Long>> START_TIMES =
-            ThreadLocal.withInitial(IdentityHashMap::new);
+            new ThreadLocal<>();
     private static final ConcurrentHashMap<String, TypeCounter> TYPE_COUNTERS = new ConcurrentHashMap<>();
 
     private static final ClassValue<Boolean> CREATE_CONTRAPTION_CLASS = new ClassValue<>() {
@@ -46,24 +46,49 @@ public final class CreateContraptionProfiler {
     }
 
     public static void beginServerTick() {
-        START_TIMES.get().clear();
         currentEntityTicks = 0;
         currentTotalNanos = 0L;
         currentPeakEntityNanos = 0L;
+
+        if (!ModIntegrationManager.isActive("create")) {
+            START_TIMES.remove();
+            return;
+        }
+
+        IdentityHashMap<Entity, Long> starts = START_TIMES.get();
+        if (starts == null) {
+            START_TIMES.set(new IdentityHashMap<>());
+        } else {
+            starts.clear();
+        }
     }
 
     public static void beginEntityTick(Entity entity) {
-        if (!ModIntegrationManager.isActive("create")
-                || !(entity.level() instanceof ServerLevel)
+        if (!(entity.level() instanceof ServerLevel)
+                || !ModIntegrationManager.isActive("create")
                 || !CREATE_CONTRAPTION_CLASS.get(entity.getClass())) {
             return;
         }
 
-        START_TIMES.get().put(entity, System.nanoTime());
+        IdentityHashMap<Entity, Long> starts = START_TIMES.get();
+        if (starts == null) {
+            starts = new IdentityHashMap<>();
+            START_TIMES.set(starts);
+        }
+        starts.put(entity, System.nanoTime());
     }
 
     public static void endEntityTick(Entity entity) {
-        Long startedAt = START_TIMES.get().remove(entity);
+        if (!(entity.level() instanceof ServerLevel)) {
+            return;
+        }
+
+        IdentityHashMap<Entity, Long> starts = START_TIMES.get();
+        if (starts == null) {
+            return;
+        }
+
+        Long startedAt = starts.remove(entity);
         if (startedAt == null) {
             return;
         }
@@ -76,8 +101,13 @@ public final class CreateContraptionProfiler {
     }
 
     public static void endServerTick() {
-        START_TIMES.get().clear();
+        IdentityHashMap<Entity, Long> starts = START_TIMES.get();
+        if (starts != null) {
+            starts.clear();
+        }
+
         if (!ModIntegrationManager.isActive("create")) {
+            START_TIMES.remove();
             WINDOW.reset();
             TYPE_COUNTERS.clear();
             latest = Snapshot.empty();
