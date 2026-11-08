@@ -20,6 +20,9 @@ public final class JvmArgumentAdvisor {
     private static final long MIB = 1024L * 1024L;
     private static final long MAX_HEAP = 10L * GIB;
 
+    private static volatile Recommendation cachedRuntimeRecommendation;
+    private static volatile Boolean cachedG1Support;
+
     private JvmArgumentAdvisor() {
     }
 
@@ -28,15 +31,37 @@ public final class JvmArgumentAdvisor {
      * then delegates the calculation to the pure overload below.
      */
     public static Recommendation recommend() {
-        long totalPhysicalBytes = physicalMemoryTotal();
-        int modCount = safeModCount();
+        Recommendation base = runtimeRecommendation();
 
-        if (totalPhysicalBytes <= 0L) {
-            totalPhysicalBytes = Math.max(8L * GIB, Runtime.getRuntime().maxMemory() * 2L);
+        // Do not query collector MXBeans on every dashboard frame while the
+        // optional G1 setting is disabled (the default).
+        if (!FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get()) {
+            return base;
+        }
+        return withG1StringDeduplication(base, true, supportsG1StringDeduplication());
+    }
+
+    private static Recommendation runtimeRecommendation() {
+        Recommendation current = cachedRuntimeRecommendation;
+        if (current != null) {
+            return current;
         }
 
-        Recommendation base = recommend(totalPhysicalBytes, modCount);
-        return appendOptionalStringDeduplication(base);
+        synchronized (JvmArgumentAdvisor.class) {
+            current = cachedRuntimeRecommendation;
+            if (current == null) {
+                long totalPhysicalBytes = physicalMemoryTotal();
+                int modCount = safeModCount();
+
+                if (totalPhysicalBytes <= 0L) {
+                    totalPhysicalBytes = Math.max(8L * GIB, Runtime.getRuntime().maxMemory() * 2L);
+                }
+
+                current = recommend(totalPhysicalBytes, modCount);
+                cachedRuntimeRecommendation = current;
+            }
+        }
+        return current;
     }
 
     /**
@@ -91,16 +116,20 @@ public final class JvmArgumentAdvisor {
      * Reading collector names is a one-time advisor/UI operation, not a tick hook.
      */
     public static boolean supportsG1StringDeduplication() {
-        return ManagementFactory.getGarbageCollectorMXBeans().stream()
-                .anyMatch(bean -> bean.getName().toLowerCase(Locale.ROOT).contains("g1"));
-    }
+        Boolean current = cachedG1Support;
+        if (current != null) {
+            return current;
+        }
 
-    private static Recommendation appendOptionalStringDeduplication(Recommendation base) {
-        return withG1StringDeduplication(
-                base,
-                FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get(),
-                supportsG1StringDeduplication()
-        );
+        synchronized (JvmArgumentAdvisor.class) {
+            current = cachedG1Support;
+            if (current == null) {
+                current = ManagementFactory.getGarbageCollectorMXBeans().stream()
+                        .anyMatch(bean -> bean.getName().toLowerCase(Locale.ROOT).contains("g1"));
+                cachedG1Support = current;
+            }
+        }
+        return current;
     }
 
     /**
