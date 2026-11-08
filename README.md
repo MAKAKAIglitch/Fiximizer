@@ -5,7 +5,7 @@
   <p><strong>Measure the bottleneck. Understand the cause. Tune what Fiximizer actually controls.</strong></p>
 
   <p>
-    <a href="README_RU.md">Русская версия</a> ·
+    <a href="README.ru.md">Русская версия</a> ·
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml">CI builds</a> ·
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/issues">Issues</a> ·
     <a href="BUILDING.md">Build guide</a>
@@ -15,7 +15,7 @@
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/MAKAKAIglitch/Fiximizer/build.yml?branch=main&label=build" alt="Build status"></a>
     <img src="https://img.shields.io/badge/version-0.14.0--alpha-orange" alt="Version 0.14.0-alpha">
     <img src="https://img.shields.io/badge/Minecraft-1.21.1-62A75B?logo=minecraft&logoColor=white" alt="Minecraft 1.21.1">
-    <img src="https://img.shields.io/badge/NeoForge-21.1.265%2B-4B6FAD" alt="NeoForge 21.1.265 or newer">
+    <img src="https://img.shields.io/badge/NeoForge-21.1.256%2B-4B6FAD" alt="NeoForge 21.1.256 or newer in the 21.1 line">
     <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MAKAKAIglitch/Fiximizer" alt="MIT License"></a>
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/stargazers"><img src="https://img.shields.io/github/stars/MAKAKAIglitch/Fiximizer?style=social" alt="GitHub stars"></a>
@@ -242,7 +242,7 @@ GPU identification and total VRAM can be read through the game-provided API. Liv
 | Component | Requirement |
 |---|---|
 | Minecraft | Java Edition **1.21.1** |
-| Mod loader | **NeoForge 21.1.265 or newer** in the supported 1.21.1 range |
+| Mod loader | **NeoForge 21.1.256 or newer compatible 21.1.x releases** |
 | Java runtime | **Java 21** |
 | Build JDK | **JDK 21** |
 | Optional integrations | Create, Create Aeronautics, Sable, Distant Horizons and Voxy |
