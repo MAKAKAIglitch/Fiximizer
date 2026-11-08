@@ -1,16 +1,11 @@
 package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
-import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
-import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
-import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
-import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
-import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
+import com.makakaiglitch.fiximizer.startup.StartupOptimizer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.commands.Commands;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -19,20 +14,11 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 
 /**
- * Client interactions and deliberately deferred optional startup work.
- *
- * Expensive hardware probes and the mod/JAR attribution index are started
- * only after the title screen or a loaded world has been ticking for a short
- * while. This keeps the critical mod-loader and initial client startup path
- * free of optional diagnostics work.
+ * Client interactions. StartupOptimizer owns the one-shot, deferred startup
+ * work so optional diagnostics do not compete with the loader or first screen.
  */
 @EventBusSubscriber(modid = Fiximizer.MOD_ID, value = Dist.CLIENT)
 public final class ClientGameEvents {
-    private static final int DEFERRED_STARTUP_DELAY_TICKS = 40;
-
-    private static int stableClientTicks;
-    private static boolean deferredStartupComplete;
-
     private ClientGameEvents() {
     }
 
@@ -51,9 +37,9 @@ public final class ClientGameEvents {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        startDeferredServicesWhenReady(minecraft);
+        StartupOptimizer.onClientTick(minecraft);
 
-        if (deferredStartupComplete) {
+        if (StartupOptimizer.completed()) {
             DiagnosticsService.tick();
         }
 
@@ -75,42 +61,5 @@ public final class ClientGameEvents {
             minecraft.setScreen(new FiximizerScreen(minecraft.screen));
         }
         return 1;
-    }
-
-    private static void startDeferredServicesWhenReady(Minecraft minecraft) {
-        if (deferredStartupComplete) {
-            return;
-        }
-
-        // Do not compete with the resource-pack/loading screens. Count only
-        // stable title-screen or gameplay ticks, then initialize optional
-        // monitoring once per client process.
-        boolean clientReady = minecraft.level != null || minecraft.screen instanceof TitleScreen;
-        if (!clientReady) {
-            stableClientTicks = 0;
-            return;
-        }
-
-        stableClientTicks++;
-        if (stableClientTicks < DEFERRED_STARTUP_DELAY_TICKS) {
-            return;
-        }
-
-        deferredStartupComplete = true;
-        SablePhysicsProfiler.registerIfLoaded();
-        StallWatchdog.start(minecraft.gameDirectory.toPath());
-
-        if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
-            GpuTelemetryService.start();
-        }
-        if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()
-                && OptimizationProfileManager.current().openClAllowed()) {
-            OpenClService.probeAsync();
-        }
-
-        Fiximizer.LOGGER.info(
-                "Deferred diagnostics started after {} stable client ticks.",
-                stableClientTicks
-        );
     }
 }
