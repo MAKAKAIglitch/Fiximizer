@@ -200,6 +200,35 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ok "Using JDK 21: $JAVA_HOME"
 printf '%s\n' "$FOUND_JDK_VERSION"
 
+# Build the optional Rust statistics backend only when Cargo is already available.
+# Java remains the guaranteed fallback for machines without a Rust toolchain.
+case "$(uname -m)" in
+    x86_64|amd64)
+        NATIVE_RESOURCE_DIR="$PROJECT_ROOT/src/main/resources/assets/fiximizer/native/linux-x86_64"
+        NATIVE_LIBRARY="$PROJECT_ROOT/native/network/target/release/libfiximizer_network_native.so"
+        rm -f "$NATIVE_RESOURCE_DIR/libfiximizer_network_native.so"
+        if command -v cargo >/dev/null 2>&1; then
+            info "Building optional Rust network statistics backend..."
+            if cargo build --manifest-path "$PROJECT_ROOT/native/network/Cargo.toml" --release; then
+                if [ -f "$NATIVE_LIBRARY" ]; then
+                    mkdir -p "$NATIVE_RESOURCE_DIR"
+                    cp "$NATIVE_LIBRARY" "$NATIVE_RESOURCE_DIR/"
+                    ok "Rust network backend staged for linux-x86_64."
+                else
+                    warn "Rust build succeeded but the expected native library was not found; Java fallback will be used."
+                fi
+            else
+                warn "Rust backend build failed; continuing with the Java network backend."
+            fi
+        else
+            warn "Cargo was not found; continuing with the Java network backend."
+        fi
+        ;;
+    *)
+        warn "Rust native backend is not packaged for $(uname -m); continuing with the Java backend."
+        ;;
+esac
+
 if [ "$#" -eq 0 ]; then
     set -- build --build-cache --parallel
 else
