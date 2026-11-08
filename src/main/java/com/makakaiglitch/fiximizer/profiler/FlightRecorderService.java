@@ -8,6 +8,7 @@ import jdk.jfr.Recording;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.ParseException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -61,7 +62,7 @@ public final class FlightRecorderService {
             message = "Recording";
             Fiximizer.LOGGER.info("JFR performance recording started.");
             return true;
-        } catch (IOException | RuntimeException | LinkageError exception) {
+        } catch (IOException | ParseException | RuntimeException | LinkageError exception) {
             state = State.FAILED;
             message = "Unable to start JFR: " + safeMessage(exception);
             Fiximizer.LOGGER.error("Unable to start Fiximizer JFR recording.", exception);
