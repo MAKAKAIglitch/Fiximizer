@@ -176,5 +176,12 @@
   "config.fiximizer.watchdog.jfr_size": "Максимальный размер кольцевого буфера JFR (МиБ)",
   "config.fiximizer.watchdog.jfr_interval": "Минимальный интервал между экспортами JFR при зависаниях (мс)",
   "config.fiximizer.watchdog.jfr_retention": "Максимум сохраняемых JFR-снимков зависаний",
-  "screen.fiximizer.watchdog_jfr_analysis": "Автоматический анализ JFR: %s"
+  "screen.fiximizer.watchdog_jfr_analysis": "Автоматический анализ JFR: %s",
+  "config.fiximizer.memory.string_dedup": "Включить ограниченную дедупликацию строк через слабые ссылки для явно переданных метаданных интеграций (без сканирования heap и фоновых задач)",
+  "config.fiximizer.memory.g1_string_dedup": "Добавлять необязательную дедупликацию строк G1 в рекомендации JVM (нужен перезапуск, возможна дополнительная нагрузка на CPU при GC)",
+  "screen.fiximizer.memory.string_dedup_toggle": "Общие строки интеграций: %s",
+  "screen.fiximizer.memory.g1_string_dedup_toggle": "Дедупликация G1 в JVM: %s (%s)",
+  "screen.fiximizer.memory.g1_supported": "G1 обнаружен",
+  "screen.fiximizer.memory.g1_unavailable": "G1 не обнаружен",
+  "screen.fiximizer.memory.stats": "Кэш строк: попаданий %s | регистраций %s | вытеснений %s | занято %s/%s"
 }
