@@ -82,6 +82,7 @@ public final class FiximizerScreen extends Screen {
     private Button networkTelemetryButton;
     private Button networkBackendButton;
     private Button networkNativeBackendButton;
+    private Button networkNativeBackendButton;
     private Button networkTcpNoDelayButton;
     private Button networkBenchmarkButton;
 
@@ -329,6 +330,18 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 189, 340, 20).build());
 
+        networkNativeBackendButton = addRenderableWidget(Button.builder(
+                networkNativeBackendLabel(),
+                button -> {
+                    FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.set(
+                            !FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()
+                    );
+                    FiximizerConfig.SPEC.save();
+                    NetworkBackendSelector.reselectAsync();
+                    networkNativeBackendButton.setMessage(networkNativeBackendLabel());
+                }
+        ).bounds(contentLeft, panelTop + 189, 340, 20).build());
+
         networkBenchmarkButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.network_benchmark_button"),
                 button -> {
@@ -543,6 +556,15 @@ public final class FiximizerScreen extends Screen {
             default -> "Auto";
         };
         return Component.translatable("screen.fiximizer.network_backend_button", mode);
+    }
+
+    private Component networkNativeBackendLabel() {
+        return Component.translatable(
+                "screen.fiximizer.network_native_backend_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
     }
 
     private Component serverTickProfilerLabel() {
