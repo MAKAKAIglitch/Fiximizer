@@ -29,17 +29,32 @@ public final class NetworkCompatibilityDetector {
             found.add("Krypton Foxified");
             externalStackOptimizer = true;
         }
-        if (mods.isLoaded("connectivity")) found.add("Connectivity");
-        if (mods.isLoaded("packetfixer") || mods.isLoaded("packet_fixer")) found.add("Packet Fixer");
-        if (mods.isLoaded("connectionpacketfixer")) found.add("Connection Packet Fixer");
-        if (mods.isLoaded("viaforge")) found.add("ViaForge");
-        if (mods.isLoaded("viaversion")) found.add("ViaVersion");
+        if (mods.isLoaded("connectivity")) {
+            found.add("Connectivity");
+            externalStackOptimizer = true;
+        }
+        if (mods.isLoaded("packetfixer") || mods.isLoaded("packet_fixer")) {
+            found.add("Packet Fixer");
+            externalStackOptimizer = true;
+        }
+        if (mods.isLoaded("connectionpacketfixer")) {
+            found.add("Connection Packet Fixer");
+            externalStackOptimizer = true;
+        }
+        if (mods.isLoaded("viaforge")) {
+            found.add("ViaForge");
+            externalStackOptimizer = true;
+        }
+        if (mods.isLoaded("viaversion")) {
+            found.add("ViaVersion");
+            externalStackOptimizer = true;
+        }
 
         String policy = externalStackOptimizer
-                ? "External Netty optimizer detected; Fiximizer uses passive telemetry"
-                : "No known external Netty optimizer detected";
+                ? "External networking modifier detected; Fiximizer keeps active socket tuning disabled"
+                : "No known external networking modifier detected";
         if (found.contains("Krypton") && found.contains("Krypton Reno")) {
-            policy = "Multiple Netty optimizers detected; Fiximizer remains passive";
+            policy = "Multiple network modifiers detected; Fiximizer remains passive";
         }
         snapshot = new Snapshot(List.copyOf(found), policy, externalStackOptimizer);
     }
