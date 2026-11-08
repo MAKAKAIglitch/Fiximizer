@@ -83,7 +83,10 @@ public final class StringDeduplicator {
                 }
 
                 if (current.hash() == hash && existing.equals(value)) {
-                    hits.increment();
+                    // Seeing the exact same object again is not a memory saving.
+                    if (existing != value) {
+                        hits.increment();
+                    }
                     return existing;
                 }
             }
