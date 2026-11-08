@@ -40,6 +40,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_VOXY_INTEGRATION;
 
     public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_TELEMETRY;
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_TCP_NODELAY;
     public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_NATIVE_BACKEND;
     public static final ModConfigSpec.IntValue NETWORK_BACKEND_MODE;
 
@@ -223,6 +224,11 @@ public final class FiximizerConfig {
                 .comment("Enable passive client-side Netty byte and server-reported latency telemetry.")
                 .translation("config.fiximizer.network.telemetry")
                 .define("enableTelemetry", false);
+
+        ENABLE_NETWORK_TCP_NODELAY = BUILDER
+                .comment("Prefer TCP_NODELAY on the client socket when it is currently disabled and no external stack optimizer is detected.")
+                .translation("config.fiximizer.network.tcp_nodelay")
+                .define("preferTcpNoDelay", true);
 
         ENABLE_NETWORK_NATIVE_BACKEND = BUILDER
                 .comment("Allow the optional Rust native backend for local network-statistics processing.")
