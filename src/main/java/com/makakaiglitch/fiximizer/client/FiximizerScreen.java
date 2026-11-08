@@ -252,7 +252,7 @@ public final class FiximizerScreen extends Screen {
                     }
                     memoryDedupButton.setMessage(memoryDedupLabel());
                 }
-        ).bounds(contentLeft, panelTop + 245, 165, 20).build());
+        ).bounds(contentLeft, panelTop + 260, 165, 20).build());
 
         g1StringDedupButton = addRenderableWidget(Button.builder(
                 g1StringDedupLabel(),
@@ -262,7 +262,7 @@ public final class FiximizerScreen extends Screen {
                     FiximizerConfig.SPEC.save();
                     g1StringDedupButton.setMessage(g1StringDedupLabel());
                 }
-        ).bounds(contentLeft + 175, panelTop + 245, 165, 20).build());
+        ).bounds(contentLeft + 175, panelTop + 260, 165, 20).build());
 
         gpuSpillButton = addRenderableWidget(Button.builder(
                 gpuSpillLabel(),
@@ -1137,31 +1137,30 @@ public final class FiximizerScreen extends Screen {
                 0xFFB9C9DC);
 
         StringDeduplicator.Snapshot stats = MemoryOptimizer.stringSnapshot();
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.memory.stats",
-                        stats.hits(),
-                        stats.registrations(),
-                        stats.staleReuses(),
-                        stats.collisionEvictions(),
-                        stats.contentionFallbacks(),
-                        stats.occupiedSlots(),
-                        stats.capacity()),
-                contentLeft,
-                panelTop + 132,
-                contentWidth - 8,
-                0xFF9BD9B0);
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.memory.stats_hits",
+                        stats.hits(), stats.registrations()),
+                contentLeft, panelTop + 130, 0xFF9BD9B0);
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.memory.stats_evictions",
+                        stats.staleReuses(), stats.collisionEvictions(), stats.contentionFallbacks()),
+                contentLeft, panelTop + 145, 0xFF9FB3C8);
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.memory.stats_capacity",
+                        stats.occupiedSlots(), stats.capacity()),
+                contentLeft, panelTop + 160, 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.memory.scope"),
                 contentLeft,
-                panelTop + 171,
+                panelTop + 181,
                 contentWidth - 8,
                 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.memory.g1_note"),
                 contentLeft,
-                panelTop + 202,
+                panelTop + 218,
                 contentWidth - 8,
                 0xFFFFC078);
     }
