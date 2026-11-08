@@ -101,5 +101,12 @@
   "config.fiximizer.integrations.distanthorizons": "Интеграция Distant Horizons",
   "config.fiximizer.integrations.voxy": "Интеграция Voxy",
   "screen.fiximizer.gpu_spill_toggle": "VRAM-кэш: %s",
-  "screen.fiximizer.gpu_spill_limit": "Лимит VRAM-кэша: %s МиБ  •  нажми для изменения"
+  "screen.fiximizer.gpu_spill_limit": "Лимит VRAM-кэша: %s МиБ  •  нажми для изменения",
+  "screen.fiximizer.create_profiler_title": "Create: замер контрапций (100 серверных тиков)",
+  "screen.fiximizer.create_profiler_inactive": "Интеграция Create отключена.",
+  "screen.fiximizer.create_profiler_waiting": "Ожидание локальных серверных тиков...",
+  "screen.fiximizer.create_profiler_no_entities": "За последние %s серверных тиков контрапции не тикали.",
+  "screen.fiximizer.create_profiler_stats": "Тиков контрапций: %s | среднее за тик сервера: %s мс",
+  "screen.fiximizer.create_profiler_timing": "Среднее время тика: %s мс | максимум: %s мс",
+  "screen.fiximizer.create_profiler_top": "Самый затратный тип за сессию: %s (%s мс)"
 }
