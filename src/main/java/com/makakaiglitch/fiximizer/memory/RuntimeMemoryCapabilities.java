@@ -43,7 +43,7 @@ public final class RuntimeMemoryCapabilities {
      * Compact Object Headers were experimental there and required an extra
      * experimental-options unlock. JDK 25 promoted the flag to product status.
      */
-    static Snapshot evaluate(
+    public static Snapshot evaluate(
             int javaMajor,
             boolean compactHeadersOptionAvailable,
             boolean compactHeadersEnabled,
