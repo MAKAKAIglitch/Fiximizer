@@ -18,7 +18,6 @@ public final class StringDeduplicator {
     private static final int MAX_CAS_RETRIES = 3;
     private static final int MINIMUM_STRING_LENGTH = 8;
 
-    private final int setCount;
     private final int setMask;
     private final AtomicReferenceArray<Entry> entries;
     private final AtomicInteger occupiedSlots = new AtomicInteger();
@@ -40,7 +39,6 @@ public final class StringDeduplicator {
         if (setCount < 1 || setCount > 4096 || Integer.bitCount(setCount) != 1) {
             throw new IllegalArgumentException("setCount must be a power of two between 1 and 4096");
         }
-        this.setCount = setCount;
         this.setMask = setCount - 1;
         this.entries = new AtomicReferenceArray<>(setCount * WAYS);
     }
@@ -58,32 +56,42 @@ public final class StringDeduplicator {
         int hash = value.hashCode();
         int spread = hash ^ (hash >>> 16);
         int bucketStart = (spread & setMask) * WAYS;
+        int preferredIndex = bucketStart + ((spread >>> 8) & (WAYS - 1));
 
         for (int attempt = 0; attempt < MAX_CAS_RETRIES; attempt++) {
             int firstEmpty = -1;
+            Entry firstEmptyExpected = null;
             int firstStale = -1;
+            Entry firstStaleExpected = null;
+            Entry preferredExpected = null;
 
             for (int way = 0; way < WAYS; way++) {
                 int index = bucketStart + way;
-                Entry current = entries.get(index);
+                Entry observed = entries.get(index);
 
-                if (current == null) {
+                if (index == preferredIndex) {
+                    preferredExpected = observed;
+                }
+
+                if (observed == null) {
                     if (firstEmpty < 0) {
                         firstEmpty = index;
+                        firstEmptyExpected = null;
                     }
                     continue;
                 }
 
-                String existing = current.value().get();
+                String existing = observed.value().get();
                 if (existing == null) {
                     if (firstStale < 0) {
                         firstStale = index;
+                        firstStaleExpected = observed;
                     }
                     continue;
                 }
 
-                if (current.hash() == hash && existing.equals(value)) {
-                    // Seeing the exact same object again is not a memory saving.
+                if (observed.hash() == hash && existing.equals(value)) {
+                    // Re-reading the exact same object is not a memory saving.
                     if (existing != value) {
                         hits.increment();
                     }
@@ -91,30 +99,38 @@ public final class StringDeduplicator {
                 }
             }
 
-            int target = firstStale >= 0
-                    ? firstStale
-                    : firstEmpty >= 0
-                    ? firstEmpty
-                    : bucketStart + ((spread >>> 8) & (WAYS - 1));
+            final int target;
+            final Entry expected;
+            if (firstStale >= 0) {
+                target = firstStale;
+                expected = firstStaleExpected;
+            } else if (firstEmpty >= 0) {
+                target = firstEmpty;
+                expected = firstEmptyExpected;
+            } else {
+                target = preferredIndex;
+                expected = preferredExpected;
+            }
 
-            Entry previous = entries.get(target);
             Entry replacement = new Entry(hash, new WeakReference<>(value));
-            if (entries.compareAndSet(target, previous, replacement)) {
+
+            // CAS against the exact entry observed during the scan. Reading the
+            // slot again here would allow this thread to overwrite a concurrent
+            // canonical registration instead of retrying and reusing it.
+            if (entries.compareAndSet(target, expected, replacement)) {
                 registrations.increment();
-                if (previous == null) {
+                if (expected == null) {
                     occupiedSlots.incrementAndGet();
-                } else if (previous.value().get() == null) {
+                } else if (expected.value().get() == null) {
                     staleReuses.increment();
                 } else {
                     collisionEvictions.increment();
                 }
                 return value;
             }
-
-            contentionFallbacks.increment();
         }
 
-        // Under heavy contention, bypass instead of spinning or blocking a caller.
+        // Under contention, bypass instead of spinning or blocking the caller.
         contentionFallbacks.increment();
         return value;
     }
