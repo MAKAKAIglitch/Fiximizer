@@ -183,5 +183,10 @@
   "screen.fiximizer.memory.g1_string_dedup_toggle": "G1 JVM dedup: %s (%s)",
   "screen.fiximizer.memory.g1_supported": "G1 detected",
   "screen.fiximizer.memory.g1_unavailable": "G1 not detected",
-  "screen.fiximizer.memory.stats": "String cache: %s hits | %s registrations | %s collision evictions | %s/%s slots"
+  "screen.fiximizer.memory.stats": "String cache: %s duplicate hits | %s registered | %s stale slots reused | %s collision evictions | %s contention bypasses | %s/%s slots occupied",
+  "screen.fiximizer.tab_memory": "Memory",
+  "screen.fiximizer.memory.title": "Memory optimizer",
+  "screen.fiximizer.memory.intro": "Bounded, opt-in sharing of explicitly submitted immutable metadata. The cache is created only after first use; no heap scan, global object rewrite or recurring task is performed.",
+  "screen.fiximizer.memory.scope": "Scope: only values passed through Fiximizer's canonicalize API are considered. A hit means an equal live String instance was reused. Zero hits means no memory saving has been observed yet.",
+  "screen.fiximizer.memory.g1_note": "G1 option: JVM-managed String Deduplication can merge duplicate String storage across the heap. It requires G1 and a restart, and may add garbage-collection CPU work."
 }
