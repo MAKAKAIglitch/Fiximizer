@@ -12,7 +12,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class GpuTelemetryService {
     private static final AtomicBoolean STARTED = new AtomicBoolean();
@@ -42,6 +41,7 @@ public final class GpuTelemetryService {
     }
 
     private static void initialize() {
+        List<GpuSensor> discovered = new ArrayList<>();
         try {
             List<GraphicsCard> cards = new SystemInfo().getHardware().getGraphicsCards();
             if (cards.isEmpty()) {
@@ -49,11 +49,10 @@ public final class GpuTelemetryService {
                 return;
             }
 
-            List<GpuSensor> discovered = new ArrayList<>();
             for (GraphicsCard card : cards) {
                 GpuStats stats = card.createStatsSession();
-                stats.getGpuUtilization(); // Prime delta-based utilization backends.
                 discovered.add(new GpuSensor(card, stats));
+                stats.getGpuUtilization(); // Prime delta-based utilization backends.
             }
 
             sensors = List.copyOf(discovered);
@@ -65,18 +64,21 @@ public final class GpuTelemetryService {
                     2L,
                     TimeUnit.SECONDS
             );
-        } catch (Throwable throwable) {
-            status = "GPU telemetry unavailable: " + safeMessage(throwable);
-            Fiximizer.LOGGER.warn("GPU telemetry is unavailable; CPU-only scheduling remains active.", throwable);
+        } catch (LinkageError | RuntimeException exception) {
+            closeSensors(discovered);
+            sensors = List.of();
+            latest = List.of();
+            status = "GPU telemetry unavailable: " + safeMessage(exception);
+            Fiximizer.LOGGER.warn("GPU telemetry is unavailable; CPU-only scheduling remains active.", exception);
         }
     }
 
     private static void sampleSafely() {
         try {
             sample();
-        } catch (Throwable throwable) {
-            status = "GPU telemetry error: " + safeMessage(throwable);
-            Fiximizer.LOGGER.debug("GPU telemetry sample failed.", throwable);
+        } catch (LinkageError | RuntimeException exception) {
+            status = "GPU telemetry error: " + safeMessage(exception);
+            Fiximizer.LOGGER.debug("GPU telemetry sample failed.", exception);
         }
     }
 
@@ -111,14 +113,18 @@ public final class GpuTelemetryService {
             current.shutdownNow();
         }
 
-        for (GpuSensor sensor : sensors) {
+        closeSensors(sensors);
+        sensors = List.of();
+    }
+
+    private static void closeSensors(List<GpuSensor> values) {
+        for (GpuSensor sensor : values) {
             try {
                 sensor.stats().close();
-            } catch (RuntimeException ignored) {
-                // Best-effort release during JVM shutdown.
+            } catch (RuntimeException | LinkageError ignored) {
+                // Best-effort release during initialization failure or JVM shutdown.
             }
         }
-        sensors = List.of();
     }
 
     private static String safeMessage(Throwable throwable) {

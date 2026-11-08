@@ -1,25 +1,25 @@
 modLoader="javafml"
 loaderVersion="[1,)"
-license="MIT"
+license="${mod_license}"
 
 [[mods]]
-modId="fiximizer"
-version="0.1.0-alpha"
-displayName="Fiximizer"
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
 description='''
-Intelligent diagnostics and modular performance toolkit for Minecraft 1.21.1.
+Intelligent diagnostics, profiling, adaptive task scheduling and optional GPU compute detection for Minecraft 1.21.1.
 '''
 
-[[dependencies.fiximizer]]
+[[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
-versionRange="[21.1.265,)"
+versionRange="${neo_version_range}"
 ordering="NONE"
 side="BOTH"
 
-[[dependencies.fiximizer]]
+[[dependencies.${mod_id}]]
 modId="minecraft"
 type="required"
-versionRange="[1.21.1,1.21.2)"
+versionRange="${minecraft_version_range}"
 ordering="NONE"
 side="BOTH"
