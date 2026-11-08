@@ -7,7 +7,7 @@
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/stargazers"><img src="https://img.shields.io/github/stars/MAKAKAIglitch/Fiximizer?style=for-the-badge&logo=github" alt="GitHub stars"></a>
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MAKAKAIglitch/Fiximizer?style=for-the-badge" alt="MIT license"></a>
     <img src="https://img.shields.io/badge/Minecraft-1.21.1-3C8B55?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.21.1">
-    <img src="https://img.shields.io/badge/NeoForge-21.1.265%2B-E56B36?style=for-the-badge" alt="NeoForge">
+    <img src="https://img.shields.io/badge/NeoForge-21.1.256%2B-E56B36?style=for-the-badge" alt="NeoForge 21.1.256 and newer in the 21.1 line">
     <img src="https://img.shields.io/badge/Java-21-4479A1?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21">
     <img src="https://img.shields.io/badge/Version-0.14.0--alpha-9B83FF?style=for-the-badge" alt="Version 0.14.0 alpha">
   </p>
@@ -66,12 +66,12 @@ flowchart TD
 | Component | Target |
 |---|---|
 | Minecraft | **1.21.1** |
-| Mod loader | **NeoForge**, built against <code>21.1.265</code> |
+| Mod loader | **NeoForge 21.1.256 and newer 21.1.x releases**, built against <code>21.1.256</code> |
 | Java runtime | **Java 21** |
 | Project version | **<code>0.14.0-alpha</code>** |
 | Mod ID | <code>fiximizer</code> |
 
-The declared Minecraft version range is <code>[1.21.1, 1.21.2)</code>. The NeoForge dependency range starts at <code>21.1.265</code>. Use a Java 21 runtime for the game instance.
+The declared Minecraft version range is <code>[1.21.1, 1.21.2)</code>. The NeoForge dependency range is <code>[21.1.256, 21.2)</code>: it accepts 21.1.256 and newer releases in the same 21.1 line, while staying on Minecraft 1.21.1. CI compiles against both the minimum supported version (21.1.256) and a newer 21.1.x baseline (21.1.265). Use a Java 21 runtime for the game instance.
 
 Fiximizer includes English and Russian in-game translations.
 
