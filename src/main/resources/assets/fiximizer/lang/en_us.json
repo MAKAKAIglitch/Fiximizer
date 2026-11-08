@@ -1,0 +1,20 @@
+{
+  "key.categories.fiximizer": "Fiximizer",
+  "key.fiximizer.open_dashboard": "Open diagnostics dashboard",
+  "screen.fiximizer.title": "Fiximizer",
+  "screen.fiximizer.subtitle": "Local runtime diagnostics",
+  "screen.fiximizer.waiting_for_sample": "Waiting for the first diagnostic sample...",
+  "screen.fiximizer.heap_used": "Heap used: %s / %s max (%s%%)",
+  "screen.fiximizer.heap_committed": "Heap committed: %s",
+  "screen.fiximizer.runtime": "Processors: %s | Loaded mods: %s | OS load average: %s",
+  "screen.fiximizer.unavailable": "unavailable",
+  "screen.fiximizer.compatibility_header": "Optional mod detection (presence only):",
+  "screen.fiximizer.compatibility_disabled": "Optional-mod detection is disabled in config.",
+  "screen.fiximizer.detected": "detected",
+  "screen.fiximizer.not_detected": "not found",
+  "screen.fiximizer.refresh": "Refresh",
+  "config.fiximizer.diagnostics.enabled": "Enable diagnostic sampling",
+  "config.fiximizer.diagnostics.sample_interval": "Sampling interval (seconds)",
+  "config.fiximizer.diagnostics.startup_summary": "Log compatibility summary at startup",
+  "config.fiximizer.compatibility.detect_mods": "Detect known optional mods"
+}

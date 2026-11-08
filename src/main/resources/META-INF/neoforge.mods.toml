@@ -1,0 +1,25 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT"
+
+[[mods]]
+modId="fiximizer"
+version="0.1.0-alpha"
+displayName="Fiximizer"
+description='''
+Intelligent diagnostics and modular performance toolkit for Minecraft 1.21.1.
+'''
+
+[[dependencies.fiximizer]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.265,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.fiximizer]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="BOTH"

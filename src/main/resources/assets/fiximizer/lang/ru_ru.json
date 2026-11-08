@@ -1,0 +1,20 @@
+{
+  "key.categories.fiximizer": "Fiximizer",
+  "key.fiximizer.open_dashboard": "Открыть панель диагностики",
+  "screen.fiximizer.title": "Fiximizer",
+  "screen.fiximizer.subtitle": "Локальная диагностика игры",
+  "screen.fiximizer.waiting_for_sample": "Ожидание первого замера...",
+  "screen.fiximizer.heap_used": "Используется heap: %s / %s максимум (%s%%)",
+  "screen.fiximizer.heap_committed": "Выделено JVM: %s",
+  "screen.fiximizer.runtime": "Процессоры: %s | Загружено модов: %s | Средняя нагрузка ОС: %s",
+  "screen.fiximizer.unavailable": "недоступно",
+  "screen.fiximizer.compatibility_header": "Обнаружение дополнительных модов (только наличие):",
+  "screen.fiximizer.compatibility_disabled": "Обнаружение модов отключено в конфигурации.",
+  "screen.fiximizer.detected": "обнаружен",
+  "screen.fiximizer.not_detected": "не найден",
+  "screen.fiximizer.refresh": "Обновить",
+  "config.fiximizer.diagnostics.enabled": "Включить сбор диагностики",
+  "config.fiximizer.diagnostics.sample_interval": "Интервал замеров (секунды)",
+  "config.fiximizer.diagnostics.startup_summary": "Записывать сводку совместимости при запуске",
+  "config.fiximizer.compatibility.detect_mods": "Обнаруживать известные дополнительные моды"
+}

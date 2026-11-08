@@ -1,0 +1,26 @@
+### Gradle ###
+.gradle/
+build/
+out/
+
+### IDEs ###
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.run/
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+.factorypath
+.apt_generated/
+bin/
+
+### Minecraft development ###
+run/
+runs/
+logs/
+crash-reports/
