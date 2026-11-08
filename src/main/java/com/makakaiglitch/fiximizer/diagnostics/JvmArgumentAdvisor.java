@@ -17,12 +17,15 @@ import java.util.Locale;
 public final class JvmArgumentAdvisor {
     private static final long GIB = 1024L * 1024L * 1024L;
     private static final long MIB = 1024L * 1024L;
-    private static final long MIN_HEAP = 2L * GIB;
     private static final long MAX_HEAP = 10L * GIB;
 
     private JvmArgumentAdvisor() {
     }
 
+    /**
+     * Production entry point. Reads runtime information from Java/NeoForge,
+     * then delegates the calculation to the pure overload below.
+     */
     public static Recommendation recommend() {
         long totalPhysicalBytes = physicalMemoryTotal();
         int modCount = safeModCount();
@@ -31,17 +34,35 @@ public final class JvmArgumentAdvisor {
             totalPhysicalBytes = Math.max(8L * GIB, Runtime.getRuntime().maxMemory() * 2L);
         }
 
+        return recommend(totalPhysicalBytes, modCount);
+    }
+
+    /**
+     * Pure calculation entry point. It can be unit-tested without bootstrapping
+     * Minecraft or loading NeoForge's ModList.
+     */
+    public static Recommendation recommend(long totalPhysicalBytes, int modCount) {
+        if (totalPhysicalBytes <= 0L) {
+            throw new IllegalArgumentException("Physical memory must be a positive byte count.");
+        }
+        if (modCount < 0) {
+            throw new IllegalArgumentException("Loaded mod count cannot be negative.");
+        }
+
         double ratio = modCount >= 150 ? 0.38 : modCount >= 80 ? 0.32 : 0.28;
         long suggested = (long) (totalPhysicalBytes * ratio);
+
+        // Keep a proportional minimum on small-RAM systems instead of forcing a fixed 2 GiB heap.
+        long minimumHeap = Math.min(2L * GIB, Math.max(GIB, (long) (totalPhysicalBytes * 0.35)));
 
         // Round down to 512 MiB so the recommendation does not oversubscribe the machine.
         long halfGib = GIB / 2L;
         suggested = (suggested / halfGib) * halfGib;
-        suggested = Math.max(MIN_HEAP, Math.min(MAX_HEAP, suggested));
+        suggested = Math.min(MAX_HEAP, suggested);
 
-        // Keep room for Windows, the launcher, GPU driver and other applications.
+        // Reserve at least 60% of physical RAM for Windows, launcher, GPU driver and other applications.
         long physicalLimit = (long) (totalPhysicalBytes * 0.40);
-        suggested = Math.min(suggested, Math.max(MIN_HEAP, physicalLimit));
+        suggested = Math.max(minimumHeap, Math.min(suggested, physicalLimit));
 
         long initial = Math.max(GIB, Math.min(2L * GIB, suggested / 4L));
         String arguments = "-Xms" + formatMiB(initial) + " -Xmx" + formatMiB(suggested);
@@ -89,7 +110,7 @@ public final class JvmArgumentAdvisor {
     private static int safeModCount() {
         try {
             return ModList.get().getMods().size();
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException | LinkageError exception) {
             return 0;
         }
     }

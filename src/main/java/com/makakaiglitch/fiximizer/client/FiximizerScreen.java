@@ -369,17 +369,17 @@ public final class FiximizerScreen extends Screen {
 
     private void drawOverview(GuiGraphics graphics) {
         DiagnosticsSnapshot snapshot = DiagnosticsService.latest();
-        int y = panelTop + 58;
+        int y = panelTop + 56;
 
         drawSectionTitle(graphics, "screen.fiximizer.overview_title", y);
-        y += 25;
+        y += 24;
 
         drawValue(graphics, "screen.fiximizer.heap",
                 DiagnosticsService.formatBytes(snapshot.usedHeapBytes()),
                 DiagnosticsService.formatBytes(snapshot.maxHeapBytes()),
                 String.format(Locale.ROOT, "%.1f", snapshot.maxHeapUsagePercent()),
                 y);
-        y += 21;
+        y += 18;
 
         drawValue(graphics, "screen.fiximizer.cpu",
                 DiagnosticsService.formatPercent(snapshot.systemCpuLoad()),
@@ -406,12 +406,12 @@ public final class FiximizerScreen extends Screen {
                     y,
                     contentWidth - 8,
                     0xFFFFB85C);
-            y += 30;
+            y += 24;
         } else {
             drawValue(graphics, "screen.fiximizer.memory_guard_status",
                     Component.translatable("screen.fiximizer.normal"),
                     y);
-            y += 21;
+            y += 18;
         }
 
         drawValue(graphics, "screen.fiximizer.gpu", gpuLabel(), y);
@@ -427,7 +427,7 @@ public final class FiximizerScreen extends Screen {
                 ModIntegrationManager.activeCount(),
                 CompatibilityDetector.targetCount(),
                 y);
-        y += 18;
+        y += 16;
 
         SchedulerSnapshot scheduler = AdaptiveTaskScheduler.snapshot();
         drawValue(graphics, "screen.fiximizer.scheduler",

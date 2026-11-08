@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.*;
 
 class OptimizationProfileTest {
+    private static final long GIB = 1024L * 1024L * 1024L;
+
     @TempDir
     Path configDirectory;
 
@@ -95,11 +97,24 @@ class OptimizationProfileTest {
 
     @Test
     void jvmAdvisorProducesIntegerMiBArgumentsAndLeavesGcDefaultsAlone() {
-        JvmArgumentAdvisor.Recommendation recommendation = JvmArgumentAdvisor.recommend();
+        JvmArgumentAdvisor.Recommendation recommendation =
+                JvmArgumentAdvisor.recommend(16L * GIB, 180);
 
         assertTrue(recommendation.arguments().matches("-Xms\\d+M -Xmx\\d+M"));
         assertFalse(recommendation.arguments().contains("UseG1GC"));
         assertFalse(recommendation.arguments().contains("System.gc"));
-        assertTrue(recommendation.maximumHeapBytes() >= 2L * 1024L * 1024L * 1024L);
+        assertEquals(180, recommendation.loadedModCount());
+        assertTrue(recommendation.maximumHeapBytes() >= 2L * GIB);
+        assertTrue(recommendation.maximumHeapBytes() <= 10L * GIB);
+        assertTrue(recommendation.maximumHeapBytes() <= (long) (16L * GIB * 0.40));
+    }
+
+    @Test
+    void jvmAdvisorDoesNotForceTwoGiBHeapOnSmallMemorySystems() {
+        JvmArgumentAdvisor.Recommendation recommendation =
+                JvmArgumentAdvisor.recommend(4L * GIB, 180);
+
+        assertTrue(recommendation.maximumHeapBytes() < 2L * GIB);
+        assertTrue(recommendation.maximumHeapBytes() <= (long) (4L * GIB * 0.40));
     }
 }
