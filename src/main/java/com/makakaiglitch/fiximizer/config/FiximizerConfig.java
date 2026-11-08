@@ -13,6 +13,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_JFR_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_PROFILE_ANALYSIS;
     public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
+    public static final ModConfigSpec.BooleanValue ENABLE_FRAME_TIME_PROFILING;
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
     public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
@@ -69,6 +70,11 @@ public final class FiximizerConfig {
                 .comment("Maximum duration of one JFR recording before it is automatically saved.")
                 .translation("config.fiximizer.profiler.max_seconds")
                 .defineInRange("maxProfileSeconds", 180, 30, 600);
+
+        ENABLE_FRAME_TIME_PROFILING = BUILDER
+                .comment("Measure client render-call and client-tick wall-clock durations with bounded rolling windows.")
+                .translation("config.fiximizer.profiler.frame_timing")
+                .define("enableClientTiming", true);
 
         BUILDER.pop();
         BUILDER.push("scheduler");

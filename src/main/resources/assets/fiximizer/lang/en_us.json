@@ -120,5 +120,21 @@
   "screen.fiximizer.sable_profiler_waiting": "Waiting for the first Sable physics substep...",
   "screen.fiximizer.sable_profiler_stats": "Substeps: %s | average time: %s ms",
   "screen.fiximizer.sable_profiler_window": "Total: %s ms | peak: %s ms | dimensions: %s",
-  "screen.fiximizer.sable_profiler_top": "Most expensive dimension: %s (%s ms)"
+  "screen.fiximizer.sable_profiler_top": "Most expensive dimension: %s (%s ms)",
+  "config.fiximizer.profiler.frame_timing": "Measure client render and tick timings",
+  "screen.fiximizer.tab_frames": "Frames",
+  "screen.fiximizer.frames_title": "Client-thread workload",
+  "screen.fiximizer.frames_intro": "Measures wall-clock time inside GameRenderer.render() and the client tick. It is not the actual interval between displayed frames and does not measure GPU execution.",
+  "screen.fiximizer.frame_profiler_toggle": "Client profiling: %s • click to toggle",
+  "screen.fiximizer.frame_profiler_disabled": "Client profiling is disabled.",
+  "screen.fiximizer.frame_render_title": "GameRenderer.render() duration",
+  "screen.fiximizer.frame_tick_title": "Client tick duration",
+  "screen.fiximizer.frame_waiting": "Waiting for render samples...",
+  "screen.fiximizer.tick_waiting": "Waiting for client tick samples...",
+  "screen.fiximizer.frame_stats": "Samples: %s | average: %s ms | p50: %s ms",
+  "screen.fiximizer.frame_percentiles": "p95: %s ms | p99: %s ms | peak: %s ms",
+  "screen.fiximizer.frame_slow": ">16.7 ms: %s | >33.3 ms: %s",
+  "screen.fiximizer.tick_stats": "Ticks: %s | average: %s ms | p50: %s ms",
+  "screen.fiximizer.tick_percentiles": "p95: %s ms | p99: %s ms | peak: %s ms",
+  "screen.fiximizer.tick_slow": ">50 ms: %s | >100 ms: %s"
 }

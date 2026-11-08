@@ -4,13 +4,13 @@
 
 ## Current status
 
-**0.7.0-alpha — passive Create and Sable physics profiling with experimental OpenCL tools**
+**0.8.0-alpha — client render/tick workload telemetry alongside Create and Sable physics profiling**
 
 ### In-game menu
 
 - Open the dashboard with F8.
 - Open the same Fiximizer control center from the Config button in NeoForge's mod list.
-- Five sections: Overview, Optimization, Integrations, Java / JVM, and GPU / VRAM.
+- Seven sections: Overview, Optimization, Integrations, Physics, Java / JVM, GPU / VRAM, and Frames.
 - Russian and English translations.
 
 ### CPU / GPU self-test
@@ -43,6 +43,18 @@ Fiximizer includes an opt-in VRAM store for temporary cache blocks that a Fiximi
 - A restored direct buffer is owned by the caller and must be freed with LWJGL MemoryUtil.memFree.
 
 **Important limitation:** this is not an extension of Java heap, system RAM, or the Windows page file. It cannot move arbitrary objects from Minecraft or third-party mods. An integration must serialize or otherwise provide its own disposable data, keep a valid handle, and know how to rebuild data if the LRU cache evicts it. No Create/Aeronautics/Sable object is automatically moved to VRAM yet.
+
+### Client render and tick workload telemetry
+
+The Frames tab passively measures two client-thread workloads with NeoForge events:
+
+- `RenderFrameEvent.Pre/Post` measures wall-clock time spent inside `GameRenderer.render()`.
+- `ClientTickEvent.Pre/Post` measures client tick wall-clock time.
+- Each metric uses a bounded 600-sample rolling window and reports average, p50, p95, p99, peak and slow-sample counts.
+- Percentiles are recalculated in batches rather than sorting on every rendered frame.
+- The collector is independently configurable and can be disabled from the Frames tab.
+
+**Measurement boundary:** render-call duration is not the time between displayed frames. It does not include presentation cadence or VSync waiting outside `GameRenderer.render()`, and it is not GPU execution time. Client tick measurements do not replace integrated-server or dedicated-server profiling. Use these metrics to distinguish expensive client rendering work from slow client logic, then capture JFR for method-level investigation.
 
 ### Create contraption tick telemetry
 
@@ -133,6 +145,8 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 
 ## Roadmap
 
+- [ ] Validate client render/tick telemetry in a real 1.21.1 modpack and compare its readings with an external frame-time capture
+
 - [x] NeoForge 1.21.1 project foundation
 - [x] Five user-selectable gameplay profiles
 - [x] Dashboard via F8 and the mod-list Config button
@@ -145,6 +159,7 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] Bounded CPU/GPU OpenCL self-test with result validation
 - [x] Passive Create server-side contraption entity tick profiler (100-tick rolling window)
 - [x] Passive Sable physics substep profiler (last 1,000 pre/post event pairs)
+- [x] Client render-call and client-tick workload profiler (600-sample rolling windows)
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
 - [ ] First Sable optimization based on reproducible physics profiling data

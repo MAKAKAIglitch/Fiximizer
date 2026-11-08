@@ -9,6 +9,7 @@ import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
+import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
 import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkResult;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkService;
@@ -43,7 +44,8 @@ public final class FiximizerScreen extends Screen {
         INTEGRATIONS,
         PHYSICS,
         JVM,
-        GPU
+        GPU,
+        FRAMES
     }
 
     private final Screen parent;
@@ -63,6 +65,7 @@ public final class FiximizerScreen extends Screen {
     private Button gpuTestButton;
     private Button gpuSpillButton;
     private Button gpuSpillLimitButton;
+    private Button frameProfilerButton;
 
     private int panelLeft;
     private int panelTop;
@@ -117,6 +120,11 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.tab_gpu"),
                 button -> selectTab(Tab.GPU)
         ).bounds(navX, navY + 140, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_frames"),
+                button -> selectTab(Tab.FRAMES)
+        ).bounds(navX, navY + 168, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -219,6 +227,15 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 218, 340, 20).build());
 
+        frameProfilerButton = addRenderableWidget(Button.builder(
+                frameProfilerLabel(),
+                button -> {
+                    toggleConfig(FiximizerConfig.ENABLE_FRAME_TIME_PROFILING);
+                    ClientRuntimeProfiler.synchronizeEnabledState();
+                    frameProfilerButton.setMessage(frameProfilerLabel());
+                }
+        ).bounds(contentLeft, panelTop + 122, 340, 20).build()));
+
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
                 button -> {
@@ -280,6 +297,7 @@ public final class FiximizerScreen extends Screen {
         boolean integrations = selectedTab == Tab.INTEGRATIONS;
         boolean jvm = selectedTab == Tab.JVM;
         boolean gpu = selectedTab == Tab.GPU;
+        boolean frames = selectedTab == Tab.FRAMES;
 
         refreshButton.visible = overview;
         startProfileButton.visible = overview;
@@ -290,6 +308,7 @@ public final class FiximizerScreen extends Screen {
         copyJvmButton.visible = jvm;
         saveJvmButton.visible = jvm;
         gpuTestButton.visible = gpu;
+        frameProfilerButton.visible = frames;
         gpuSpillButton.visible = gpu;
         gpuSpillLimitButton.visible = gpu;
         gpuTestButton.active = !GpuBenchmarkService.running()
@@ -376,6 +395,15 @@ public final class FiximizerScreen extends Screen {
     }
 
 
+    private Component frameProfilerLabel() {
+        return Component.translatable(
+                "screen.fiximizer.frame_profiler_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_FRAME_TIME_PROFILING.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
     private Component gpuSpillLabel() {
         return Component.translatable(
                 "screen.fiximizer.gpu_spill_toggle",
@@ -445,6 +473,7 @@ public final class FiximizerScreen extends Screen {
             case PHYSICS -> drawPhysics(graphics);
             case JVM -> drawJvm(graphics);
             case GPU -> drawGpu(graphics);
+            case FRAMES -> drawFrames(graphics);
         }
     }
 
@@ -517,6 +546,85 @@ public final class FiximizerScreen extends Screen {
                 scheduler.targetWorkers(),
                 scheduler.maximumWorkers(),
                 y);
+    }
+
+    private void drawFrames(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.frames_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.frames_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        drawSectionTitle(graphics, "screen.fiximizer.frame_render_title", panelTop + 151);
+        drawTimingRows(
+                graphics,
+                ClientRuntimeProfiler.renderSnapshot(),
+                panelTop + 170,
+                "screen.fiximizer.frame_waiting",
+                "screen.fiximizer.frame_stats",
+                "screen.fiximizer.frame_percentiles",
+                "screen.fiximizer.frame_slow",
+                false
+        );
+
+        drawSectionTitle(graphics, "screen.fiximizer.frame_tick_title", panelTop + 224);
+        drawTimingRows(
+                graphics,
+                ClientRuntimeProfiler.clientTickSnapshot(),
+                panelTop + 243,
+                "screen.fiximizer.tick_waiting",
+                "screen.fiximizer.tick_stats",
+                "screen.fiximizer.tick_percentiles",
+                "screen.fiximizer.tick_slow",
+                true
+        );
+    }
+
+    private void drawTimingRows(
+            GuiGraphics graphics,
+            RollingDurationWindow.Snapshot snapshot,
+            int y,
+            String waitingKey,
+            String statsKey,
+            String percentilesKey,
+            String slowKey,
+            boolean clientTick
+    ) {
+        if (!FiximizerConfig.ENABLE_FRAME_TIME_PROFILING.get()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.frame_profiler_disabled"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+        if (!snapshot.hasSamples()) {
+            graphics.drawString(this.font,
+                    Component.translatable(waitingKey),
+                    contentLeft, y, 0xFF9FB3C8);
+            return;
+        }
+
+        graphics.drawString(this.font,
+                Component.translatable(statsKey,
+                        snapshot.sampleCount(),
+                        String.format(Locale.ROOT, "%.2f", snapshot.averageMillis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p50Millis())),
+                contentLeft, y, 0xFFFFFFFF);
+        y += 15;
+        graphics.drawString(this.font,
+                Component.translatable(percentilesKey,
+                        String.format(Locale.ROOT, "%.2f", snapshot.p95Millis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p99Millis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.peakMillis())),
+                contentLeft, y, 0xFFB9C9DC);
+        y += 15;
+
+        int firstSlowCount = clientTick ? snapshot.over50Millis() : snapshot.over16_67Millis();
+        int secondSlowCount = clientTick ? snapshot.over100Millis() : snapshot.over33_33Millis();
+        graphics.drawString(this.font,
+                Component.translatable(slowKey, firstSlowCount, secondSlowCount),
+                contentLeft, y, 0xFFB9C9DC);
     }
 
     private void drawPerformance(GuiGraphics graphics) {

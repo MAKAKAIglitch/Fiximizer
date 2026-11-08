@@ -120,5 +120,21 @@
   "screen.fiximizer.sable_profiler_waiting": "Ожидание первого подшага физики Sable...",
   "screen.fiximizer.sable_profiler_stats": "Подшагов: %s | среднее время: %s мс",
   "screen.fiximizer.sable_profiler_window": "Всего: %s мс | пик: %s мс | миров: %s",
-  "screen.fiximizer.sable_profiler_top": "Самый затратный мир: %s (%s мс)"
+  "screen.fiximizer.sable_profiler_top": "Самый затратный мир: %s (%s мс)",
+  "config.fiximizer.profiler.frame_timing": "Измерять время рендера и клиентского тика",
+  "screen.fiximizer.tab_frames": "Кадры",
+  "screen.fiximizer.frames_title": "Нагрузка клиентского потока",
+  "screen.fiximizer.frames_intro": "Замеряется wall-clock время внутри GameRenderer.render() и клиентского тика. Это не фактический интервал между показами кадров и не замер выполнения GPU.",
+  "screen.fiximizer.frame_profiler_toggle": "Профилирование клиента: %s • нажми для переключения",
+  "screen.fiximizer.frame_profiler_disabled": "Профилирование клиента выключено.",
+  "screen.fiximizer.frame_render_title": "Время вызова GameRenderer.render()",
+  "screen.fiximizer.frame_tick_title": "Время клиентского тика",
+  "screen.fiximizer.frame_waiting": "Ожидание замеров рендера...",
+  "screen.fiximizer.tick_waiting": "Ожидание замеров клиентского тика...",
+  "screen.fiximizer.frame_stats": "Замеров: %s | среднее: %s мс | p50: %s мс",
+  "screen.fiximizer.frame_percentiles": "p95: %s мс | p99: %s мс | пик: %s мс",
+  "screen.fiximizer.frame_slow": ">16,7 мс: %s | >33,3 мс: %s",
+  "screen.fiximizer.tick_stats": "Тиков: %s | среднее: %s мс | p50: %s мс",
+  "screen.fiximizer.tick_percentiles": "p95: %s мс | p99: %s мс | пик: %s мс",
+  "screen.fiximizer.tick_slow": ">50 мс: %s | >100 мс: %s"
 }
