@@ -176,5 +176,12 @@
   "config.fiximizer.watchdog.jfr_size": "Maximum rolling JFR repository size (MiB)",
   "config.fiximizer.watchdog.jfr_interval": "Minimum interval between exported stall JFR files (milliseconds)",
   "config.fiximizer.watchdog.jfr_retention": "Maximum retained stall JFR exports",
-  "screen.fiximizer.watchdog_jfr_analysis": "Automatic JFR analysis: %s"
+  "screen.fiximizer.watchdog_jfr_analysis": "Automatic JFR analysis: %s",
+  "config.fiximizer.memory.string_dedup": "Enable bounded weak string canonicalization for explicitly shared integration metadata (no heap scan or recurring task)",
+  "config.fiximizer.memory.g1_string_dedup": "Include optional G1 String Deduplication in JVM recommendations (requires restart and may add GC CPU work)",
+  "screen.fiximizer.memory.string_dedup_toggle": "Integration string sharing: %s",
+  "screen.fiximizer.memory.g1_string_dedup_toggle": "G1 JVM dedup: %s (%s)",
+  "screen.fiximizer.memory.g1_supported": "G1 detected",
+  "screen.fiximizer.memory.g1_unavailable": "G1 not detected",
+  "screen.fiximizer.memory.stats": "String cache: %s hits | %s registrations | %s collision evictions | %s/%s slots"
 }
