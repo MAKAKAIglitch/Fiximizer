@@ -1168,7 +1168,7 @@ public final class FiximizerScreen extends Screen {
         } else if (runtime.compactObjectHeadersClassLimitReached()) {
             runtimeStrategyKey = "screen.fiximizer.memory.compact_class_limit";
         } else if (!runtime.compactObjectHeadersSupported()) {
-            runtimeStrategyKey = "screen.fiximizer.memory.java21_fallback";
+            runtimeStrategyKey = "screen.fiximizer.memory.compatible_fallback";
         } else {
             runtimeStrategyKey = "screen.fiximizer.memory.compact_default";
         }
