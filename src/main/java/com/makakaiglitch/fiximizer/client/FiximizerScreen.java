@@ -20,6 +20,10 @@ import com.makakaiglitch.fiximizer.gpu.GpuReading;
 import com.makakaiglitch.fiximizer.gpu.GpuSpillService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
+import com.makakaiglitch.fiximizer.network.NetworkBackendSelector;
+import com.makakaiglitch.fiximizer.network.NetworkCompatibilityDetector;
+import com.makakaiglitch.fiximizer.network.NetworkTelemetryService;
+import com.makakaiglitch.fiximizer.network.NetworkTelemetrySnapshot;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
 import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
@@ -50,7 +54,8 @@ public final class FiximizerScreen extends Screen {
         JVM,
         GPU,
         FRAMES,
-        SERVER
+        SERVER,
+        NETWORK
     }
 
     private final Screen parent;
@@ -73,6 +78,9 @@ public final class FiximizerScreen extends Screen {
     private Button frameProfilerButton;
     private Button serverTickProfilerButton;
     private Button dumpDiagnosticsButton;
+    private Button networkTelemetryButton;
+    private Button networkBackendButton;
+    private Button networkBenchmarkButton;
 
     private int panelLeft;
     private int panelTop;
@@ -137,6 +145,11 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.tab_server"),
                 button -> selectTab(Tab.SERVER)
         ).bounds(navX, navY + 196, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_network"),
+                button -> selectTab(Tab.NETWORK)
+        ).bounds(navX, navY + 224, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -267,6 +280,40 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
+        networkTelemetryButton = addRenderableWidget(Button.builder(
+                networkTelemetryLabel(),
+                button -> {
+                    FiximizerConfig.ENABLE_NETWORK_TELEMETRY.set(!FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get());
+                    FiximizerConfig.SPEC.save();
+                    NetworkTelemetryService.refreshHandler();
+                    if (FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) {
+                        NetworkBackendSelector.reselectAsync();
+                    }
+                    networkTelemetryButton.setMessage(networkTelemetryLabel());
+                }
+        ).bounds(contentLeft, panelTop + 105, 340, 20).build());
+
+        networkBackendButton = addRenderableWidget(Button.builder(
+                networkBackendLabel(),
+                button -> {
+                    int next = (FiximizerConfig.NETWORK_BACKEND_MODE.get() + 1) % 3;
+                    FiximizerConfig.NETWORK_BACKEND_MODE.set(next);
+                    FiximizerConfig.SPEC.save();
+                    NetworkBackendSelector.reselectAsync();
+                    networkBackendButton.setMessage(networkBackendLabel());
+                }
+        ).bounds(contentLeft, panelTop + 133, 340, 20).build());
+
+        networkBenchmarkButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.network_benchmark_button"),
+                button -> {
+                    FiximizerConfig.NETWORK_BACKEND_MODE.set(0);
+                    FiximizerConfig.SPEC.save();
+                    NetworkBackendSelector.reselectAsync();
+                    networkBackendButton.setMessage(networkBackendLabel());
+                }
+        ).bounds(contentLeft, panelTop + 161, 340, 20).build());
+
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
                 button -> {
@@ -330,6 +377,7 @@ public final class FiximizerScreen extends Screen {
         boolean gpu = selectedTab == Tab.GPU;
         boolean frames = selectedTab == Tab.FRAMES;
         boolean server = selectedTab == Tab.SERVER;
+        boolean network = selectedTab == Tab.NETWORK;
 
         refreshButton.visible = overview;
         dumpDiagnosticsButton.visible = overview;
@@ -344,6 +392,10 @@ public final class FiximizerScreen extends Screen {
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
         serverTickProfilerButton.visible = server;
+        networkTelemetryButton.visible = network;
+        networkBackendButton.visible = network;
+        networkBenchmarkButton.visible = network;
+        networkBenchmarkButton.active = !NetworkBackendSelector.isRunning();
         gpuSpillButton.visible = gpu;
         gpuSpillLimitButton.visible = gpu;
         gpuTestButton.active = !GpuBenchmarkService.running()
@@ -429,6 +481,24 @@ public final class FiximizerScreen extends Screen {
         }
     }
 
+
+    private Component networkTelemetryLabel() {
+        return Component.translatable(
+                "screen.fiximizer.network_telemetry_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component networkBackendLabel() {
+        String mode = switch (FiximizerConfig.NETWORK_BACKEND_MODE.get()) {
+            case 1 -> "Java";
+            case 2 -> "Rust";
+            default -> "Auto";
+        };
+        return Component.translatable("screen.fiximizer.network_backend_button", mode);
+    }
 
     private Component serverTickProfilerLabel() {
         return Component.translatable(
@@ -519,6 +589,7 @@ public final class FiximizerScreen extends Screen {
             case GPU -> drawGpu(graphics);
             case FRAMES -> drawFrames(graphics);
             case SERVER -> drawServer(graphics);
+            case NETWORK -> drawNetwork(graphics);
         }
     }
 
@@ -636,6 +707,72 @@ public final class FiximizerScreen extends Screen {
         }
 
         graphics.drawString(this.font, Component.literal(text), x, y, color);
+    }
+
+    private void drawNetwork(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.network_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.network_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        NetworkTelemetrySnapshot snapshot = NetworkTelemetryService.snapshot();
+        int y = panelTop + 184;
+        drawCompactValue(graphics, "screen.fiximizer.network_connection",
+                y, Component.translatable(snapshot.connected()
+                        ? "screen.fiximizer.connected" : "screen.fiximizer.disconnected"));
+        y += 15;
+
+        if (snapshot.serverReportedPingMillis() >= 0) {
+            drawCompactValue(graphics, "screen.fiximizer.network_ping",
+                    y,
+                    snapshot.serverReportedPingMillis(),
+                    snapshot.pingP50Millis(),
+                    snapshot.pingP95Millis(),
+                    snapshot.jitterMillis());
+        } else {
+            drawCompactValue(graphics, "screen.fiximizer.network_ping_waiting", y);
+        }
+        y += 15;
+
+        drawCompactValue(graphics, "screen.fiximizer.network_traffic",
+                y,
+                DiagnosticsService.formatBytes(snapshot.inboundBytes()),
+                DiagnosticsService.formatBytes(snapshot.outboundBytes()),
+                snapshot.inboundFrames(),
+                snapshot.outboundFrames());
+        y += 15;
+
+        drawCompactValue(graphics, "screen.fiximizer.network_backend",
+                y,
+                NetworkBackendSelector.selected().name(),
+                NetworkBackendSelector.status());
+        y += 15;
+
+        drawCompactValue(graphics, "screen.fiximizer.network_native_times",
+                y,
+                formatNetworkBenchmarkTime(NetworkBackendSelector.javaMedianNanos()),
+                formatNetworkBenchmarkTime(NetworkBackendSelector.rustMedianNanos()));
+        y += 15;
+
+        drawCompactValue(graphics, "screen.fiximizer.network_mods",
+                y,
+                NetworkCompatibilityDetector.snapshot().detectedSummary());
+        y += 15;
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.network_policy",
+                        NetworkCompatibilityDetector.snapshot().policy()),
+                contentLeft,
+                y,
+                contentWidth - 8,
+                0xFF9FB3C8);
+    }
+
+    private String formatNetworkBenchmarkTime(long nanos) {
+        return nanos < 0L ? "—" : String.format(Locale.ROOT, "%.3f", nanos / 1_000_000.0);
     }
 
     private void drawServer(GuiGraphics graphics) {
