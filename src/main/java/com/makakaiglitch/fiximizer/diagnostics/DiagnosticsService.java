@@ -33,7 +33,19 @@ public final class DiagnosticsService {
         Runtime runtime = Runtime.getRuntime();
         long committed = runtime.totalMemory();
         long used = committed - runtime.freeMemory();
-        double loadAverage = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+
+        double systemCpuLoad = -1.0;
+        double processCpuLoad = -1.0;
+        java.lang.management.OperatingSystemMXBean baseBean =
+                ManagementFactory.getOperatingSystemMXBean();
+
+        // The com.sun management extension is included in the Java 21 runtime used by Minecraft.
+        if (baseBean instanceof com.sun.management.OperatingSystemMXBean extendedBean) {
+            systemCpuLoad = extendedBean.getCpuLoad();
+            processCpuLoad = extendedBean.getProcessCpuLoad();
+        }
+
+        int activeThreads = ManagementFactory.getThreadMXBean().getThreadCount();
 
         latest = new DiagnosticsSnapshot(
                 System.currentTimeMillis(),
@@ -42,7 +54,9 @@ public final class DiagnosticsService {
                 runtime.maxMemory(),
                 runtime.availableProcessors(),
                 ModList.get().getMods().size(),
-                loadAverage
+                activeThreads,
+                systemCpuLoad,
+                processCpuLoad
         );
     }
 
@@ -69,5 +83,12 @@ public final class DiagnosticsService {
         }
 
         return String.format(Locale.ROOT, "%.2f GiB", mib / 1024.0);
+    }
+
+    public static String formatPercent(double fraction) {
+        if (!Double.isFinite(fraction) || fraction < 0.0) {
+            return "n/a";
+        }
+        return String.format(Locale.ROOT, "%.1f%%", Math.min(1.0, fraction) * 100.0);
     }
 }

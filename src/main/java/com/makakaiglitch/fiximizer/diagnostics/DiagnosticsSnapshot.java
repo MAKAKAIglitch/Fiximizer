@@ -7,7 +7,9 @@ public record DiagnosticsSnapshot(
         long maxHeapBytes,
         int availableProcessors,
         int loadedModCount,
-        double systemLoadAverage
+        int activeThreadCount,
+        double systemCpuLoad,
+        double processCpuLoad
 ) {
     public static DiagnosticsSnapshot empty() {
         return new DiagnosticsSnapshot(
@@ -17,6 +19,8 @@ public record DiagnosticsSnapshot(
                 Runtime.getRuntime().maxMemory(),
                 Runtime.getRuntime().availableProcessors(),
                 0,
+                0,
+                -1.0,
                 -1.0
         );
     }

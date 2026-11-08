@@ -74,15 +74,23 @@ public final class FiximizerScreen extends Screen {
             ), left, y, 0xFFFFFF);
             y += 16;
 
-            String load = snapshot.systemLoadAverage() < 0.0
-                    ? Component.translatable("screen.fiximizer.unavailable").getString()
-                    : String.format(Locale.ROOT, "%.2f", snapshot.systemLoadAverage());
-
             graphics.drawString(this.font, Component.translatable(
                     "screen.fiximizer.runtime",
                     snapshot.availableProcessors(),
-                    snapshot.loadedModCount(),
-                    load
+                    snapshot.loadedModCount()
+            ), left, y, 0xFFFFFF);
+            y += 16;
+
+            graphics.drawString(this.font, Component.translatable(
+                    "screen.fiximizer.cpu",
+                    DiagnosticsService.formatPercent(snapshot.systemCpuLoad()),
+                    DiagnosticsService.formatPercent(snapshot.processCpuLoad())
+            ), left, y, 0xFFFFFF);
+            y += 16;
+
+            graphics.drawString(this.font, Component.translatable(
+                    "screen.fiximizer.threads",
+                    snapshot.activeThreadCount()
             ), left, y, 0xFFFFFF);
             y += 20;
         }
