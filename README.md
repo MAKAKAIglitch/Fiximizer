@@ -8,7 +8,8 @@
     <a href="README.ru.md">Русская версия</a> ·
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml">CI builds</a> ·
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/issues">Issues</a> ·
-    <a href="BUILDING.md">Build guide</a>
+    <a href="BUILDING.md">Build guide</a> ·
+    <a href="ROADMAP.md">Roadmap</a>
   </p>
 
   <p>
@@ -25,7 +26,7 @@
 </div>
 
 > [!IMPORTANT]
-> **Fiximizer is an alpha diagnostic and workload-management mod.** It measures selected Minecraft workloads, investigates stalls and adapts its own background scheduler. It does **not** promise a universal FPS boost, rewrite arbitrary third-party mod code or automatically move Minecraft calculations to the GPU.
+> **Fiximizer is evolving into a modular performance optimizer for Minecraft modpacks.** The current alpha provides profiling, stall diagnostics, an adaptive scheduler for Fiximizer-owned work, and optional mod telemetry. The first target is Minecraft 1.21.1 on NeoForge; deeper optimizations are added after real-pack benchmarks and compatibility checks. See the [roadmap](ROADMAP.md) for the full direction.
 
 ## Contents
 
@@ -45,7 +46,7 @@
 
 ## Overview
 
-**Fiximizer** is an open-source diagnostics and profiling toolkit for modded **Minecraft Java Edition 1.21.1** on **NeoForge**.
+**Fiximizer** is an open-source diagnostics and optimization project for modded **Minecraft Java Edition 1.21.1** on **NeoForge**, with the long-term goal of becoming a modular, general-purpose modpack optimizer.
 
 It helps answer practical questions:
 
@@ -304,36 +305,19 @@ The [Build workflow](.github/workflows/build.yml) runs on pushes and pull reques
 
 - builds and tests against NeoForge 21.1.256 and 21.1.265 in its compatibility matrix;
 - builds the mod on Ubuntu and Windows with Java 21;
+- validates the POSIX shell builder and runs the automatic Linux builder;
 - validates the PowerShell builder syntax and runs the automatic builder on Windows;
 - uploads the resulting JARs as workflow artifacts;
 - keeps those artifacts for 14 days.
 
 ## Roadmap
 
-### Implemented
+The alpha release is the measurement and diagnostics foundation for a broader modpack optimizer. The full plan covers startup profiling, low-allocation telemetry, adaptive diagnostics, a safe optimization-policy engine, real Minecraft workload optimizations, per-mod adapters, caching, optional compute acceleration, and broader compatibility.
 
-- [x] NeoForge 1.21.1 project foundation and bilingual dashboard
-- [x] Five selectable profiles and automatic memory-pressure fallback
-- [x] Queue-aware adaptive scheduler and task telemetry
-- [x] Client render-call, client tick and integrated-server tick profiling
-- [x] Create contraption and Sable physics passive telemetry
-- [x] Stall watchdog, bounded JFR ring and JVM thread snapshots
-- [x] JFR analysis, incident correlation and self-contained HTML reports
-- [x] Mod detection and conditional integration gates
-- [x] JVM argument advisor
-- [x] OpenCL discovery and bounded CPU/GPU correctness benchmark
-- [x] Explicit disposable VRAM cache API and budget logic
+- [Full roadmap (English)](ROADMAP.md)
+- [Дорожная карта (русский)](ROADMAP.ru.md)
 
-### Planned
-
-- [ ] Validate timing overhead and measurements against external tools in real 1.21.1 modpacks
-- [ ] First evidence-based Create optimization
-- [ ] First evidence-based Sable optimization
-- [ ] A real Fiximizer-owned gameplay workload with CPU/GPU comparison and a tested OpenCL kernel
-- [ ] Integrate the VRAM cache with a workload that can serialize and rebuild its data
-- [ ] Rolling benchmark comparisons and before/after reports
-
-Roadmap items are plans, not promises about a release date.
+The roadmap distinguishes features already implemented from planned work and defines how performance improvements will be benchmarked.
 
 ## Bug reports and contributions
 

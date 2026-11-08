@@ -34,6 +34,33 @@ The first run may download JDK 21, Gradle and Minecraft/NeoForge dependencies. L
 
 The builder defaults to the minimum supported NeoForge version so the produced JAR does not accidentally depend on APIs introduced only in a later 21.1.x release.
 
+## Linux one-click build
+
+Run the project-local builder from the repository root:
+
+```sh
+./build.sh
+```
+
+Examples:
+
+```sh
+./build.sh clean build
+./build.sh runClient
+./build.sh build --no-daemon
+```
+
+The Linux builder follows the same approach as the Windows builder:
+
+- Searches `JAVA_HOME`, `javac` in `PATH`, common Linux JDK locations, and common Prism Launcher / MultiMC runtime directories.
+- Accepts only a complete JDK 21 with both `java` and `javac`.
+- If no suitable JDK is found, downloads Eclipse Temurin 21 for the detected Linux CPU architecture through the official Adoptium API.
+- Verifies the downloaded archive against Adoptium's published SHA-256 checksum before extraction.
+- Installs the isolated JDK under `.tools/jdk-21-temurin`; it does not modify system Java packages, symlinks, or shell startup files.
+- Uses the repository's Gradle Wrapper and reuses the normal Gradle caches.
+
+The automatic download requires `curl`, `tar`, and a SHA-256 utility (`sha256sum` or `shasum`). If JDK 21 is already installed, the builder does not need to download it.
+
 ## Manual build
 
 With an installed JDK 21:

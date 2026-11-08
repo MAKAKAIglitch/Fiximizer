@@ -46,8 +46,11 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build mod
-        run: ./gradlew build --no-daemon
+      - name: Validate Linux builder syntax
+        run: sh -n ./build.sh
+
+      - name: Run automatic Linux builder
+        run: ./build.sh build --no-daemon
 
       - name: Upload Linux build
         uses: actions/upload-artifact@v7

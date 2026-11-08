@@ -1,154 +1,214 @@
 # Fiximizer Roadmap
 
-This roadmap describes the planned engineering priorities for making Fiximizer
-more efficient, predictable, and lightweight while preserving the accuracy of
-its diagnostics.
+> **Product direction:** Fiximizer is being built into a modular performance optimizer for Minecraft modpacks. The first proving ground is a real Minecraft 1.21.1 NeoForge modpack; the long-term goal is a useful, configurable optimizer that can support many different packs and, over time, more Minecraft versions and loaders.
 
-The order is intentional: measure Fiximizer's own cost first, reduce the cost
-of its hot paths, make diagnostics respond to system load, isolate optional
-integrations, and only then consider native compute.
+This document is an engineering roadmap, not a release-date promise. Priorities can change when measurements, compatibility testing, or community feedback reveal a more important problem.
 
-> These are development priorities, not fixed release dates or promises. The
-> implementation order may be adjusted when profiling or testing reveals a
-> more important bottleneck.
+## 1. Product vision
 
-## Priority 1 — Startup Profiler
+Fiximizer should help players understand and improve the performance of an entire modpack, not just display charts. It will combine three cooperating parts:
 
-**Goal:** Measure the time Fiximizer itself adds during Minecraft startup.
+1. **A measurement engine** that finds expensive work and quantifies its cost.
+2. **A safe optimization core** that applies only well-understood, reversible policies.
+3. **Optional compatibility modules** that can profile or optimize specific mods when their behavior and APIs are understood.
 
-Planned work:
+The same core should work across different modpacks. A pack-specific investigation is a starting point for discovering reusable improvements, not a reason to hard-code one player's configuration into the mod.
 
-- Measure the total duration of Fiximizer initialization.
-- Record timings for major initialization phases and individual subsystems.
-- Identify slow registration, setup, resource-loading, and initialization paths.
-- Keep the profiler's own overhead small and avoid blocking the main thread.
-- Make the collected timings available in a readable diagnostic report.
+### What “general-purpose optimizer” means
 
-**Completion criteria:**
+- The core handles common tasks such as profiling, workload classification, memory-aware policies, bounded caches, and optimization settings.
+- Per-mod adapters provide deeper optimizations for systems that need mod-specific knowledge.
+- Each optimization is independently configurable and checks whether it is compatible with the installed versions and other performance mods.
+- Features that cannot be measured or safely applied remain diagnostic recommendations until there is enough evidence to automate them.
 
-- Startup timings are repeatable and clearly attributed to Fiximizer phases.
-- Measurement overhead is small enough not to distort the results.
-- Reports distinguish Fiximizer initialization time from total Minecraft startup
-  time.
+The current alpha is the foundation: it already has runtime measurements, stall diagnostics, JFR reports, workload profiles, an adaptive scheduler for Fiximizer-owned tasks, and several optional integration points. It is not yet a universal automatic FPS booster. The roadmap is intended to close that gap with measured, incremental work.
 
-## Priority 2 — Zero-allocation Telemetry
+## 2. Current foundation
 
-**Goal:** Minimize recurring memory allocations in telemetry and other
-frequently executed code paths.
+The following capabilities are already present in the repository:
 
-Planned work:
+- [x] Minecraft 1.21.1 / NeoForge foundation and bilingual dashboard.
+- [x] Five workload profiles and a hysteresis-based memory-pressure guard.
+- [x] Adaptive worker scheduler with bounded queues and task timing telemetry.
+- [x] Client render-call, client tick, and integrated-server tick measurements.
+- [x] Create contraption and Sable physics passive telemetry.
+- [x] Stall watchdog, JVM thread snapshots, and bounded rolling JFR recording.
+- [x] JFR hotspot analysis, incident correlation, heuristic mod attribution, and local HTML reports.
+- [x] Detection and independent feature gates for Create, Create Aeronautics, Sable, Distant Horizons, and Voxy.
+- [x] JVM argument advisor.
+- [x] GPU/OpenCL discovery, a manual CPU-versus-GPU correctness benchmark, and an explicit disposable-data VRAM cache API.
+- [x] Deferred startup of optional diagnostics and hardware probes.
+- [x] Windows automatic builder and CI builds for Windows and Linux.
 
-- Audit client tick, server tick, render, and event-listener hot paths.
-- Avoid creating temporary objects for routine measurements where practical.
-- Prefer primitive values, reusable storage, and bounded ring buffers.
-- Move aggregation and report formatting away from critical game threads.
-- Measure allocation rate and garbage-collection impact before and after each
-  change.
+**Important distinction:** detection, telemetry, and an extension point are not the same as an optimization. The first deeper optimizations still need profiling evidence, implementation, and compatibility tests.
 
-**Completion criteria:**
+## 3. Development phases
 
-- Steady-state telemetry creates no avoidable recurring allocations in its
-  critical measurement paths.
-- All retained samples and queues have explicit size limits.
-- Measurements confirm that allocation pressure has decreased without losing
-  accuracy or useful diagnostic data.
+### Phase 1 — Make measurements trustworthy and cheap
 
-*Zero-allocation is a target for carefully selected hot paths, not a claim that
-the entire mod can operate without allocations during initialization, events,
-or report generation.*
+**Priority: highest.** Optimization is only useful when the bottleneck and the cost of measuring it are both understood.
 
-## Priority 3 — Adaptive Diagnostics
+#### 1.1 Startup Profiler
 
-**Goal:** Automatically reduce the overhead of optional monitoring when the
-client or integrated server is under heavy load.
+- Measure Fiximizer's own initialization phases, from mod construction and registration through client setup and deferred service startup.
+- Separate Fiximizer initialization time from total Minecraft startup time.
+- Record per-subsystem timings and identify expensive class loading, registration, discovery, and setup.
+- Measure cold and warm starts separately where that distinction is meaningful.
+- Export a compact report that can be compared between builds.
+- Keep measurement bounded and avoid synchronous disk I/O on Minecraft's critical startup thread.
 
-Planned work:
+**Done when:** reports consistently identify Fiximizer's own startup cost, distinguish it from other mods and Minecraft, and have measured low overhead.
 
-- Define clear signals for elevated system or game workload.
-- Dynamically reduce the sampling frequency of non-essential diagnostics.
-- Preserve critical stall detection and bounded incident capture.
-- Restore normal sampling rates when the load returns to an acceptable level.
-- Expose the current diagnostic activity level and relevant decisions to the
-  user.
+#### 1.2 Low-allocation / zero-allocation hot paths
 
-**Completion criteria:**
+- Audit render, client-tick, server-tick, and event-listener instrumentation.
+- Keep recurring measurements in primitive fields and bounded ring buffers where practical.
+- Avoid per-frame strings, temporary collections, streams, formatting, and avoidable wrapper objects.
+- Move sorting, aggregation, report generation, and disk access to background work.
+- Track the allocation cost of Fiximizer itself with JFR or an equivalent repeatable method.
 
-- Sampling changes are bounded, predictable, and do not oscillate rapidly.
-- Essential watchdog functionality remains available under load.
-- Adaptive behavior reduces monitoring overhead in controlled benchmarks.
-- Users can understand which diagnostic features have been throttled and why.
+**Done when:** selected steady-state hot paths create no avoidable recurring objects, and allocation measurements confirm the improvement. “Zero allocation” is a target for selected hot paths, not a claim that the entire mod never allocates.
 
-## Priority 4 — Lazy Integrations
+#### 1.3 Adaptive Diagnostics
 
-**Goal:** Keep optional mod integrations isolated and avoid unnecessary work
-when their target mods are not installed.
+- Classify diagnostic work by importance: essential stall detection, normal telemetry, and optional deep diagnostics.
+- Reduce the frequency of non-essential sampling when frame time, tick time, CPU pressure, or memory pressure is high.
+- Preserve bounded incident capture and the user's ability to request a manual snapshot.
+- Restore sampling gradually after load returns to normal.
+- Show the current monitoring level and explain which optional sampling was reduced.
+- Use hysteresis and minimum hold times so the sampling rate does not oscillate.
 
-Planned work:
+**Done when:** controlled tests show lower monitoring overhead under load without losing essential stall evidence or making the results misleading.
 
-- Detect optional dependencies without introducing hard dependencies.
-- Register integration hooks only when the corresponding mod is present.
-- Keep optional integration classes isolated from common initialization paths.
-- Avoid loading integration-specific classes or performing integration setup
-  when the target mod is absent.
-- Preserve graceful behavior when an optional mod is missing or incompatible.
+### Phase 2 — Build the optimization core
 
-**Completion criteria:**
+**Goal:** turn measurements into safe and useful actions.
 
-- Fiximizer starts correctly with none, some, or all supported optional mods.
-- Missing optional mods do not cause class-loading errors or unnecessary
-  initialization work.
-- Integration behavior remains isolated and independently configurable.
+- Introduce a workload and bottleneck model: rendering, client tick, server tick, chunk work, entities, block entities, resource reloads, memory/GC, storage, and background tasks.
+- Add an optimization policy layer with explicit preconditions, compatibility checks, priorities, and rollback behavior.
+- Separate **recommend**, **ask before applying**, and **automatic** actions. Automatic behavior must be opt-in where it can alter gameplay or resource use.
+- Give each optimization its own setting and status so users can identify exactly what changed.
+- Extend profiles beyond worker count: profile diagnostic intensity and only those optimization policies that have demonstrated safe behavior.
+- Add import/export for profiles and a clear “restore defaults” path.
+- Make every queue, sample history, cache, and background workload bounded.
 
-## Priority 5 — Rust Compute Module
+**Done when:** the same core can select compatible optimization policies for different modpacks without embedding one pack's mod list or settings in the core.
 
-**Goal:** Evaluate native Rust code only for a proven compute bottleneck that
-benefits from moving work outside the JVM.
+### Phase 3 — First real Minecraft optimizations
 
-This is an exploratory priority, not a commitment to rewrite parts of Fiximizer
-in Rust.
+**Goal:** move from observing performance to improving it.
 
-Planned work:
+Prioritize one measured bottleneck at a time. Candidate areas include:
 
-- Identify a specific CPU-intensive computation through profiling.
-- Build a representative Java baseline and a realistic native prototype.
-- Include JNI or other interoperability overhead in end-to-end measurements.
-- Compare execution time, memory use, startup cost, packaging complexity, and
-  platform compatibility.
-- Keep a Java implementation or fallback when it is more practical or
-  performant.
+- **Startup and resource reloads:** reuse safe, versioned analysis results; avoid repeated discovery; measure resource reload phases.
+- **Chunk loading and generation:** identify expensive stages, reduce duplicate work, and improve scheduling only where Minecraft and mod APIs permit it.
+- **Entity and block-entity ticking:** identify expensive types and update patterns; add targeted optimizations only with correctness checks.
+- **Rendering:** profile CPU-side preparation, visibility work, entity/block-entity rendering, particles, and avoidable state changes. Distinguish CPU time from GPU time.
+- **Memory and garbage collection:** find allocation sources, duplicate caches, unbounded retained data, and avoidable object churn.
+- **World saving and storage:** measure serialization and I/O stalls; preserve save ordering and data integrity.
+- **Background work:** schedule only independent, explicitly safe work away from critical threads. Never move thread-affine Minecraft work just to increase worker count.
 
-**Adoption criteria:**
+The first optimization targets will be selected from reproducible profiles of real modpacks, including the maintainer's own test pack. Results that generalize should become reusable core policies or optional adapters.
 
-- A repeatable benchmark demonstrates a meaningful end-to-end improvement for
-  a real Fiximizer workload.
-- Interoperability and native-library overhead do not erase the gain.
-- The module can fail safely without preventing Minecraft or Fiximizer from
-  starting.
-- Distribution and maintenance costs are justified by the measured benefit.
+**Done when:** each shipped optimization has a documented bottleneck, a reproducible before/after benchmark, compatibility checks, and a safe disable/rollback path.
 
-If no suitable workload is found, the Rust module should remain unimplemented.
-Using Rust by itself is not a performance objective.
+### Phase 4 — Modpack compatibility modules
+
+**Goal:** make Fiximizer useful across packs without turning the core into a collection of fragile special cases.
+
+- Evolve the existing integration gates into isolated, optional adapters.
+- Add capability and version checks before registering hooks or loading integration-specific classes.
+- Detect overlaps with existing performance mods and avoid applying conflicting or duplicate optimizations.
+- Start with integrations that have clear APIs, measurable costs, and reproducible user reports.
+- Continue the existing Create and Sable profiling work, then implement deeper optimizations only when their real hot paths are understood.
+- Evaluate other commonly used performance and content mods based on actual demand and maintained APIs, rather than promising support for every mod.
+- Keep missing, disabled, or incompatible integrations from affecting core startup.
+
+**Done when:** a pack can contain none, some, or many supported mods; unsupported combinations fail closed and the rest of Fiximizer continues to work.
+
+### Phase 5 — Caching and compute acceleration
+
+**Goal:** use caches, OpenCL, or native code only when a real workload benefits.
+
+#### Safe caching
+
+- Cache only data that can be recreated or validated.
+- Key persistent entries by relevant Minecraft, mod, configuration, and data-format versions or fingerprints.
+- Invalidate stale entries safely and bound disk/RAM/VRAM usage.
+- Measure whether cache lookup and validation are cheaper than recomputing the data.
+- Connect the existing VRAM cache API only to an integration that can restore or rebuild evicted data.
+
+#### OpenCL and native compute
+
+- Identify a sufficiently large, independent workload before writing a GPU kernel.
+- Include CPU preparation, memory transfer, synchronization, and result validation in benchmarks.
+- Keep a CPU implementation and automatic fallback.
+- Use OpenCL only when the complete workload is faster and correct on supported devices.
+- Evaluate Rust/JNI only for a measured CPU bottleneck where native interop produces a meaningful end-to-end gain.
+
+**Done when:** an accelerated path is measurably faster for a real Fiximizer-owned or adapter-owned workload, has correctness tests, and degrades safely when the device or native runtime is unavailable.
+
+### Phase 6 — Broader platform and version support
+
+- Keep Minecraft 1.21.1 / NeoForge as the first compatibility target until its optimization features are validated.
+- Add newer Minecraft and NeoForge lines through explicit build and runtime test matrices.
+- Consider Fabric support after the core engine is sufficiently separated from loader APIs.
+- Validate Windows and Linux behavior, startup, profiling, file handling, and optional native components.
+- Publish clear compatibility tables for each release instead of assuming that a broad version range guarantees support.
+
+**Done when:** each advertised game version and loader has a reproducible build plus runtime compatibility testing for the features enabled in that release.
+
+### Phase 7 — Stable, useful releases
+
+- Maintain a repeatable benchmark pack and a small set of representative test worlds.
+- Track startup time, frame-time percentiles, MSPT/TPS, allocation rate, GC pauses, memory high-water mark, and background CPU cost.
+- Publish before/after methodology and disclose when a result applies only to one hardware or mod configuration.
+- Add regression tests for data safety, configuration migration, disabled integrations, and failure recovery.
+- Improve onboarding, per-feature explanations, exportable diagnostics, and user-controlled privacy.
+- Use real-world reports to prioritize fixes and compatibility work.
+
+## 4. Benchmark and acceptance rules
+
+A feature is not called an optimization merely because it adds a setting or moves work to another thread.
+
+Before describing a performance improvement as successful:
+
+1. Record a baseline and the exact Minecraft, loader, Java, mod, configuration, world, and hardware setup.
+2. Compare equivalent runs, separating cold-start effects from warm-up and caching.
+3. Repeat measurements and report medians and tail behavior (especially p95/p99), not just a single best result.
+4. Measure the cost of Fiximizer's instrumentation as well as the workload being optimized.
+5. Check correctness: world saves, simulation results, networking, rendering, and compatibility must remain valid.
+6. Test disabled-feature behavior and verify that failure of an optional integration does not prevent the game from starting.
+7. Keep results reproducible on more than one machine or configuration before making broad claims.
+
+Useful metrics include startup duration, frame-time percentiles, client/server tick duration, MSPT/TPS, chunk and resource-reload time, bytes allocated per second, GC pause time, heap and native-memory usage, and Fiximizer's own CPU/disk overhead.
+
+There is no universal FPS target. The relevant success metric depends on the bottleneck: a server-heavy pack needs different evidence from a GPU-bound shader pack.
+
+## 5. Engineering principles
+
+- **Measure first.** No speculative “performance” patches.
+- **Correctness before speed.** Never trade world or player-data integrity for a benchmark result.
+- **Small, reversible changes.** Every optimization has its own toggle, preconditions, and fallback.
+- **Low overhead by design.** Bounded data structures, lazy work, sampling budgets, and no unnecessary work on hot threads.
+- **Respect ownership and thread affinity.** Fiximizer may schedule its own independent work; it must not take over arbitrary third-party or Minecraft tasks.
+- **Compatibility is explicit.** Optional modules are isolated and version-aware.
+- **Be honest about results.** Publish the test conditions and distinguish diagnostics, recommendations, and active optimizations.
+- **Privacy by default.** Local reports should avoid unnecessary personal paths, identifiers, and network uploads.
+
+## 6. What comes next
+
+The immediate engineering sequence is:
+
+1. Startup Profiler.
+2. Low-allocation telemetry audit and hot-path cleanup.
+3. Adaptive Diagnostics with a visible overhead level.
+4. Repeatable benchmark/baseline export.
+5. The first evidence-backed optimization selected from a real modpack profile.
+6. A reusable optimization-policy and adapter architecture around that work.
+
+Rust, broad loader support, and automatic GPU acceleration are later possibilities—not prerequisites for making Fiximizer a useful optimizer.
 
 ---
 
-## Engineering Principles
-
-- **Measure before optimizing.** Changes should be motivated by profiles and
-  repeatable benchmarks, not assumptions.
-- **Keep critical paths lightweight.** Game-thread work should be bounded and
-  predictable.
-- **Bound background work.** Queues, sample histories, caches, and report
-  retention must have explicit limits.
-- **Preserve correctness.** Performance improvements must not silently discard
-  important measurements or change Minecraft and third-party mod behavior.
-- **Make optional features truly optional.** Missing integrations or native
-  components must not prevent the core mod from loading.
-- **Verify end-to-end results.** Include instrumentation, allocation, and
-  interoperability overhead when evaluating performance.
-
-## Overall Direction
-
-Fiximizer should first become better at measuring its own cost, then reduce
-that cost. Adaptive behavior and isolated integrations come next. Native
-compute is worth considering only when profiling identifies a concrete task
-and benchmarks prove that it is beneficial.
+*Roadmap status reflects the repository's current development state. Items without an implemented feature and tests are plans, not shipped capabilities.*
