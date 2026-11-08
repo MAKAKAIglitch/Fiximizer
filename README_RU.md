@@ -15,7 +15,7 @@
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/MAKAKAIglitch/Fiximizer/build.yml?branch=main&label=сборка" alt="Статус сборки"></a>
     <img src="https://img.shields.io/badge/версия-0.14.0--alpha-orange" alt="Версия 0.14.0-alpha">
     <img src="https://img.shields.io/badge/Minecraft-1.21.1-62A75B?logo=minecraft&logoColor=white" alt="Minecraft 1.21.1">
-    <img src="https://img.shields.io/badge/NeoForge-21.1.265%2B-4B6FAD" alt="NeoForge 21.1.265 или новее">
+    <img src="https://img.shields.io/badge/NeoForge-21.1.256%2B-4B6FAD" alt="NeoForge от 21.1.256 в диапазоне Minecraft 1.21.1">
     <img src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white" alt="Java 21">
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MAKAKAIglitch/Fiximizer" alt="Лицензия MIT"></a>
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/stargazers"><img src="https://img.shields.io/github/stars/MAKAKAIglitch/Fiximizer?style=social" alt="Звёзды GitHub"></a>
@@ -242,7 +242,7 @@ OpenCL runtime предоставляет установленный драйв�
 | Компонент | Требование |
 |---|---|
 | Minecraft | Java Edition **1.21.1** |
-| Загрузчик модов | **NeoForge 21.1.265 или новее** в поддерживаемой ветке 1.21.1 |
+| Загрузчик модов | **NeoForge от 21.1.256 до 21.2** (диапазон `[21.1.256, 21.2)`) |
 | Java для запуска | **Java 21** |
 | JDK для сборки | **JDK 21** |
 | Необязательные интеграции | Create, Create Aeronautics, Sable, Distant Horizons и Voxy |
@@ -302,8 +302,9 @@ JAR появится в `build/libs/`. Подробности — в [BUILDING.m
 
 [Workflow сборки](.github/workflows/build.yml) запускается при push и pull request. Он:
 
-- собирает проект на Ubuntu и Windows с Java 21;
-- проверяет синтаксис PowerShell-сборщика на Windows;
+- собирает и тестирует проект с NeoForge 21.1.256 и 21.1.265 в матрице совместимости;
+- собирает JAR на Ubuntu и Windows с Java 21;
+- проверяет синтаксис PowerShell-сборщика и запускает автоматическую сборку на Windows;
 - загружает полученные JAR как артефакты workflow;
 - хранит артефакты 14 дней.
 
