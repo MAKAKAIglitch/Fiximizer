@@ -60,10 +60,11 @@ public final class StartupOptimizer {
         StartupProfiler.mark(StartupTimeline.Stage.STABLE_CLIENT_READY);
 
         StartupProfiler.mark(StartupTimeline.Stage.OPTIONAL_MOD_SCAN_STARTED);
-        compatibilityScanSucceeded = runOptional(
+        boolean scanCallCompleted = runOptional(
                 "optional mod compatibility scan",
                 ModIntegrationManager::refresh
         );
+        compatibilityScanSucceeded = scanCallCompleted && ModIntegrationManager.lastRefreshSucceeded();
         StartupProfiler.mark(StartupTimeline.Stage.OPTIONAL_MOD_SCAN_COMPLETED);
 
         runOptional("Sable integration registration", SablePhysicsProfiler::registerIfLoaded);
