@@ -228,7 +228,7 @@ public final class FiximizerConfig {
         ENABLE_NETWORK_TCP_NODELAY = BUILDER
                 .comment("Prefer TCP_NODELAY on the client socket when it is currently disabled and no external stack optimizer is detected.")
                 .translation("config.fiximizer.network.tcp_nodelay")
-                .define("preferTcpNoDelay", true);
+                .define("preferTcpNoDelay", false);
 
         ENABLE_NETWORK_NATIVE_BACKEND = BUILDER
                 .comment("Allow the optional Rust native backend for local network-statistics processing.")
