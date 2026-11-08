@@ -80,23 +80,26 @@ class StringDeduplicatorTest {
 
     @Test
     void convergesConcurrentEqualValuesOnOneCanonicalInstance() throws Exception {
-        StringDeduplicator deduplicator = new StringDeduplicator();
         int workers = 12;
-        CountDownLatch start = new CountDownLatch(1);
 
         try (var executor = Executors.newFixedThreadPool(workers)) {
-            List<Future<String>> results = new ArrayList<>();
-            for (int index = 0; index < workers; index++) {
-                results.add(executor.submit(() -> {
-                    start.await();
-                    return deduplicator.deduplicate(new String("shared:resource:identifier"));
-                }));
-            }
+            for (int round = 0; round < 30; round++) {
+                StringDeduplicator deduplicator = new StringDeduplicator();
+                CountDownLatch start = new CountDownLatch(1);
+                List<Future<String>> results = new ArrayList<>();
 
-            start.countDown();
-            String canonical = results.getFirst().get();
-            for (Future<String> result : results) {
-                assertSame(canonical, result.get());
+                for (int index = 0; index < workers; index++) {
+                    results.add(executor.submit(() -> {
+                        start.await();
+                        return deduplicator.deduplicate(new String("shared:resource:identifier"));
+                    }));
+                }
+
+                start.countDown();
+                String canonical = results.getFirst().get();
+                for (Future<String> result : results) {
+                    assertSame(canonical, result.get());
+                }
             }
         }
     }
