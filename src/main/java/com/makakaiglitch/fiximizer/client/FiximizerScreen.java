@@ -21,6 +21,7 @@ import com.makakaiglitch.fiximizer.gpu.GpuSpillService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.memory.MemoryOptimizer;
+import com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities;
 import com.makakaiglitch.fiximizer.memory.StringDeduplicator;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
@@ -1146,31 +1147,55 @@ public final class FiximizerScreen extends Screen {
                 contentWidth - 8,
                 0xFFB9C9DC);
 
+        RuntimeMemoryCapabilities.Snapshot runtime = RuntimeMemoryCapabilities.current();
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.memory.runtime", runtime.javaMajor()),
+                contentLeft, panelTop + 111, 0xFF8FD8E8);
+
+        String runtimeStrategyKey;
+        if (runtime.compactObjectHeadersEnabled()) {
+            runtimeStrategyKey = "screen.fiximizer.memory.compact_active";
+        } else if (runtime.shouldRecommendCompactObjectHeaders()) {
+            runtimeStrategyKey = "screen.fiximizer.memory.compact_recommended";
+        } else if (runtime.compactObjectHeadersClassLimitReached()) {
+            runtimeStrategyKey = "screen.fiximizer.memory.compact_class_limit";
+        } else if (!runtime.compactObjectHeadersSupported()) {
+            runtimeStrategyKey = "screen.fiximizer.memory.java21_fallback";
+        } else {
+            runtimeStrategyKey = "screen.fiximizer.memory.compact_default";
+        }
+        drawWrapped(graphics,
+                Component.translatable(runtimeStrategyKey),
+                contentLeft,
+                panelTop + 126,
+                contentWidth - 8,
+                0xFF9BD9B0);
+
         StringDeduplicator.Snapshot stats = memoryStats;
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.memory.stats_hits",
                         stats.hits(), stats.registrations()),
-                contentLeft, panelTop + 130, 0xFF9BD9B0);
+                contentLeft, panelTop + 154, 0xFFFFFFFF);
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.memory.stats_evictions",
                         stats.staleReuses(), stats.collisionEvictions(), stats.contentionFallbacks()),
-                contentLeft, panelTop + 145, 0xFF9FB3C8);
+                contentLeft, panelTop + 169, 0xFF9FB3C8);
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.memory.stats_capacity",
                         stats.occupiedSlots(), stats.capacity()),
-                contentLeft, panelTop + 160, 0xFF9FB3C8);
+                contentLeft, panelTop + 184, 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.memory.scope"),
                 contentLeft,
-                panelTop + 181,
+                panelTop + 204,
                 contentWidth - 8,
                 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.memory.g1_note"),
                 contentLeft,
-                panelTop + 218,
+                panelTop + 234,
                 contentWidth - 8,
                 0xFFFFC078);
     }
