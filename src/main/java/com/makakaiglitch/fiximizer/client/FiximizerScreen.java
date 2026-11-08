@@ -715,9 +715,11 @@ public final class FiximizerScreen extends Screen {
 
         String scanStatus;
         if (!ModIntegrationManager.isInitialized()) {
-            scanStatus = Component.translatable("screen.fiximizer.startup_scan_pending").getString();
+            scanStatus = Component.translatable(StartupOptimizer.completed()
+                    ? "screen.fiximizer.startup_scan_failed"
+                    : "screen.fiximizer.startup_scan_pending").getString();
         } else {
-            scanStatus = Component.translatable(StartupOptimizer.compatibilityScanSucceeded()
+            scanStatus = Component.translatable(ModIntegrationManager.lastRefreshSucceeded()
                     ? "screen.fiximizer.startup_scan_done"
                     : "screen.fiximizer.startup_scan_failed").getString();
         }
