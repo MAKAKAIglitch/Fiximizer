@@ -8,6 +8,9 @@ import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
+import com.makakaiglitch.fiximizer.network.NetworkBackendSelector;
+import com.makakaiglitch.fiximizer.network.NetworkCompatibilityDetector;
+import com.makakaiglitch.fiximizer.network.NetworkTelemetryService;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -52,6 +55,7 @@ public final class ClientGameEvents {
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         startDeferredServicesWhenReady(minecraft);
+        NetworkTelemetryService.tick();
 
         if (deferredStartupComplete) {
             DiagnosticsService.tick();
@@ -99,6 +103,10 @@ public final class ClientGameEvents {
         deferredStartupComplete = true;
         SablePhysicsProfiler.registerIfLoaded();
         StallWatchdog.start(minecraft.gameDirectory.toPath());
+        NetworkCompatibilityDetector.refresh();
+        if (FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) {
+            NetworkBackendSelector.initializeAsync();
+        }
 
         if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
             GpuTelemetryService.start();
