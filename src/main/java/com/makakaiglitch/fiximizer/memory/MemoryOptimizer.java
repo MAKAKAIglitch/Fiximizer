@@ -46,7 +46,7 @@ public final class MemoryOptimizer {
     public static StringDeduplicator.Snapshot stringSnapshot() {
         StringDeduplicator current = strings;
         return current == null
-                ? new StringDeduplicator.Snapshot(0L, 0L, 0L, 0L, 0L, 0, 0)
+                ? new StringDeduplicator.Snapshot(0L, 0L, 0L, 0L, 0L, 0, StringDeduplicator.DEFAULT_CAPACITY)
                 : current.snapshot();
     }
 
