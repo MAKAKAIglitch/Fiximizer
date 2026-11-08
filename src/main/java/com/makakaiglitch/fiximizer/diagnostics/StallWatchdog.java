@@ -89,13 +89,8 @@ public final class StallWatchdog {
         gameDirectory = directory.toAbsolutePath().normalize();
         WATCHER.scheduleWithFixedDelay(StallWatchdog::watchSafely, 200L, 200L, TimeUnit.MILLISECONDS);
 
-        // Build the potentially expensive class-to-mod index off the game threads,
-        // before the first stall report needs an attribution lookup.
-        try {
-            WRITER.execute(ModAttribution::warmUp);
-        } catch (RejectedExecutionException exception) {
-            Fiximizer.LOGGER.warn("Could not queue the initial mod-attribution index build.");
-        }
+        // Mod/JAR attribution is built lazily by the report writer on the
+        // first incident. Normal gameplay does not scan every installed mod JAR.
 
         Fiximizer.LOGGER.info("Stall watchdog started (threshold={} ms, poll=200 ms).",
                 FiximizerConfig.STALL_THRESHOLD_MS.get());
