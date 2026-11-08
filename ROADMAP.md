@@ -326,15 +326,25 @@ No blanket rewrite is planned. Java remains the baseline; Kotlin and Rust are in
 
 The immediate engineering sequence is:
 
-1. Startup Profiler plus the first safe launch-time reductions.
-2. Low-allocation telemetry audit and hot-path cleanup.
-3. Adaptive Diagnostics with a visible overhead level.
-4. Repeatable benchmark/baseline export.
-5. The first evidence-backed optimization selected from a real modpack profile.
-6. A reusable optimization-policy and adapter architecture around that work.
-7. A Memory Profiler baseline followed by one narrowly scoped, opt-in deduplication experiment.
+1. Finish validating and prepare the separate Startup Optimizer implementation for integration; preserve the distinction between total JVM-to-title time and Fiximizer-owned phase durations.
+2. Complete the low-allocation audit of telemetry and other recurring hot paths.
+3. Implement Adaptive Diagnostics with a visible monitoring level and measured overhead.
+4. Add a local, privacy-reviewed Diagnostic Bundle that can be attached to bug reports or inspected by an AI assistant.
+5. Build a repeatable Benchmark Engine with versioned baselines, comparable scenarios, medians and tail percentiles.
+6. Add a Runtime Health Check that reports the state and capabilities of each Fiximizer subsystem.
+7. Reconcile the independent Startup, Memory and Network branches against the current main branch before integrating their code; preserve their work as separate changes until each has passed the relevant tests.
+8. Select the first additional in-game optimization from a reproducible real-modpack profile, then measure its end-to-end benefit.
 
-Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration is a first-class goal, not an afterthought.
+Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration remains a first-class goal.
+
+## 8. Follow-up implementation specifications
+
+The audit-derived implementation proposals are maintained separately from this roadmap so they can be reviewed, changed and implemented independently:
+
+- [Improvement proposals and implementation plan](docs/IMPROVEMENT_PROPOSALS.md) — Diagnostic Bundle, Benchmark Engine, Runtime Health Check, Memory/Network follow-ups, compatibility and integration gates.
+- [Russian version](docs/IMPROVEMENT_PROPOSALS.ru.md).
+
+These documents describe planned work. They do not imply that the proposed features are already implemented or that any independent feature branch has been merged.
 
 ---
 
