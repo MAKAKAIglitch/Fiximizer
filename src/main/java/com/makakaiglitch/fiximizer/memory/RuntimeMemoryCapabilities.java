@@ -80,9 +80,11 @@ public final class RuntimeMemoryCapabilities {
         boolean compactAvailable = false;
         boolean compactEnabled = false;
 
-        // This option is not present on Java 21. On HotSpot JDK 25+ it is a
-        // product option; checking the VM avoids vendor/version assumptions.
-        if (javaMajor >= COMPACT_HEADERS_MIN_JAVA) {
+        // Compact Object Headers target supported 64-bit HotSpot VMs. The
+        // option is not present on Java 21; on JDK 25+ it is a product option.
+        // Check the real VM option instead of relying on vendor/version labels.
+        boolean is64BitRuntime = "64".equals(System.getProperty("sun.arch.data.model", ""));
+        if (javaMajor >= COMPACT_HEADERS_MIN_JAVA && is64BitRuntime) {
             try {
                 HotSpotDiagnosticMXBean bean =
                         ManagementFactory.getPlatformMXBean(HotSpotDiagnosticMXBean.class);
