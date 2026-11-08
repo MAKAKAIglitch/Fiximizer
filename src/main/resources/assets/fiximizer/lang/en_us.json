@@ -159,5 +159,10 @@
   "screen.fiximizer.watchdog_queued": "Queued",
   "screen.fiximizer.watchdog_queue_full": "Busy",
   "screen.fiximizer.watchdog_status": "Stall Watchdog: %s | threshold %s ms | last report: %s",
-  "screen.fiximizer.watchdog_no_report": "none"
+  "screen.fiximizer.watchdog_no_report": "none",
+  "config.fiximizer.watchdog.jfr_enabled": "Enable the rolling JFR buffer for stall diagnostics",
+  "config.fiximizer.watchdog.jfr_window": "Maximum JFR history age (seconds; size limit may shorten it)",
+  "config.fiximizer.watchdog.jfr_size": "Maximum rolling JFR repository size (MiB)",
+  "config.fiximizer.watchdog.jfr_interval": "Minimum interval between exported stall JFR files (milliseconds)",
+  "config.fiximizer.watchdog.jfr_retention": "Maximum retained stall JFR exports"
 }

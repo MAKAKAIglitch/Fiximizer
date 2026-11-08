@@ -21,6 +21,11 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.IntValue MAX_DUMPS_PER_STALL;
     public static final ModConfigSpec.IntValue STALL_STACK_DEPTH;
     public static final ModConfigSpec.IntValue MAX_STALL_REPORTS;
+    public static final ModConfigSpec.BooleanValue ENABLE_STALL_JFR;
+    public static final ModConfigSpec.IntValue STALL_JFR_WINDOW_SECONDS;
+    public static final ModConfigSpec.IntValue STALL_JFR_MAX_SIZE_MIB;
+    public static final ModConfigSpec.IntValue STALL_JFR_DUMP_INTERVAL_MS;
+    public static final ModConfigSpec.IntValue MAX_STALL_JFR_EXPORTS;
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
     public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
@@ -120,6 +125,31 @@ public final class FiximizerConfig {
                 .comment("Maximum number of local text stall reports retained on disk.")
                 .translation("config.fiximizer.watchdog.retention")
                 .defineInRange("maxReports", 20, 5, 100);
+
+        ENABLE_STALL_JFR = BUILDER
+                .comment("Keep a bounded JFR ring buffer so stall reports can include recent CPU, GC and allocation events.")
+                .translation("config.fiximizer.watchdog.jfr_enabled")
+                .define("rollingJfr", true);
+
+        STALL_JFR_WINDOW_SECONDS = BUILDER
+                .comment("Maximum age of events kept in the rolling JFR buffer; the size limit may shorten this window.")
+                .translation("config.fiximizer.watchdog.jfr_window")
+                .defineInRange("jfrWindowSeconds", 60, 15, 180);
+
+        STALL_JFR_MAX_SIZE_MIB = BUILDER
+                .comment("Maximum disk repository size for the rolling JFR buffer.")
+                .translation("config.fiximizer.watchdog.jfr_size")
+                .defineInRange("jfrMaxSizeMiB", 64, 16, 256);
+
+        STALL_JFR_DUMP_INTERVAL_MS = BUILDER
+                .comment("Minimum interval between exported JFR snapshots.")
+                .translation("config.fiximizer.watchdog.jfr_interval")
+                .defineInRange("jfrDumpIntervalMillis", 30000, 5000, 120000);
+
+        MAX_STALL_JFR_EXPORTS = BUILDER
+                .comment("Maximum number of exported stall JFR files retained locally.")
+                .translation("config.fiximizer.watchdog.jfr_retention")
+                .defineInRange("maxJfrExports", 6, 1, 20);
 
         BUILDER.pop();
         BUILDER.push("scheduler");

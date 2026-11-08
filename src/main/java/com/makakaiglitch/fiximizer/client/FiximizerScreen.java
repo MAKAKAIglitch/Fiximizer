@@ -1202,12 +1202,13 @@ public final class FiximizerScreen extends Screen {
     }
 
     private String recorderLabel() {
-        return switch (FlightRecorderService.state()) {
+        String manualStatus = switch (FlightRecorderService.state()) {
             case IDLE -> FlightRecorderService.message();
             case RECORDING -> FlightRecorderService.message() + " (" + FlightRecorderService.elapsedSeconds() + "s)";
             case SAVING -> FlightRecorderService.message();
             case FAILED -> FlightRecorderService.message();
         };
+        return manualStatus + " | ring: " + FlightRecorderService.rollingStatus();
     }
 
     @Override

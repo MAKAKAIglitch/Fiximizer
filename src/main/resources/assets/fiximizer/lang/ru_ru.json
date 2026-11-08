@@ -159,5 +159,10 @@
   "screen.fiximizer.watchdog_queued": "В очереди",
   "screen.fiximizer.watchdog_queue_full": "Занято",
   "screen.fiximizer.watchdog_status": "Stall Watchdog: %s | порог %s мс | последний отчёт: %s",
-  "screen.fiximizer.watchdog_no_report": "нет"
+  "screen.fiximizer.watchdog_no_report": "нет",
+  "config.fiximizer.watchdog.jfr_enabled": "Включить кольцевую запись JFR для диагностики зависаний",
+  "config.fiximizer.watchdog.jfr_window": "Максимальный возраст данных JFR (секунды; лимит размера может сократить окно)",
+  "config.fiximizer.watchdog.jfr_size": "Максимальный размер кольцевого буфера JFR (МиБ)",
+  "config.fiximizer.watchdog.jfr_interval": "Минимальный интервал между экспортами JFR при зависаниях (мс)",
+  "config.fiximizer.watchdog.jfr_retention": "Максимум сохраняемых JFR-снимков зависаний"
 }
