@@ -148,5 +148,16 @@
   "screen.fiximizer.server_stats": "Samples: %s | average: %s ms | p50: %s ms",
   "screen.fiximizer.server_percentiles": "p95: %s ms | p99: %s ms | peak: %s ms",
   "screen.fiximizer.server_stalls": "Over 50 ms: %s | over 100 ms: %s",
-  "screen.fiximizer.server_budget": "The 20 TPS budget is 50 ms per tick. These timings include Create, Sable and all other server work; do not add them to the sub-profiler timings."
+  "screen.fiximizer.server_budget": "The 20 TPS budget is 50 ms per tick. These timings include Create, Sable and all other server work; do not add them to the sub-profiler timings.",
+  "config.fiximizer.watchdog.enabled": "Enable the non-blocking stall watchdog",
+  "config.fiximizer.watchdog.threshold": "Stall detection threshold (milliseconds)",
+  "config.fiximizer.watchdog.repeat_interval": "Minimum interval between snapshots for one stall (milliseconds)",
+  "config.fiximizer.watchdog.max_dumps": "Maximum snapshots per continuous stall",
+  "config.fiximizer.watchdog.stack_depth": "Maximum stack frames captured per thread",
+  "config.fiximizer.watchdog.retention": "Maximum saved stall reports",
+  "screen.fiximizer.watchdog_dump": "Dump",
+  "screen.fiximizer.watchdog_queued": "Queued",
+  "screen.fiximizer.watchdog_queue_full": "Busy",
+  "screen.fiximizer.watchdog_status": "Stall Watchdog: %s | threshold %s ms | last report: %s",
+  "screen.fiximizer.watchdog_no_report": "none"
 }

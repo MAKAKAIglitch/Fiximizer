@@ -11,6 +11,7 @@ import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
 import com.makakaiglitch.fiximizer.diagnostics.ServerTickProfiler;
+import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkResult;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkService;
@@ -69,6 +70,7 @@ public final class FiximizerScreen extends Screen {
     private Button gpuSpillLimitButton;
     private Button frameProfilerButton;
     private Button serverTickProfilerButton;
+    private Button dumpDiagnosticsButton;
 
     private int panelLeft;
     private int panelTop;
@@ -151,6 +153,17 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.profile_stop"),
                 button -> FlightRecorderService.stopAndSave(Minecraft.getInstance().gameDirectory.toPath())
         ).bounds(contentLeft + 186, panelTop + 272, 96, 20).build());
+
+        dumpDiagnosticsButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.watchdog_dump"),
+                button -> {
+                    if (StallWatchdog.requestManualDump()) {
+                        dumpDiagnosticsButton.setMessage(Component.translatable("screen.fiximizer.watchdog_queued"));
+                    } else {
+                        dumpDiagnosticsButton.setMessage(Component.translatable("screen.fiximizer.watchdog_queue_full"));
+                    }
+                }
+        ).bounds(contentLeft + 284, panelTop + 272, 86, 20).build()));
 
         profileButton = addRenderableWidget(Button.builder(
                 profileButtonLabel(),
@@ -317,6 +330,8 @@ public final class FiximizerScreen extends Screen {
         boolean server = selectedTab == Tab.SERVER;
 
         refreshButton.visible = overview;
+        dumpDiagnosticsButton.visible = overview;
+        dumpDiagnosticsButton.active = StallWatchdog.enabled();
         startProfileButton.visible = overview;
         stopProfileButton.visible = overview;
         profileButton.visible = performance;
@@ -574,6 +589,20 @@ public final class FiximizerScreen extends Screen {
                 scheduler.targetWorkers(),
                 scheduler.maximumWorkers(),
                 y);
+        y += 17;
+        String lastDump = StallWatchdog.lastReportFile();
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.watchdog_status",
+                        Component.translatable(StallWatchdog.enabled()
+                                ? "screen.fiximizer.enabled" : "screen.fiximizer.disabled"),
+                        FiximizerConfig.STALL_THRESHOLD_MS.get(),
+                        Component.literal(lastDump.isBlank()
+                                ? Component.translatable("screen.fiximizer.watchdog_no_report").getString()
+                                : lastDump)),
+                contentLeft,
+                y,
+                contentWidth - 8,
+                0xFF9FB3C8);
     }
 
     private void drawServer(GuiGraphics graphics) {

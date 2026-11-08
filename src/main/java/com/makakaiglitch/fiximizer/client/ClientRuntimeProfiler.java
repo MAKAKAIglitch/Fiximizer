@@ -3,6 +3,7 @@ package com.makakaiglitch.fiximizer.client;
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
+import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -31,6 +32,7 @@ public final class ClientRuntimeProfiler {
 
     @SubscribeEvent
     public static void onRenderFramePre(RenderFrameEvent.Pre event) {
+        StallWatchdog.beginRenderFrame();
         synchronizeEnabledState();
         if (lastKnownEnabled) {
             renderStartedAtNanos = System.nanoTime();
@@ -39,6 +41,7 @@ public final class ClientRuntimeProfiler {
 
     @SubscribeEvent
     public static void onRenderFramePost(RenderFrameEvent.Post event) {
+        StallWatchdog.endRenderFrame();
         synchronizeEnabledState();
         long startedAt = renderStartedAtNanos;
         renderStartedAtNanos = 0L;
@@ -49,6 +52,7 @@ public final class ClientRuntimeProfiler {
 
     @SubscribeEvent
     public static void onClientTickPre(ClientTickEvent.Pre event) {
+        StallWatchdog.beginClientTick();
         synchronizeEnabledState();
         if (lastKnownEnabled) {
             clientTickStartedAtNanos = System.nanoTime();
@@ -57,6 +61,7 @@ public final class ClientRuntimeProfiler {
 
     @SubscribeEvent
     public static void onClientTickPost(ClientTickEvent.Post event) {
+        StallWatchdog.endClientTick();
         synchronizeEnabledState();
         long startedAt = clientTickStartedAtNanos;
         clientTickStartedAtNanos = 0L;

@@ -15,6 +15,12 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
     public static final ModConfigSpec.BooleanValue ENABLE_FRAME_TIME_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_SERVER_TICK_PROFILING;
+    public static final ModConfigSpec.BooleanValue ENABLE_STALL_WATCHDOG;
+    public static final ModConfigSpec.IntValue STALL_THRESHOLD_MS;
+    public static final ModConfigSpec.IntValue STALL_REPEAT_INTERVAL_MS;
+    public static final ModConfigSpec.IntValue MAX_DUMPS_PER_STALL;
+    public static final ModConfigSpec.IntValue STALL_STACK_DEPTH;
+    public static final ModConfigSpec.IntValue MAX_STALL_REPORTS;
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
     public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
@@ -81,6 +87,39 @@ public final class FiximizerConfig {
                 .comment("Measure integrated single-player server tick wall-clock duration.")
                 .translation("config.fiximizer.profiler.server_tick")
                 .define("enableServerTickTiming", true);
+
+        BUILDER.pop();
+        BUILDER.push("watchdog");
+
+        ENABLE_STALL_WATCHDOG = BUILDER
+                .comment("Detect long client, render and integrated-server event spans using a separate daemon thread.")
+                .translation("config.fiximizer.watchdog.enabled")
+                .define("enabled", true);
+
+        STALL_THRESHOLD_MS = BUILDER
+                .comment("Minimum event duration before a diagnostic snapshot is captured.")
+                .translation("config.fiximizer.watchdog.threshold")
+                .defineInRange("thresholdMillis", 2000, 500, 30000);
+
+        STALL_REPEAT_INTERVAL_MS = BUILDER
+                .comment("Minimum time between snapshots while the same event remains stalled.")
+                .translation("config.fiximizer.watchdog.repeat_interval")
+                .defineInRange("repeatIntervalMillis", 2000, 500, 30000);
+
+        MAX_DUMPS_PER_STALL = BUILDER
+                .comment("Maximum number of snapshots captured for one continuous event stall.")
+                .translation("config.fiximizer.watchdog.max_dumps")
+                .defineInRange("maxDumpsPerStall", 8, 1, 30);
+
+        STALL_STACK_DEPTH = BUILDER
+                .comment("Maximum stack frames captured for each JVM thread in a diagnostic report.")
+                .translation("config.fiximizer.watchdog.stack_depth")
+                .defineInRange("stackDepth", 32, 8, 128);
+
+        MAX_STALL_REPORTS = BUILDER
+                .comment("Maximum number of local text stall reports retained on disk.")
+                .translation("config.fiximizer.watchdog.retention")
+                .defineInRange("maxReports", 20, 5, 100);
 
         BUILDER.pop();
         BUILDER.push("scheduler");

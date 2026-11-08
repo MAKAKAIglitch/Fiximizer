@@ -148,5 +148,16 @@
   "screen.fiximizer.server_stats": "Замеров: %s | среднее: %s мс | p50: %s мс",
   "screen.fiximizer.server_percentiles": "p95: %s мс | p99: %s мс | максимум: %s мс",
   "screen.fiximizer.server_stalls": "Дольше 50 мс: %s | дольше 100 мс: %s",
-  "screen.fiximizer.server_budget": "Ориентир — 50 мс на тик для 20 TPS. Эти показатели включают Create, Sable и остальные серверные задачи; не складывай их с отдельными профайлерами."
+  "screen.fiximizer.server_budget": "Ориентир — 50 мс на тик для 20 TPS. Эти показатели включают Create, Sable и остальные серверные задачи; не складывай их с отдельными профайлерами.",
+  "config.fiximizer.watchdog.enabled": "Включить фоновое обнаружение зависаний",
+  "config.fiximizer.watchdog.threshold": "Порог обнаружения зависания (мс)",
+  "config.fiximizer.watchdog.repeat_interval": "Минимальный интервал между снимками одного зависания (мс)",
+  "config.fiximizer.watchdog.max_dumps": "Максимум снимков за одно непрерывное зависание",
+  "config.fiximizer.watchdog.stack_depth": "Максимум кадров стека для каждого потока",
+  "config.fiximizer.watchdog.retention": "Максимальное количество сохраняемых отчётов",
+  "screen.fiximizer.watchdog_dump": "Снимок",
+  "screen.fiximizer.watchdog_queued": "В очереди",
+  "screen.fiximizer.watchdog_queue_full": "Занято",
+  "screen.fiximizer.watchdog_status": "Stall Watchdog: %s | порог %s мс | последний отчёт: %s",
+  "screen.fiximizer.watchdog_no_report": "нет"
 }

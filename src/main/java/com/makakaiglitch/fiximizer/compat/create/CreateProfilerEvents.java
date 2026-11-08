@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.compat.create;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.diagnostics.ServerTickProfiler;
+import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -19,12 +20,14 @@ public final class CreateProfilerEvents {
 
     @SubscribeEvent
     public static void onServerTickPre(ServerTickEvent.Pre event) {
+        StallWatchdog.beginServerTick();
         ServerTickProfiler.beginTick();
         CreateContraptionProfiler.beginServerTick();
     }
 
     @SubscribeEvent
     public static void onServerTickPost(ServerTickEvent.Post event) {
+        StallWatchdog.endServerTick();
         ServerTickProfiler.endTick();
         CreateContraptionProfiler.endServerTick();
     }

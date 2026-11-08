@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.9.0-alpha — integrated server tick telemetry joins client, Create and Sable profiling**
+**0.10.0-alpha — non-blocking stall detection and JVM thread snapshots**
 
 ### In-game menu
 
@@ -67,6 +67,17 @@ The Server tab measures full logical-server tick duration on a local single-play
 - The 50 ms target corresponds to 20 ticks per second when maintained consistently.
 
 **Measurement boundary:** this is the complete integrated-server tick duration between NeoForge pre/post events. It includes Create, Sable and other server-side mod work. Do not add these values to the Create or Sable sub-profiler values; they overlap. The client-side integration does not measure a remote multiplayer server.
+
+### Stall watchdog and JVM thread snapshots
+
+The watchdog observes three long-running NeoForge event spans independently: the integrated server tick, client tick and render call. A separate daemon thread checks active spans every 200 ms; the default trigger is 2 seconds. While an event remains stalled, it can capture additional snapshots at a bounded interval, up to the configured per-stall limit.
+
+- Thread stacks are captured by the watchdog thread at detection time, rather than later by the file writer. This reduces the chance of losing the useful stack after a stalled thread resumes.
+- Text reports include thread names/IDs/states, bounded stack traces, basic heap and garbage-collector counters, process CPU load when the JVM exposes it, and a monitor/synchronizer deadlock check.
+- A separate daemon writer uses a bounded queue. Reports are saved locally to `logs/fiximizer/stalls/`; old reports are pruned according to the retention setting.
+- The Overview page has a manual snapshot button. Watchdog settings are available in the generated NeoForge config under `watchdog`.
+
+**Measurement boundary:** the watchdog measures wall-clock time between event callbacks, not CPU time, GPU execution or actual displayed-frame cadence. A stack snapshot is evidence of what a thread was doing at capture time; it does not prove that the topmost mod caused the stall. The first snapshot is taken after the threshold, so this release does not preserve the seconds before a stall. Automatic rolling-JFR capture and class-to-mod attribution are not part of this first watchdog integration.
 
 ### Create contraption tick telemetry
 
@@ -173,6 +184,7 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] Passive Sable physics substep profiler (last 1,000 pre/post event pairs)
 - [x] Client render-call and client-tick workload profiler (600-sample rolling windows)
 - [x] Integrated single-player server tick profiler (600-tick rolling window)
+- [x] Non-blocking server/client/render stall watchdog with bounded JVM stack snapshots and local report retention
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
 - [ ] First Sable optimization based on reproducible physics profiling data

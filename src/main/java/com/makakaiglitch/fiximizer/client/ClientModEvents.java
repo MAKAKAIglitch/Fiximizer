@@ -5,6 +5,7 @@ import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
+import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
@@ -41,6 +42,7 @@ public final class ClientModEvents {
             ModIntegrationManager.refresh();
             SablePhysicsProfiler.registerIfLoaded();
             DiagnosticsService.sampleNow();
+            StallWatchdog.start(Minecraft.getInstance().gameDirectory.toPath());
 
             Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
                     OptimizationProfileManager.selected().id());
