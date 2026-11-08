@@ -42,32 +42,28 @@ neoForge {
 // NeoForge runs above, so keep additionalRuntimeClasspath declarations below
 // the neoForge block. Jar-in-Jar packages each required runtime library.
 dependencies {
-    jarJar(implementation('com.github.oshi:oshi-core:7.7.3') {
+    // OSHI 6.11.1 keeps the GPU telemetry API in one artifact.
+    // OSHI 6.12+ splits common/core into named modules that conflict in
+    // NeoForge's module layer because both export oshi.software.common.
+    jarJar(implementation('com.github.oshi:oshi-core:6.11.1') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }) {
         version {
-            strictly '[7.7.3,7.7.4)'
-            prefer '7.7.3'
+            strictly '[6.11.1]'
+            prefer '6.11.1'
         }
     }
 
-    jarJar(implementation('com.github.oshi:oshi-common:7.7.3') {
-        exclude group: 'org.slf4j', module: 'slf4j-api'
-    }) {
-        version {
-            strictly '[7.7.3,7.7.4)'
-            prefer '7.7.3'
-        }
-    }
-
-    jarJar(implementation('net.java.dev.jna:jna-jpms:5.19.1')) {
+    // Match OSHI 6.11.x's JNA artifact coordinates while keeping the
+    // already selected, newer JNA runtime version.
+    jarJar(implementation('net.java.dev.jna:jna:5.19.1')) {
         version {
             strictly '[5.19.1]'
             prefer '5.19.1'
         }
     }
 
-    jarJar(implementation('net.java.dev.jna:jna-platform-jpms:5.19.1')) {
+    jarJar(implementation('net.java.dev.jna:jna-platform:5.19.1')) {
         version {
             strictly '[5.19.1]'
             prefer '5.19.1'
@@ -81,7 +77,7 @@ dependencies {
         }
     }
 
-    additionalRuntimeClasspath('com.github.oshi:oshi-core:7.7.3') {
+    additionalRuntimeClasspath('com.github.oshi:oshi-core:6.11.1') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
     additionalRuntimeClasspath 'org.lwjgl:lwjgl-opencl:3.3.3'
