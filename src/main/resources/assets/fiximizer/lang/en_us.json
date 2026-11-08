@@ -188,14 +188,15 @@
   "screen.fiximizer.memory.title": "Memory optimizer",
   "screen.fiximizer.memory.intro": "Bounded, opt-in sharing of explicitly submitted immutable metadata. The cache is created only after first use; no heap scan, global object rewrite or recurring task is performed.",
   "screen.fiximizer.memory.scope": "Only explicitly submitted immutable strings are considered. A hit reuses a different equal String instance; zero hits means no savings were observed.",
-  "screen.fiximizer.memory.g1_note": "G1 String Deduplication is a separate optional JVM mechanism and may add GC CPU work. Compact Object Headers are selected independently when supported.",
+  "screen.fiximizer.memory.g1_note": "G1 String Deduplication is optional and may add GC CPU work.",
   "screen.fiximizer.memory.stats_hits": "String reuse: %s duplicate hits from %s registrations",
   "screen.fiximizer.memory.stats_evictions": "Stale slots reused: %s | collision evictions: %s | contention bypasses: %s",
   "screen.fiximizer.memory.stats_capacity": "Bounded table: %s / %s slots occupied",
   "screen.fiximizer.memory.runtime": "Detected game JVM: Java %s",
   "screen.fiximizer.memory.compact_active": "Compact Object Headers are already enabled by this JVM.",
-  "screen.fiximizer.memory.compact_recommended": "JDK 25+ supports Compact Object Headers. The JVM advisor adds the flag for the next launch.",
-  "screen.fiximizer.memory.compact_class_limit": "Compact Object Headers are not recommended: the JVM is at the 4,000,000 loaded-class limit.",
+  "screen.fiximizer.memory.compact_recommended": "JDK 25+ exposes Compact Object Headers; the JVM advisor includes the launch flag.",
+  "screen.fiximizer.memory.compact_class_limit": "Not recommended: the JVM reached the 4,000,000 loaded-class limit.",
   "screen.fiximizer.memory.java21_fallback": "Compatible fallback selected: Java 21 object layout, bounded local string sharing, and optional G1 string deduplication.",
-  "screen.fiximizer.memory.compact_default": "This JVM does not expose Compact Object Headers; the compatible memory path remains active."
+  "screen.fiximizer.memory.compact_default": "This JVM does not expose Compact Object Headers; the compatible memory path remains active.",
+  "screen.fiximizer.memory.compatible_fallback": "No additional compact-header feature is exposed. Fiximizer keeps its compatible Java 21-targeted path."
 }
