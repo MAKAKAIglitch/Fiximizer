@@ -247,10 +247,12 @@ public final class FiximizerScreen extends Screen {
                     FiximizerConfig.SPEC.save();
                     if (!FiximizerConfig.ENABLE_STRING_CANONICALIZATION.get()) {
                         MemoryOptimizer.clear();
+                    } else {
+                        ModIntegrationManager.refresh();
                     }
                     memoryDedupButton.setMessage(memoryDedupLabel());
                 }
-        ).bounds(contentLeft, panelTop + 222, 165, 20).build());
+        ).bounds(contentLeft, panelTop + 245, 165, 20).build());
 
         g1StringDedupButton = addRenderableWidget(Button.builder(
                 g1StringDedupLabel(),
@@ -260,7 +262,7 @@ public final class FiximizerScreen extends Screen {
                     FiximizerConfig.SPEC.save();
                     g1StringDedupButton.setMessage(g1StringDedupLabel());
                 }
-        ).bounds(contentLeft + 175, panelTop + 222, 165, 20).build());
+        ).bounds(contentLeft + 175, panelTop + 245, 165, 20).build());
 
         gpuSpillButton = addRenderableWidget(Button.builder(
                 gpuSpillLabel(),
