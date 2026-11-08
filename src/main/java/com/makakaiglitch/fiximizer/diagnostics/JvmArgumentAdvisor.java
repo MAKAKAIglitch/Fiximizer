@@ -98,7 +98,7 @@ public final class JvmArgumentAdvisor {
 
         String note = String.format(
                 Locale.ROOT,
-                "Detected %.1f GiB physical RAM and %d loaded mods. Java 21 keeps its default garbage collector; Fiximizer only recommends heap bounds.",
+                "Detected %.1f GiB physical RAM and %d loaded mods. Fiximizer keeps the JVM's default collector and selects only memory flags exposed by the active runtime.",
                 totalPhysicalBytes / (double) GIB,
                 modCount
         );
