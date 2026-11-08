@@ -639,8 +639,10 @@ public final class FiximizerScreen extends Screen {
     }
 
     private IntegrationStatus findIntegrationStatus(List<IntegrationStatus> statuses, String modId) {
+        String displayName = "create".equals(modId) ? "Create" : "Sable";
         return statuses.stream()
-                .filter(status -> modId.equals(status.detectedModId()))
+                .filter(status -> modId.equals(status.detectedModId())
+                        || displayName.equals(status.displayName()))
                 .findFirst()
                 .orElse(null);
     }
