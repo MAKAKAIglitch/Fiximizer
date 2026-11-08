@@ -23,6 +23,9 @@ public final class NetworkSocketTuning {
     }
 
     public static void onLogin(Connection connection) {
+        // Refresh once on session change so a late/alternate loader event cannot
+        // leave an unknown third-party network stack out of the coexistence check.
+        NetworkCompatibilityDetector.refresh();
         Connection previous = activeConnection;
         if (previous != null && previous != connection) {
             restore();
