@@ -70,6 +70,12 @@ tasks.named('processResources', ProcessResources).configure {
             mod_name               : project.mod_name,
             mod_version            : project.mod_version,
             mod_license            : project.mod_license,
+            mod_authors             : project.mod_authors,
+            mod_homepage            : project.mod_homepage,
+            mod_issue_tracker       : project.mod_issue_tracker,
+            mod_download_url        : project.mod_download_url,
+            mod_update_json         : project.mod_update_json,
+            mod_credits             : project.mod_credits,
             minecraft_version_range: project.minecraft_version_range,
             neo_version_range      : project.neo_version_range
     ]
