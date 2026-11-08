@@ -2,6 +2,8 @@ package com.makakaiglitch.fiximizer;
 
 import com.makakaiglitch.fiximizer.client.FiximizerScreen;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.startup.StartupProfiler;
+import com.makakaiglitch.fiximizer.startup.StartupTimeline.Stage;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -11,6 +13,7 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 @Mod(value = Fiximizer.MOD_ID, dist = Dist.CLIENT)
 public final class FiximizerClient {
     public FiximizerClient(ModContainer container) {
+        StartupProfiler.mark(Stage.FIXIMIZER_CLIENT_CONSTRUCTED);
         container.registerConfig(ModConfig.Type.CLIENT, FiximizerConfig.SPEC);
 
         // NeoForge and Better ModList both use this extension point.
