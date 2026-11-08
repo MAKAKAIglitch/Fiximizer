@@ -108,5 +108,17 @@
   "screen.fiximizer.create_profiler_no_entities": "За последние %s серверных тиков контрапции не тикали.",
   "screen.fiximizer.create_profiler_stats": "Тиков контрапций: %s | среднее за тик сервера: %s мс",
   "screen.fiximizer.create_profiler_timing": "Среднее время тика: %s мс | максимум: %s мс",
-  "screen.fiximizer.create_profiler_top": "Самый затратный тип за сессию: %s (%s мс)"
+  "screen.fiximizer.create_profiler_top": "Самый затратный тип за сессию: %s (%s мс)",
+  "screen.fiximizer.tab_physics": "Физика",
+  "screen.fiximizer.physics_title": "Профилирование физики Create и Sable",
+  "screen.fiximizer.physics_intro": "Пассивные замеры последних подшагов физики. Sable измеряется между событиями pre и post: сюда входят Java-подготовка, нативная физика и обновление позиций, а не только Rapier.",
+  "screen.fiximizer.profiler_detection_unavailable": "Не удалось определить статус мода. Проверь обнаружение модов.",
+  "screen.fiximizer.profiler_mod_missing": "Целевой мод не установлен.",
+  "screen.fiximizer.sable_profiler_title": "Sable: последние 1000 физических подшагов",
+  "screen.fiximizer.sable_profiler_inactive": "Интеграция Sable выключена.",
+  "screen.fiximizer.sable_profiler_api_unavailable": "События физики Sable недоступны или API несовместим.",
+  "screen.fiximizer.sable_profiler_waiting": "Ожидание первого подшага физики Sable...",
+  "screen.fiximizer.sable_profiler_stats": "Подшагов: %s | среднее время: %s мс",
+  "screen.fiximizer.sable_profiler_window": "Всего: %s мс | пик: %s мс | миров: %s",
+  "screen.fiximizer.sable_profiler_top": "Самый затратный мир: %s (%s мс)"
 }
