@@ -1,6 +1,7 @@
 package com.makakaiglitch.fiximizer.compat;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.memory.MemoryOptimizer;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 
@@ -72,8 +73,8 @@ public final class CompatibilityDetector {
                 String version = container.get().getModInfo().getVersion().toString();
                 return new IntegrationStatus(
                         target.displayName(),
-                        modId,
-                        version,
+                        MemoryOptimizer.canonicalize(modId),
+                        MemoryOptimizer.canonicalize(version),
                         target.enabled().get()
                 );
             }
