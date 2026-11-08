@@ -1,7 +1,5 @@
 package com.makakaiglitch.fiximizer;
 
-import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
-import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.fml.ModContainer;
@@ -15,14 +13,6 @@ public final class FiximizerClient {
     public FiximizerClient(ModContainer container) {
         container.registerConfig(ModConfig.Type.CLIENT, FiximizerConfig.SPEC);
         container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
-
-        if (FiximizerConfig.SHOW_STARTUP_SUMMARY.get()) {
-            long detected = CompatibilityDetector.detect().stream()
-                    .filter(IntegrationStatus::detected)
-                    .count();
-            Fiximizer.LOGGER.info("Compatibility scan: {}/{} supported targets detected.",
-                    detected, CompatibilityDetector.targetCount());
-        }
 
         Fiximizer.LOGGER.info("Client dashboard key: F8 (customizable in Controls).");
     }
