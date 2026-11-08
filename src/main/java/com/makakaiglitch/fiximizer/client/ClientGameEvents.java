@@ -96,7 +96,6 @@ public final class ClientGameEvents {
         }
 
         deferredStartupComplete = true;
-        DiagnosticsService.sampleNow();
         SablePhysicsProfiler.registerIfLoaded();
         StallWatchdog.start(minecraft.gameDirectory.toPath());
 
