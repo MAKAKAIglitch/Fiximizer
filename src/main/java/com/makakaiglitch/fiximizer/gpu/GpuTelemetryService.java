@@ -2,9 +2,9 @@ package com.makakaiglitch.fiximizer.gpu;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import oshi.SystemInfo;
-import oshi.hardware.GpuStats;
 import oshi.hardware.GraphicsCard;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
@@ -13,7 +13,18 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Uses the OSHI copy already shipped with Minecraft 1.21.1.
+ *
+ * Minecraft's OSHI 6.4.10 exposes GPU identity and total VRAM, but predates
+ * OSHI's live GpuStats API. Live readings are therefore queried reflectively
+ * and remain unavailable on stock 1.21.1 instead of introducing a second
+ * OSHI module or crashing during startup.
+ */
 public final class GpuTelemetryService {
+    private static final String GRAPHICS_CARD_API = "oshi.hardware.GraphicsCard";
+    private static final String GPU_STATS_API = "oshi.hardware.GpuStats";
+
     private static final AtomicBoolean STARTED = new AtomicBoolean();
     private static volatile ScheduledExecutorService executor;
     private static volatile List<GpuSensor> sensors = List.of();
@@ -50,14 +61,19 @@ public final class GpuTelemetryService {
             }
 
             for (GraphicsCard card : cards) {
-                GpuStats stats = card.createStatsSession();
+                Object stats = createStatsSession(card);
                 discovered.add(new GpuSensor(card, stats));
-                stats.getGpuUtilization(); // Prime delta-based utilization backends.
             }
 
             sensors = List.copyOf(discovered);
             sample();
-            status = "Detected " + sensors.size() + " GPU(s)";
+
+            boolean hasLiveStats = sensors.stream().anyMatch(sensor -> sensor.stats() != null);
+            status = hasLiveStats
+                    ? "Detected " + sensors.size() + " GPU(s); live sensor API available"
+                    : "Detected " + sensors.size()
+                            + " GPU(s); live sensor metrics are unavailable in Minecraft's OSHI 6.4.10";
+
             executor.scheduleWithFixedDelay(
                     GpuTelemetryService::sampleSafely,
                     2L,
@@ -73,6 +89,17 @@ public final class GpuTelemetryService {
         }
     }
 
+    private static Object createStatsSession(GraphicsCard card) {
+        try {
+            Object stats = invokeApi(card, GRAPHICS_CARD_API, "createStatsSession");
+            invokeApi(stats, GPU_STATS_API, "getGpuUtilization"); // Prime delta-based backends.
+            return stats;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            // Stock Minecraft 1.21.1 uses OSHI 6.4.10, which has no GpuStats API.
+            return null;
+        }
+    }
+
     private static void sampleSafely() {
         try {
             sample();
@@ -85,18 +112,51 @@ public final class GpuTelemetryService {
     private static void sample() {
         List<GpuReading> values = new ArrayList<>(sensors.size());
         for (GpuSensor sensor : sensors) {
-            GpuStats stats = sensor.stats();
+            Object stats = sensor.stats();
             values.add(new GpuReading(
                     sensor.card().getName(),
                     sensor.card().getVendor(),
-                    stats.getGpuUtilization(),
-                    stats.getVramUsed(),
+                    readDouble(stats, "getGpuUtilization"),
+                    readLong(stats, "getVramUsed"),
                     sensor.card().getVRam(),
-                    stats.getTemperature(),
-                    stats.getPowerDraw()
+                    readDouble(stats, "getTemperature"),
+                    readDouble(stats, "getPowerDraw")
             ));
         }
         latest = List.copyOf(values);
+    }
+
+    private static double readDouble(Object target, String methodName) {
+        Number value = invokeNumber(target, methodName);
+        return value == null ? -1.0 : value.doubleValue();
+    }
+
+    private static long readLong(Object target, String methodName) {
+        Number value = invokeNumber(target, methodName);
+        return value == null ? -1L : value.longValue();
+    }
+
+    private static Number invokeNumber(Object target, String methodName) {
+        if (target == null) {
+            return null;
+        }
+        try {
+            Object value = invokeApi(target, GPU_STATS_API, methodName);
+            return value instanceof Number number ? number : null;
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
+            return null;
+        }
+    }
+
+    private static Object invokeApi(Object receiver, String apiClassName, String methodName)
+            throws ReflectiveOperationException {
+        if (receiver == null) {
+            throw new IllegalArgumentException("Receiver is null");
+        }
+        ClassLoader loader = receiver.getClass().getClassLoader();
+        Class<?> api = Class.forName(apiClassName, false, loader);
+        Method method = api.getMethod(methodName);
+        return method.invoke(receiver);
     }
 
     public static List<GpuReading> latest() {
@@ -119,9 +179,12 @@ public final class GpuTelemetryService {
 
     private static void closeSensors(List<GpuSensor> values) {
         for (GpuSensor sensor : values) {
+            if (sensor.stats() == null) {
+                continue;
+            }
             try {
-                sensor.stats().close();
-            } catch (RuntimeException | LinkageError ignored) {
+                invokeApi(sensor.stats(), GPU_STATS_API, "close");
+            } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
                 // Best-effort release during initialization failure or JVM shutdown.
             }
         }
@@ -135,6 +198,6 @@ public final class GpuTelemetryService {
         return value.length() > 100 ? value.substring(0, 100) : value;
     }
 
-    private record GpuSensor(GraphicsCard card, GpuStats stats) {
+    private record GpuSensor(GraphicsCard card, Object stats) {
     }
 }
