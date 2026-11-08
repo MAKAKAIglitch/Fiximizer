@@ -1,129 +1,113 @@
-# Fiximizer
+<div align="center">
+  <img src="assets/fiximizer-banner.svg" alt="Fiximizer — diagnostics, profiling and adaptive workload control for Minecraft" width="100%">
+  <p><strong>Measure the lag. Find the pressure point. Keep background work under control.</strong></p>
+  <p><a href="README.md">English</a> · <a href="README.ru.md">Русский</a></p>
+  <p>
+    <a href="https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/MAKAKAIglitch/Fiximizer/build.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=CI" alt="Build status"></a>
+    <a href="https://github.com/MAKAKAIglitch/Fiximizer/stargazers"><img src="https://img.shields.io/github/stars/MAKAKAIglitch/Fiximizer?style=for-the-badge&logo=github" alt="GitHub stars"></a>
+    <a href="https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MAKAKAIglitch/Fiximizer?style=for-the-badge" alt="MIT license"></a>
+    <img src="https://img.shields.io/badge/Minecraft-1.21.1-3C8B55?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.21.1">
+    <img src="https://img.shields.io/badge/NeoForge-21.1.265%2B-E56B36?style=for-the-badge" alt="NeoForge">
+    <img src="https://img.shields.io/badge/Java-21-4479A1?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21">
+    <img src="https://img.shields.io/badge/Version-0.14.0--alpha-9B83FF?style=for-the-badge" alt="Version 0.14.0 alpha">
+  </p>
+</div>
 
-## Project links
+---
 
-- **Author:** [MAKAKAIglitch](https://github.com/MAKAKAIglitch)
-- **Source code and homepage:** [GitHub repository](https://github.com/MAKAKAIglitch/Fiximizer)
-- **License:** [MIT](https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE)
-- **Issues and bug reports:** [GitHub Issues](https://github.com/MAKAKAIglitch/Fiximizer/issues)
-- **Downloads:** [GitHub Releases](https://github.com/MAKAKAIglitch/Fiximizer/releases)
-- **Build status:** [GitHub Actions](https://github.com/MAKAKAIglitch/Fiximizer/actions)
+## What is Fiximizer?
 
+**Fiximizer is an experimental diagnostics and workload-management mod for Minecraft 1.21.1 on NeoForge.** It helps you investigate slowdowns by collecting bounded timing data, capturing JVM state during stalls, and exposing optional integrations for selected mods.
 
-**Adaptive diagnostics, targeted mod integration gates, memory pressure control and experimental GPU compute for Minecraft 1.21.1 / NeoForge.**
+It combines:
 
-## Current status
+- Client, render, integrated-server and selected mod-specific timing telemetry.
+- A stall watchdog with JVM thread snapshots and rolling Java Flight Recorder (JFR) data.
+- Local incident reports with statistical analysis and heuristic mod correlation.
+- Five workload profiles, an adaptive worker governor and an automatic memory-pressure guard.
+- Optional GPU telemetry, an OpenCL correctness benchmark and an experimental, bounded VRAM cache API.
 
-**0.14.0-alpha — queue-aware adaptive worker governor and scheduler telemetry**
+> [!IMPORTANT]
+> **Fiximizer is primarily a diagnostics tool, not a magic FPS booster.** Its scheduler controls only work submitted to Fiximizer's own executor. It does not rewrite arbitrary Minecraft code, change third-party mod thread priorities, or automatically move Create/Sable/game calculations to the GPU. No FPS or TPS improvement is guaranteed.
 
-### In-game menu
+## Project map
 
-- Open the dashboard with F8.
-- Open the same Fiximizer control center from the Config button in NeoForge's mod list.
-- Open it with the client commands `/fiximizer`, `/fiximizer open` or `/fiximizer menu`.
-- Optional startup diagnostics are deferred until the title screen or a loaded world has been ticking for 40 client ticks (about 2 seconds). Config registration, the F8 key and the mod-list Config button remain available during normal startup.
-- Eight sections: Overview, Optimization, Integrations, Physics, Java / JVM, GPU / VRAM, Frames, and Server.
-- Russian and English translations.
+| Resource | Link |
+|---|---|
+| Source code | [Repository](https://github.com/MAKAKAIglitch/Fiximizer) |
+| Development builds | [GitHub Actions](https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml) |
+| Tagged versions | [Releases](https://github.com/MAKAKAIglitch/Fiximizer/releases) |
+| Bug reports | [Issues](https://github.com/MAKAKAIglitch/Fiximizer/issues) |
+| Build instructions | [BUILDING.md](BUILDING.md) |
+| License | [MIT](LICENSE) |
 
-### CPU / GPU self-test
+## How it works
 
-The GPU tab offers a manual OpenCL self-test using a 1,048,576-element vector addition.
+The diagram shows the main data paths. Telemetry and incident reporting are separate from the scheduler that controls Fiximizer-owned tasks.
 
-It performs and validates all of these stages:
+```mermaid
+flowchart TD
+    A["Minecraft client and integrated-server events"] --> B["Bounded timing windows"]
+    A --> C["Stall watchdog"]
+    C --> D["Thread / JVM snapshots"]
+    C --> E["Rolling JFR buffer"]
+    E --> F["Hotspot analysis and incident correlation"]
+    B --> G["Fiximizer dashboard"]
+    D --> H["Local incident reports"]
+    F --> H
+    H --> G
+    I["Fiximizer task queue"] --> J["Adaptive worker governor"]
+    K["GPU telemetry and OpenCL self-test"] --> L["Optional explicit VRAM cache"]
+    J --> G
+```
 
-1. Create OpenCL context, queue, program, kernel and device buffers.
-2. Upload two input arrays from system memory to GPU memory.
-3. Execute the OpenCL kernel on the selected GPU.
-4. Read the output back to system memory.
-5. Compare every output value with the CPU result.
-6. Report upload time, average kernel time, download time, total GPU-path time and CPU baseline.
+## Compatibility
 
-The benchmark uses a small fixed working set (three 4 MiB GPU buffers) and runs on a daemon worker, not the render thread. CPU and GPU loops are warmed up before the timed measurements. The complete report is written to fiximizer-gpu-benchmark.txt in the game directory.
+| Component | Target |
+|---|---|
+| Minecraft | **1.21.1** |
+| Mod loader | **NeoForge**, built against <code>21.1.265</code> |
+| Java runtime | **Java 21** |
+| Project version | **<code>0.14.0-alpha</code>** |
+| Mod ID | <code>fiximizer</code> |
 
-A successful result verifies that the GPU can compute this test correctly. It does **not** prove that every Minecraft workload will be faster on the GPU. Transfer time is included in the end-to-end comparison; a slow GPU path must not be described as a speedup.
+The declared Minecraft version range is <code>[1.21.1, 1.21.2)</code>. The NeoForge dependency range starts at <code>21.1.265</code>. Use a Java 21 runtime for the game instance.
 
-### Bounded VRAM cache for explicit integration data
+Fiximizer includes English and Russian in-game translations.
 
-Fiximizer includes an opt-in VRAM store for temporary cache blocks that a Fiximizer integration explicitly hands to it.
+## Getting started
 
-- Enabled only after a successful OpenCL correctness test and during detected memory pressure.
-- Default configured cap: 256 MiB; adjustable from the GPU tab, up to 512 MiB.
-- A live VRAM monitor is required to calculate a safe spill budget. Stock Minecraft 1.21.1's OSHI 6.4.10 does not expose used-VRAM telemetry, so VRAM spilling stays unavailable unless a compatible live sensor API is present.
-- At least 1.5 GiB or 20% of reported VRAM (whichever is larger) is kept as a graphics reserve.
-- Uses an LRU policy for disposable cached blocks.
-- Provides explicit store, restore, discard and clear operations.
-- A restored direct buffer is owned by the caller and must be freed with LWJGL MemoryUtil.memFree.
+### Open the dashboard
 
-**Important limitation:** this is not an extension of Java heap, system RAM, or the Windows page file. It cannot move arbitrary objects from Minecraft or third-party mods. An integration must serialize or otherwise provide its own disposable data, keep a valid handle, and know how to rebuild data if the LRU cache evicts it. No Create/Aeronautics/Sable object is automatically moved to VRAM yet.
+You can open the same control center in four ways:
 
-### Client render and tick workload telemetry
+- Press **F8**.
+- Open **NeoForge Mods → Fiximizer → Config**.
+- Run <code>/fiximizer</code>.
+- Run <code>/fiximizer open</code> or <code>/fiximizer menu</code>.
 
-The Frames tab passively measures two client-thread workloads with NeoForge events:
+Optional diagnostics startup is deliberately deferred until the title screen or a loaded world has been ticking for **40 stable client ticks** (about 2 seconds at 20 TPS). This keeps hardware probes and mod/JAR attribution work out of the critical initial client startup path.
 
-- `RenderFrameEvent.Pre/Post` measures wall-clock time spent inside `GameRenderer.render()`.
-- `ClientTickEvent.Pre/Post` measures client tick wall-clock time.
-- Each metric uses a bounded 600-sample rolling window and reports average, p50, p95, p99, peak and slow-sample counts.
-- Percentiles are recalculated in batches rather than sorting on every rendered frame.
-- The collector is independently configurable and can be disabled from the Frames tab.
+### Dashboard sections
 
-**Measurement boundary:** render-call duration is not the time between displayed frames. It does not include presentation cadence or VSync waiting outside `GameRenderer.render()`, and it is not GPU execution time. Client tick measurements do not replace integrated-server or dedicated-server profiling. Use these metrics to distinguish expensive client rendering work from slow client logic, then capture JFR for method-level investigation.
+| Section | What it shows |
+|---|---|
+| Overview | Runtime summary, diagnostic state and manual snapshot action |
+| Optimization | Selected profile, scheduler telemetry and memory-guard state |
+| Integrations | Detected optional mods, versions and integration toggles |
+| Physics | Sable physics and Create contraption telemetry |
+| Java / JVM | Heap information, profiler controls and JVM argument advice |
+| GPU / VRAM | GPU detection, optional sensor data, OpenCL discovery, benchmark and VRAM budget |
+| Frames | Client render-call and client-tick timing |
+| Server | Integrated single-player server tick timing |
 
-### Integrated server tick telemetry
+## Features
 
-The Server tab measures full logical-server tick duration on a local single-player world:
+### Workload profiles
 
-- Reuses the existing `ServerTickEvent.Pre/Post` listener and records wall-clock duration with `System.nanoTime()`.
-- Uses a bounded 600-tick rolling window.
-- Reports average, p50, p95, p99, peak and counts above 50 ms / 100 ms.
-- The profiler can be disabled independently from the Server tab; when the setting changes, its rolling window resets on the server thread.
-- The 50 ms target corresponds to 20 ticks per second when maintained consistently.
+Five presets regulate the amount and scheduling of **Fiximizer-owned background work**.
 
-**Measurement boundary:** this is the complete integrated-server tick duration between NeoForge pre/post events. It includes Create, Sable and other server-side mod work. Do not add these values to the Create or Sable sub-profiler values; they overlap. The client-side integration does not measure a remote multiplayer server.
-
-### Stall watchdog and JVM thread snapshots
-
-The watchdog observes three long-running NeoForge event spans independently: the integrated server tick, client tick and render call. A separate daemon thread checks active spans every 200 ms; the default trigger is 2 seconds. While an event remains stalled, it can capture additional snapshots at a bounded interval, up to the configured per-stall limit.
-
-- Thread stacks and JVM counters are captured by the watchdog thread at detection time, rather than later by the file writer.
-- A bounded Java Flight Recorder (JFR) ring keeps up to 60 seconds / 64 MiB by default. The JVM discards older data when either configured limit is reached. On a stall, the writer exports a stopped copy of the rolling recording; the live recorder continues without a restart.
-- JFR exports are rate-limited (30 seconds by default) and retained separately from text reports. They include CPU execution samples, CPU/thread load, garbage-collection events and sampled allocations from the JDK `profile` configuration.
-- Reports include a heuristic class/package-to-mod mapping. JARs containing several mod IDs are left unattributed, ambiguous packages are not guessed, and low/medium/high confidence is based on the number and position of matching frames in the trigger thread's stack.
-- A bounded daemon writer handles JFR export, attribution formatting, text-file writes and retention. The class-to-mod index is built lazily on that writer only when the first incident report needs attribution, so normal startup/gameplay does not scan every installed mod JAR. Reports are saved locally to `logs/fiximizer/stalls/`.
-- The Overview page has a manual snapshot button. Settings for JFR enablement, its age/size limits, export interval and retention are available in the generated NeoForge config under `watchdog`.
-
-**Measurement boundary:** the watchdog measures wall-clock time between event callbacks, not CPU time, GPU execution or actual displayed-frame cadence. Stack frames and mod attribution are investigative evidence, not proof of causation. JFR is bounded and configurable, but continuous profiling can still add CPU/disk overhead; disable `watchdog.rollingJfr` to keep text/thread snapshots without the JFR ring. Shared packages, multi-mod JARs, transformed/hidden classes and native code may remain unattributed.
-
-**Incident correlation and automatic profile analysis:** repeated snapshots from one continuously active event share an incident ID and filenames. Each report includes the bounded history of recent capture times, elapsed time since the first capture, current/peak observed duration and change since the first snapshot. When a new rolling JFR export is created, Fiximizer automatically runs the existing JFR analyzer and writes a sibling `*-analysis.txt` report with statistical CPU method hotspots, sampled allocation classes, thread shares and package namespace candidates. The main stall report links that analysis file. JFR export cooldowns do not trigger redundant parsing. The history is deliberately bounded and is not a full per-tick trace.
-
-**JFR / stack / mod correlation and HTML overview:** every new rolling JFR export is also compared with the thread snapshot from the same stall. Execution samples are matched to the trigger Java thread by JFR Java thread ID when available, then grouped by the loaded mod owning the sampled Java class. The correlator combines trigger-stack frames, trigger-thread CPU samples, mod-attributed CPU samples and sampled allocation weight. It writes a sibling `*-correlation.txt` report with ranked candidates and top sampled methods. The score is an investigation priority, not a probability or proof that a mod caused the stall.
-
-A self-contained `incident-<id>.html` overview is updated after every capture. It plots the retained duration observations and links to the corresponding text snapshots, JFR exports, analysis reports and correlation reports. It uses local files only; it does not load remote scripts, fonts or services.
-
-### Create contraption tick telemetry
-
-When Create is installed and its Fiximizer integration toggle is enabled, Fiximizer passively measures server-side tick time for entities inheriting Create's `AbstractContraptionEntity`.
-
-- Uses NeoForge entity pre/post tick events and a bounded rolling window of the last 100 logical-server ticks.
-- Reports total contraption entity ticks, average time charged per server tick, average and peak time per contraption entity tick, and the most expensive entity type seen during the current session.
-- Uses class-hierarchy name matching and has no compile-time or runtime hard dependency on Create classes.
-- Does not cancel, reorder, accelerate or otherwise change Create entity behavior.
-
-**Scope:** this measurement is available for a local integrated single-player server. It does not measure remote dedicated-server CPU time, Create kinetic block-entity ticks, rendering, or arbitrary Create methods. Use the JFR profiler for whole-JVM method hotspots. This is a diagnostic integration, not yet an automatic FPS optimization or GPU offload.
-
-### Sable physics substep telemetry
-
-When Sable is installed, Fiximizer attaches to its public NeoForge pre/post physics-step events at runtime. This is an optional integration: no Sable classes are linked at compile time, and event registration is skipped when Sable is absent.
-
-- Measures the latest 1,000 physics substeps across the integrated server's Sable physics systems.
-- Reports substep count, average and peak wall-clock duration, total measured time, and the dimension with the largest accumulated cost in the window.
-- Uses the Sable physics-system instance supplied by each event to pair pre/post timestamps.
-- Runs only when the Sable integration toggle is enabled. It does not modify the timestep, forces, pipeline, entity order, or physics state.
-
-**Measurement boundary:** the timer starts at Sable's pre-physics event and ends at its post-physics event. It includes Sable's Java-side preparation, queued-force application, the physics-pipeline call (including native Rust/Rapier work), and pose/wake-up updates between those events. It is not a pure Rapier benchmark or a native CPU-time breakdown. Telemetry is available for the local integrated single-player server; it is not registered on a remote dedicated server by the client dashboard.
-
-### Five user-selected profiles
-
-| Profile | Worker limit | Queue limit | GPU policy |
+| Profile | Worker limit | Queue capacity | GPU policy |
 |---|---:|---:|---|
 | Game smoothness | 2 | 48 | Conservative |
 | Low latency | 2 | 32 | Very conservative |
@@ -131,111 +115,224 @@ When Sable is installed, Fiximizer attaches to its public NeoForge pre/post phys
 | Maximum performance | 4 | 256 | More permissive |
 | Memory saver | 1 | 16 | Disabled |
 
-Profiles regulate Fiximizer-owned background work only. They do not reorder Minecraft's render thread or third-party mods' workers.
+These are scheduler limits, not direct controls for Minecraft's render thread, tick thread or another mod's executors. Lowering a worker limit does not interrupt tasks that are already running.
 
-### Queue-aware adaptive worker governor
+### Runtime telemetry
 
-The background scheduler now measures its own queue wait and task execution time using a fixed rolling window of the latest 128 tasks. The dashboard exposes p95 queue-wait and execution timings, completed/failed/cancelled/rejected counters, and the localized reason for the current worker policy.
+Fiximizer uses bounded rolling windows, so its measurement history does not grow indefinitely.
 
-- Starts conservatively and adds at most one worker per diagnostics sample when the oldest queued task or recent p95 queue wait reaches 150 ms, all current workers are busy, and system CPU load is below the selected profile's reduction threshold.
-- Reduces concurrency when system CPU load rises; at the profile's critical threshold it limits Fiximizer to one worker.
+| Area | Window | Reported metrics |
+|---|---:|---|
+| Client render call | 600 samples | Average, p50, p95, p99, peak and slow-sample count |
+| Client tick | 600 samples | Average, p50, p95, p99, peak and slow-sample count |
+| Integrated server tick | 600 ticks | Average, p50, p95, p99, peak and counts above 50 / 100 ms |
+| Create contraption entities | 100 server ticks | Entity tick counts, average per-tick cost, peak and most expensive entity type |
+| Sable physics | Latest 1,000 substeps | Count, average, peak, total time and highest-cost dimension |
+
+Client timing can be disabled from **Frames**; integrated-server timing can be disabled from **Server**. Create and Sable measurements require the respective mod and an enabled Fiximizer integration.
+
+<details>
+<summary><strong>Measurement boundaries — read before interpreting the numbers</strong></summary>
+
+- **Render-call duration is not frame presentation time.** It measures the wall-clock span inside <code>GameRenderer.render()</code>. It excludes presentation cadence and VSync waiting outside that call, and it is not GPU execution time.
+- **Client tick time is not server tick time.** The client and integrated server have separate measurements.
+- **Integrated-server timing is local.** It measures the full logical-server tick in a single-player world, including work by Create, Sable and other server-side mods. Do not add it to overlapping Create or Sable sub-profiler values.
+- **Create telemetry is narrow by design.** It measures server-side ticks for entities inheriting <code>AbstractContraptionEntity</code>, not kinetic block entities, rendering or arbitrary Create methods.
+- **Sable telemetry measures an event span.** It includes Java-side preparation, queued-force application, the physics pipeline (including native Rust/Rapier work), and pose/wake-up updates between Sable's public pre/post events. It is not a pure Rapier benchmark or native CPU-time breakdown.
+- A measurement is evidence for investigation, not proof that a particular mod caused a slowdown.
+
+</details>
+
+### Stall watchdog and Java Flight Recorder
+
+The watchdog observes three long-running event spans:
+
+- Integrated server tick.
+- Client tick.
+- Render call.
+
+A separate low-priority daemon checks active spans every **200 ms**. The default stall threshold is **2 seconds**. Repeated captures use bounded intervals and a configurable per-incident limit.
+
+A capture can include:
+
+- JVM thread names and stack traces captured at detection time.
+- Heap, garbage-collector and other JVM counters.
+- A rolling JFR recording with CPU execution samples, thread CPU load, garbage-collection events and sampled allocations.
+- Best-effort class/package-to-mod attribution.
+
+The default rolling JFR limits are **60 seconds / 64 MiB**. Stall-triggered exports are rate-limited (30 seconds by default), and retained exports are bounded. The live recorder continues after an export.
+
+The mod/JAR class index is prepared on a background writer after deferred startup, rather than on the render or tick thread. Fiximizer can correlate the trigger-thread snapshot with JFR execution samples, rank candidate mods using several signals, and generate a self-contained HTML incident overview with a duration graph and links to local reports.
+
+> Attribution and correlation are **heuristics**, not proof of causation. Shared packages, multi-mod JARs, transformed or hidden classes, and native code can remain unattributed. Continuous JFR recording can add CPU and disk overhead; <code>watchdog.rollingJfr</code> can be disabled in the generated NeoForge config while keeping text/thread snapshots.
+
+### Adaptive scheduler and memory guard
+
+The worker governor observes its own queue wait and task execution timings using a rolling window of the latest **128 tasks**. The dashboard exposes p95 timings, completed/failed/cancelled/rejected counters and the reason for the current worker policy.
+
+- Adds at most one worker per diagnostics sample when queue pressure persists, all current workers are busy, and CPU headroom allows it.
+- The queue-pressure threshold is **150 ms** for the oldest queued task or recent p95 queue wait.
+- Reduces concurrency as system CPU load rises; at a profile's critical threshold it falls back to one worker.
 - Gradually releases unused worker capacity when the scheduler is idle.
-- Holds the current worker limit if system CPU telemetry is unavailable, rather than treating missing data as free CPU.
-- Respects the selected profile and global worker cap (maximum four workers). Lowering the pool limit does not interrupt already-running tasks.
+- Holds the current limit when CPU telemetry is unavailable.
+- Respects the selected profile and a hard scheduler cap of four workers.
 
-This governor only schedules independent work submitted to Fiximizer's own daemon executor. It never moves, reprioritizes or changes the thread priority of Minecraft or another mod. Queue and task timing is observational; it does not guarantee higher game FPS.
+The automatic memory guard samples Java heap and available physical memory. Sustained pressure temporarily selects **Memory Saver**; after recovery, the previously selected profile is restored. Separate pressure and recovery thresholds help prevent rapid switching.
 
-### Automatic memory guard
+The guard does **not** call <code>System.gc()</code>, change JVM heap arguments at runtime, or unload objects owned by Minecraft or third-party mods. It reduces Fiximizer's own scheduling footprint.
 
-- Samples Java heap and available physical memory.
-- Enters temporary Memory Saver when heap pressure persists or available physical RAM is critically low.
-- Uses separate recovery thresholds and multiple samples to avoid rapid switching.
-- Restores the previously selected profile after memory recovers.
-- Does not overwrite user preferences, call System.gc(), unload third-party objects or alter JVM heap settings at runtime.
+### GPU and VRAM tools
 
-The guard reduces Fiximizer's own queue and worker usage. The VRAM cache can only retain temporary buffers explicitly supplied by a Fiximizer integration; it does not automatically free memory owned by other mods.
+The GPU page combines GPU identification, optional live sensor data, OpenCL discovery and a manual correctness benchmark.
 
-### Mod-specific integration gates
+**GPU telemetry availability**
 
-Fiximizer detects the loaded NeoForge ModContainer, mod ID and installed version for Create, Create Aeronautics, Sable, Distant Horizons and Voxy. Each target has an independent toggle. The runForInstalledMod gate invokes an adapter only when that exact mod is loaded and enabled.
+Minecraft 1.21.1 ships with OSHI **6.4.10**. That version exposes GPU identity and total VRAM, but it predates the live <code>GpuStats</code> API. Therefore, on a stock 1.21.1 runtime, GPU utilization, used VRAM, temperature and power draw are reported as unavailable. Fiximizer checks for the newer sensor API reflectively when the runtime provides it; it does not fail startup when those optional methods are missing.
 
-**Current scope:** detection, version reporting, toggles and conditional extension points are available. Create has a passive server-side contraption entity tick profiler, and Sable has passive physics-substep telemetry through its public NeoForge events. Intrusive Create/Aeronautics/Sable optimization patches are not shipped and will be considered only after reproducible profiling and version-specific compatibility tests.
+OpenCL discovery is independent of OSHI sensor support and checks for the installed OpenCL runtime and compute devices through LWJGL.
+
+**OpenCL self-test**
+
+The benchmark performs a vector addition over **1,048,576 elements** and validates every GPU output value against a CPU result. It measures OpenCL setup, upload time, average kernel time, download time and end-to-end GPU-path time.
+
+The fixed working set uses three 4 MiB GPU buffers. CPU and GPU paths are warmed up before measurement. The benchmark runs on a daemon worker rather than the render thread. Its report is saved as <code>fiximizer-gpu-benchmark.txt</code> in the game directory.
+
+A passing test confirms that the selected OpenCL device can run this test correctly. It does **not** prove that a real Minecraft workload will be faster on the GPU. Transfer time is included in the end-to-end comparison.
+
+**Experimental VRAM cache**
+
+Fiximizer contains an opt-in VRAM store for temporary cache blocks explicitly supplied by a Fiximizer integration.
+
+- Default configured cap: **256 MiB**, adjustable up to **512 MiB**.
+- Requires a successful OpenCL correctness test, active memory pressure and a live VRAM-used reading.
+- Keeps a graphics reserve of at least **1.5 GiB or 20% of reported VRAM**, whichever is larger.
+- Uses LRU eviction and explicit store, restore, discard and clear operations.
+
+> [!WARNING]
+> **On stock Minecraft 1.21.1, VRAM spilling is normally unavailable** because the bundled OSHI 6.4.10 does not expose used-VRAM telemetry. A compatible live GPU sensor API must be present before Fiximizer can calculate a safe spill budget. The cache is not extra Java heap, system RAM or a Windows page-file extension. It cannot move arbitrary Minecraft objects or third-party mod data. An integration must supply disposable data, preserve its handle and be able to rebuild data if the cache evicts it. No Create, Aeronautics or Sable object is automatically moved to VRAM. A restored direct buffer belongs to the caller and must be released with LWJGL <code>MemoryUtil.memFree</code>.
+
+The OpenCL runtime / ICD is supplied by the installed graphics driver. Fiximizer does not install or replace GPU drivers.
+
+### Optional mod integrations
+
+Fiximizer detects loaded mod IDs and versions and gives each supported target an independent integration toggle.
+
+| Mod | Current integration scope |
+|---|---|
+| Create | Passive server-side contraption entity tick profiler |
+| Create: Aeronautics | Detection, version reporting and integration gate |
+| Sable | Passive physics-substep telemetry via public NeoForge events |
+| Distant Horizons | Detection, version reporting and integration gate |
+| Voxy | Detection, version reporting and integration gate |
+
+Create and Sable telemetry are diagnostic integrations: they do not cancel, reorder, accelerate or otherwise alter target-mod behavior. The other entries currently provide detection and conditional extension points; their presence does not mean optimization patches are shipped.
+
+Intrusive Create / Aeronautics / Sable optimization work is not claimed as complete. It requires reproducible profiling data and version-specific compatibility tests first.
 
 ### JVM argument advisor
 
-- Detects physical RAM and loaded mod count.
-- Recommends conservative -Xms and -Xmx values, rounded to integer MiB.
-- Copies the argument line or saves it to config/fiximizer-jvm-arguments.txt.
-- Leaves Java 21's default garbage collector selection unchanged.
+The Java / JVM page estimates conservative <code>-Xms</code> and <code>-Xmx</code> values using detected physical RAM and loaded mod count. It can copy the suggested line or save it to <code>config/fiximizer-jvm-arguments.txt</code>.
 
-JVM heap bounds cannot be modified by a running game. Paste the generated line into Prism Launcher → Edit Instance → Settings → Java → JVM arguments, then restart.
+A running JVM cannot change its heap bounds. Paste the generated line into your launcher (for example, **Prism Launcher → Edit Instance → Settings → Java → JVM arguments**) and restart the game.
 
-### Profiler and GPU telemetry
+## Where reports are saved
 
-- Java Flight Recorder captures CPU execution samples, thread CPU load, garbage collection and sampled allocations.
-- Automatic reports show hot methods, thread names, package namespace candidates and allocation hotspots.
-- OSHI uses the copy already supplied by Minecraft 1.21.1 (6.4.10); Fiximizer does not bundle another OSHI/JNA module.
-- GPU identification and total VRAM are available through the game-provided API. Live utilization, used VRAM, temperature and power are queried only when the runtime OSHI API exposes those optional GPU-stat methods; stock Minecraft 1.21.1 reports them as unavailable.
-- LWJGL checks for an installed OpenCL runtime and GPU devices independently of OSHI.
-- ComputeRouter only considers a Fiximizer-owned workload with a registered tested kernel when CPU/GPU conditions and the selected profile allow it.
+Stall and incident reports are written locally to <code>logs/fiximizer/stalls/</code>.
 
-OpenCL detection is not itself GPU offload. The OpenCL ICD/runtime is provided by the installed graphics driver. No arbitrary Minecraft, Create or Sable calculation is automatically converted to OpenCL.
+| File | Purpose |
+|---|---|
+| <code>*.txt</code> | Thread snapshot, JVM counters, incident timeline and mod-attribution details |
+| <code>*.jfr</code> | Exported rolling Java Flight Recorder data |
+| <code>*-analysis.txt</code> | CPU hotspot and sampled-allocation analysis |
+| <code>*-correlation.txt</code> | JFR / trigger-thread / mod-candidate correlation |
+| <code>incident-&lt;id&gt;.html</code> | Local incident overview, duration graph and report links |
 
-### Build
+The Overview page also provides a manual diagnostic snapshot action. The HTML report uses local files only; it does not load remote scripts, fonts or services.
 
-Windows one-click build:
+**Before sharing a report**, review it for information you do not want to publish. Stack traces, thread names, mod lists and profiling data may reveal details about your modpack or local environment.
 
-    build.bat
+## Installation
 
-The builder searches for a full JDK 21. If needed, it downloads Eclipse Temurin from the official Adoptium API, verifies the SHA-256 checksum, and installs it locally in .tools/jdk-21-temurin. It does not change system Java settings.
+### Development builds
 
-More details: BUILDING.md.
+Development JARs are published through GitHub Actions:
 
-Manual build:
+1. Open the [Build workflow](https://github.com/MAKAKAIglitch/Fiximizer/actions/workflows/build.yml).
+2. Select a successful run from the branch or commit you want.
+3. Download the Linux or Windows artifact from the run's **Artifacts** section.
+4. Place the Fiximizer JAR in the <code>mods</code> folder of your Minecraft 1.21.1 NeoForge instance.
 
-- Windows: gradlew.bat build
-- Linux/macOS: ./gradlew build
+The workflow builds on pushes and pull requests and retains uploaded artifacts for **14 days**. These are temporary CI builds, not permanent GitHub Releases. Check [Releases](https://github.com/MAKAKAIglitch/Fiximizer/releases) for tagged public versions.
 
-### Why the GPU path is OpenCL and not Rust?
+### Build locally
 
-OpenCL lets Fiximizer test GPU computation on supported vendors using the existing LWJGL runtime. Rust would add JNI and separate native binaries, but would not automatically speed up third-party Java methods. Rust can be evaluated later for a measured CPU-side bottleneck; it is not a substitute for a GPU compute API.
+See [BUILDING.md](BUILDING.md) for the full build process.
 
-## Roadmap
+On Windows, run the included builder from the repository root:
 
-- [ ] Validate client render/tick and integrated-server telemetry in a real 1.21.1 modpack against external measurements
+```bat
+build.bat
+```
 
-- [x] NeoForge 1.21.1 project foundation
-- [x] Five user-selectable gameplay profiles
-- [x] Dashboard via F8 and the mod-list Config button
-- [x] Automatic heap/physical-memory pressure guard
-- [x] JVM argument recommendation and export
-- [x] Loaded-mod/version detection and conditional integration gate
-- [x] Russian and English UI
-- [x] JFR hotspot, thread and package reports
-- [x] OpenCL discovery and GPU telemetry
-- [x] Bounded CPU/GPU OpenCL self-test with result validation
-- [x] Passive Create server-side contraption entity tick profiler (100-tick rolling window)
-- [x] Passive Sable physics substep profiler (last 1,000 pre/post event pairs)
-- [x] Client render-call and client-tick workload profiler (600-sample rolling windows)
-- [x] Integrated single-player server tick profiler (600-tick rolling window)
-- [x] Non-blocking server/client/render stall watchdog with bounded JVM stack snapshots and local report retention
-- [x] Bounded rolling JFR snapshots exported on stalls without stopping the live recorder
-- [x] Heuristic stack-frame attribution to mod JARs with ambiguous-package handling and confidence labels
-- [x] Incident IDs and bounded timeline of repeated stall snapshots
-- [x] Automatic analysis of exported rolling JFR snapshots with linked CPU/allocation hotspot reports
-- [x] JFR execution-sample correlation with the captured trigger thread and stack-based mod ownership
-- [x] Ranked multi-signal mod candidates with explicit heuristic confidence bands
-- [x] Self-contained HTML incident overview with duration graph and local report links
-- [x] VRAM budgeting and explicit disposable cache block API
-- [ ] First production Create optimization based on reproducible profiling data
-- [ ] First Sable optimization based on reproducible physics profiling data
-- [ ] Benchmark real mod calculations with a per-workload CPU/GPU comparison
-- [ ] First real OpenCL kernel for an actual Fiximizer-owned gameplay workload
-- [ ] Use VRAM cache from an integration with serialization/rebuild support
-- [ ] Rolling benchmark comparison and before/after reports
-- [x] Bounded scheduler queue/run telemetry with p95 timings
-- [x] Queue-aware adaptive worker governor with CPU headroom checks and conservative fallback
+The builder searches for a full JDK 21. If none is available, it can download Eclipse Temurin 21 from the official Adoptium API, verify the SHA-256 checksum, and store the isolated JDK under <code>.tools/jdk-21-temurin</code>. It does not change system Java settings.
+
+Manual Gradle build:
+
+```powershell
+gradlew.bat build
+```
+
+```bash
+./gradlew build
+```
+
+The compiled mod JAR is written to <code>build/libs/</code>.
+
+## Development status
+
+**Current version: <code>0.14.0-alpha</code>.** Fiximizer is under active development. The checklist distinguishes implemented tooling from work that still needs real-world validation or implementation.
+
+### Implemented
+
+- [x] NeoForge 1.21.1 project foundation and five workload profiles.
+- [x] Dashboard via F8, the NeoForge Mods Config button and client commands.
+- [x] Russian and English in-game translations.
+- [x] Deferred startup for optional diagnostics and hardware probes.
+- [x] Adaptive worker governor with queue/run telemetry and CPU-headroom checks.
+- [x] Automatic heap / physical-memory pressure guard.
+- [x] JVM argument recommendation and export.
+- [x] Optional-mod detection, version reporting and integration gates.
+- [x] Client render-call, client-tick and integrated-server tick profilers.
+- [x] Create contraption entity and Sable physics-substep profilers.
+- [x] Stall watchdog with bounded JVM thread snapshots.
+- [x] Rolling JFR capture, export, retention, hotspot analysis and trigger-thread correlation.
+- [x] Heuristic mod attribution, incident timelines and local HTML overview.
+- [x] GPU identification, optional sensor probing and OpenCL discovery.
+- [x] Bounded OpenCL correctness self-test.
+- [x] VRAM budgeting and explicit disposable-cache API (requires live used-VRAM telemetry).
+
+### Planned / needs validation
+
+- [ ] Validate client, render and integrated-server telemetry in real 1.21.1 modpacks against external measurements.
+- [ ] Develop the first Create and Sable optimizations from reproducible profiling data.
+- [ ] Benchmark actual Fiximizer-owned workloads with CPU / GPU comparisons.
+- [ ] Add a real OpenCL kernel for an actual Fiximizer-owned workload.
+- [ ] Use the VRAM cache in an integration with serialization and rebuild support.
+- [ ] Add rolling benchmark comparisons and before / after reports.
+
+## Bug reports and contributions
+
+Found a bug or an incorrect measurement? Please [open an issue](https://github.com/MAKAKAIglitch/Fiximizer/issues/new) and include, when possible:
+
+- Minecraft, NeoForge, Fiximizer and Java versions.
+- The relevant mod list and a short description of the environment.
+- Exact reproduction steps and what you expected to happen.
+- The relevant Fiximizer report or log excerpt.
+
+For profiling-related issues, describe whether the measurement came from the client, render call, integrated server, Create or Sable. Remove private information from logs and reports before attaching them.
+
+Browse the [source code](https://github.com/MAKAKAIglitch/Fiximizer), [CI runs](https://github.com/MAKAKAIglitch/Fiximizer/actions), [open issues](https://github.com/MAKAKAIglitch/Fiximizer/issues) and [contributors](https://github.com/MAKAKAIglitch/Fiximizer/graphs/contributors).
 
 ## License
 
-MIT. See the LICENSE file.
+Fiximizer is distributed under the [MIT License](LICENSE).
