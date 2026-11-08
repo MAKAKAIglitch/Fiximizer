@@ -28,13 +28,14 @@ The compatibility scan only reports whether a target mod is present. It does not
 
 ## Build
 
-Open the project in IntelliJ IDEA as a Gradle project, or use Gradle **9.2.1** installed locally:
+Open the project in IntelliJ IDEA as a Gradle project, or run the included wrapper:
 
-    gradle build
+- Windows: gradlew.bat build
+- Linux/macOS: ./gradlew build
 
-The mod JAR is generated in the build/libs directory.
+The first run downloads the Gradle distribution and required Minecraft/NeoForge dependencies. The mod JAR is generated in build/libs.
 
-The GitHub Actions workflow builds the project on pushes and pull requests.
+GitHub Actions builds the project on pushes and pull requests.
 
 ## Design principles
 

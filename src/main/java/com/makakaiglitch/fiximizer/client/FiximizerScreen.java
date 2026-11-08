@@ -116,6 +116,11 @@ public final class FiximizerScreen extends Screen {
     }
 
     @Override
+    public boolean isPauseScreen() {
+        return false;
+    }
+
+    @Override
     public void onClose() {
         this.minecraft.setScreen(this.parent);
     }
