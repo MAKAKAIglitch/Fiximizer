@@ -4,6 +4,7 @@ import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.profiler.JfrProfileAnalyzer;
+import com.makakaiglitch.fiximizer.profiler.JfrIncidentCorrelator;
 
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
@@ -339,11 +340,13 @@ public final class StallWatchdog {
             // JFR cloning/dumping happens on the writer, never on a game thread.
             String jfrResult = FlightRecorderService.dumpRollingSnapshot(directory, baseName);
             String analysisResult = "not available";
+            String correlationResult = "not available";
             if (jfrResult.endsWith(".jfr")) {
                 lastJfrFile = jfrResult;
                 if (FiximizerConfig.ENABLE_PROFILE_ANALYSIS.get()) {
+                    Path jfrPath = directory.resolve(jfrResult);
                     try {
-                        Path analysis = JfrProfileAnalyzer.analyzeAndWrite(directory.resolve(jfrResult));
+                        Path analysis = JfrProfileAnalyzer.analyzeAndWrite(jfrPath);
                         lastJfrAnalysisFile = analysis.getFileName().toString();
                         analysisResult = lastJfrAnalysisFile;
                     } catch (IOException | RuntimeException | LinkageError exception) {
@@ -351,20 +354,31 @@ public final class StallWatchdog {
                         analysisResult = "analysis failed: " + exception.getClass().getSimpleName();
                         Fiximizer.LOGGER.warn("Could not analyze rolling JFR export {}.", jfrResult, exception);
                     }
+
+                    try {
+                        Path correlation = JfrIncidentCorrelator.analyzeAndWrite(
+                                jfrPath,
+                                snapshot.targetThreadId,
+                                snapshot.targetThreadName,
+                                triggerStack(snapshot)
+                        );
+                        correlationResult = correlation.getFileName().toString();
+                    } catch (IOException | RuntimeException | LinkageError exception) {
+                        correlationResult = "correlation failed: " + exception.getClass().getSimpleName();
+                        Fiximizer.LOGGER.warn("Could not correlate JFR export {} with the incident.",
+                                jfrResult, exception);
+                    }
                 } else {
                     lastJfrAnalysisFile = "";
                     analysisResult = "disabled by config";
+                    correlationResult = "disabled by config";
                 }
             } else if ("cooldown".equals(jfrResult)) {
-                analysisResult = lastJfrAnalysisFile.isBlank()
-                        ? "cooldown; no previous analysis"
-                        : "cooldown; latest analysis: " + lastJfrAnalysisFile;
-                if (!lastJfrFile.isBlank()) {
-                    jfrResult = "cooldown; latest export: " + lastJfrFile;
-                }
+                analysisResult = "cooldown; no new JFR export to analyze";
+                correlationResult = "cooldown; no new JFR export to correlate";
             }
 
-            String report = buildReport(snapshot, jfrResult, analysisResult);
+            String report = buildReport(snapshot, jfrResult, analysisResult, correlationResult);
             Path output = directory.resolve(baseName + ".txt");
             Files.writeString(
                     output,
@@ -376,6 +390,13 @@ public final class StallWatchdog {
 
             pruneReports(directory, FiximizerConfig.MAX_STALL_REPORTS.get());
             lastReportFile = output.getFileName().toString();
+            try {
+                Path htmlReport = IncidentHtmlReportGenerator.write(directory, incident);
+                Fiximizer.LOGGER.info("Incident HTML overview updated: {}.", htmlReport.getFileName());
+            } catch (IOException | RuntimeException exception) {
+                Fiximizer.LOGGER.warn("Could not update incident HTML overview {}.",
+                        incident.incidentId(), exception);
+            }
             Fiximizer.LOGGER.warn("Stall diagnostic saved: {} (trigger={}, duration={} ms).",
                     output.getFileName(),
                     snapshot.cause,
@@ -389,7 +410,8 @@ public final class StallWatchdog {
     private static String buildReport(
             CapturedSnapshot snapshot,
             String jfrResult,
-            String analysisResult
+            String analysisResult,
+            String correlationResult
     ) {
         StringBuilder report = new StringBuilder(32_768);
         report.append("Fiximizer stall diagnostic\n");
@@ -431,6 +453,7 @@ public final class StallWatchdog {
         report.append("\n[JFR ROLLING SNAPSHOT]\n");
         report.append("status=").append(jfrResult).append('\n');
         report.append("analysis=").append(analysisResult).append('\n');
+        report.append("correlation=").append(correlationResult).append('\n');
         report.append("buffer=").append(FlightRecorderService.rollingStatus()).append('\n');
 
         report.append("\n[MOD ATTRIBUTION — HEURISTIC]\n");
@@ -513,6 +536,18 @@ public final class StallWatchdog {
         return report.toString();
     }
 
+    private static StackTraceElement[] triggerStack(CapturedSnapshot snapshot) {
+        if (snapshot.targetThreadId <= 0L) {
+            return new StackTraceElement[0];
+        }
+        for (ThreadInfo info : snapshot.threadInfos) {
+            if (info != null && info.getThreadId() == snapshot.targetThreadId) {
+                return info.getStackTrace();
+            }
+        }
+        return new StackTraceElement[0];
+    }
+
     private static void appendIncidentTimeline(
             StringBuilder report,
             IncidentTimeline.Snapshot incident
@@ -554,6 +589,8 @@ public final class StallWatchdog {
                     if (filename.endsWith(".txt")) {
                         String stem = filename.substring(0, filename.length() - 4);
                         Files.deleteIfExists(directory.resolve(stem + "-analysis.txt"));
+                        Files.deleteIfExists(directory.resolve(stem + "-correlation.txt"));
+                        cleanupIncidentHtmlIfEmpty(directory, filename);
                     }
                 } catch (IOException exception) {
                     Fiximizer.LOGGER.debug("Unable to prune old stall report {}.",
@@ -562,6 +599,27 @@ public final class StallWatchdog {
             }
         } catch (IOException | RuntimeException exception) {
             Fiximizer.LOGGER.warn("Unable to apply stall-report retention.", exception);
+        }
+    }
+
+    private static void cleanupIncidentHtmlIfEmpty(Path directory, String snapshotFilename)
+            throws IOException {
+        String marker = "-snapshot-";
+        int markerIndex = snapshotFilename.indexOf(marker);
+        if (!snapshotFilename.startsWith("stall-") || markerIndex <= "stall-".length()) {
+            return;
+        }
+        String incidentId = snapshotFilename.substring("stall-".length(), markerIndex);
+        String remainingPrefix = "stall-" + incidentId + marker;
+        boolean hasReports;
+        try (Stream<Path> files = Files.list(directory)) {
+            hasReports = files.anyMatch(candidate ->
+                    candidate.getFileName().toString().startsWith(remainingPrefix)
+                            && candidate.getFileName().toString().endsWith(".txt"));
+        }
+        if (!hasReports) {
+            Files.deleteIfExists(directory.resolve(
+                    "incident-" + incidentId.replaceAll("[^A-Za-z0-9._-]", "_") + ".html"));
         }
     }
 

@@ -99,6 +99,62 @@ public final class ModAttribution {
                 .toList();
     }
 
+    /**
+     * Resolve one JFR/stack class name to a loaded mod. Exact class ownership
+     * wins; ambiguous classes stop resolution; package-prefix matches are
+     * marked as heuristic so reports can distinguish the evidence quality.
+     *
+     * The index must be warmed on a background worker before using this from
+     * report generation.
+     */
+    public static Ownership resolveClassOwner(String className) {
+        if (className == null || className.isBlank()) {
+            return null;
+        }
+        Index index = cachedIndex;
+        if (index == null) {
+            return null;
+        }
+
+        String owner = index.classOwners.get(className);
+        if (owner != null) {
+            return ownership(owner, index, true);
+        }
+        if (index.ambiguousClasses.contains(className)) {
+            return null;
+        }
+
+        int dot = className.lastIndexOf('.');
+        while (dot > 0) {
+            String packageName = className.substring(0, dot);
+            owner = index.packageOwners.get(packageName);
+            if (owner != null) {
+                return ownership(owner, index, false);
+            }
+            if (index.ambiguousPackages.contains(packageName)) {
+                return null;
+            }
+            dot = packageName.lastIndexOf('.');
+        }
+        return null;
+    }
+
+    private static Ownership ownership(String modId, Index index, boolean exactClassMatch) {
+        ModMetadata metadata = index.metadata.get(modId);
+        if (metadata == null) {
+            return null;
+        }
+        return new Ownership(modId, metadata.displayName, metadata.version, exactClassMatch);
+    }
+
+    public record Ownership(
+            String modId,
+            String displayName,
+            String version,
+            boolean exactClassMatch
+    ) {
+    }
+
     static String confidence(int topTriggerFrames, int triggerFrames) {
         if (topTriggerFrames >= 3 && triggerFrames >= 5) {
             return "HIGH";

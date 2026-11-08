@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.12.0-alpha — incident timelines and automatic JFR analysis**
+**0.13.0-alpha — JFR / thread / mod correlation and incident HTML reports**
 
 ### In-game menu
 
@@ -82,6 +82,10 @@ The watchdog observes three long-running NeoForge event spans independently: the
 **Measurement boundary:** the watchdog measures wall-clock time between event callbacks, not CPU time, GPU execution or actual displayed-frame cadence. Stack frames and mod attribution are investigative evidence, not proof of causation. JFR is bounded and configurable, but continuous profiling can still add CPU/disk overhead; disable `watchdog.rollingJfr` to keep text/thread snapshots without the JFR ring. Shared packages, multi-mod JARs, transformed/hidden classes and native code may remain unattributed.
 
 **Incident correlation and automatic profile analysis:** repeated snapshots from one continuously active event share an incident ID and filenames. Each report includes the bounded history of recent capture times, elapsed time since the first capture, current/peak observed duration and change since the first snapshot. When a new rolling JFR export is created, Fiximizer automatically runs the existing JFR analyzer and writes a sibling `*-analysis.txt` report with statistical CPU method hotspots, sampled allocation classes, thread shares and package namespace candidates. The main stall report links that analysis file. JFR export cooldowns do not trigger redundant parsing. The history is deliberately bounded and is not a full per-tick trace.
+
+**JFR / stack / mod correlation and HTML overview:** every new rolling JFR export is also compared with the thread snapshot from the same stall. Execution samples are matched to the trigger Java thread by JFR Java thread ID when available, then grouped by the loaded mod owning the sampled Java class. The correlator combines trigger-stack frames, trigger-thread CPU samples, mod-attributed CPU samples and sampled allocation weight. It writes a sibling `*-correlation.txt` report with ranked candidates and top sampled methods. The score is an investigation priority, not a probability or proof that a mod caused the stall.
+
+A self-contained `incident-<id>.html` overview is updated after every capture. It plots the retained duration observations and links to the corresponding text snapshots, JFR exports, analysis reports and correlation reports. It uses local files only; it does not load remote scripts, fonts or services.
 
 ### Create contraption tick telemetry
 
@@ -193,6 +197,9 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] Heuristic stack-frame attribution to mod JARs with ambiguous-package handling and confidence labels
 - [x] Incident IDs and bounded timeline of repeated stall snapshots
 - [x] Automatic analysis of exported rolling JFR snapshots with linked CPU/allocation hotspot reports
+- [x] JFR execution-sample correlation with the captured trigger thread and stack-based mod ownership
+- [x] Ranked multi-signal mod candidates with explicit heuristic confidence bands
+- [x] Self-contained HTML incident overview with duration graph and local report links
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
 - [ ] First Sable optimization based on reproducible physics profiling data
