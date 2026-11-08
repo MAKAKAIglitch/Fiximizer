@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
+import com.makakaiglitch.fiximizer.network.NetworkCompatibilityDetector;
 import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import net.minecraft.client.Minecraft;
@@ -33,6 +34,7 @@ public final class ClientModEvents {
             );
             MemoryPressureController.reset();
             ModIntegrationManager.refresh();
+            NetworkCompatibilityDetector.refresh();
 
             Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
                     OptimizationProfileManager.selected().id());
