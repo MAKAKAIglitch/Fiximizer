@@ -48,16 +48,20 @@ The following capabilities are already present in the repository:
 
 **Priority: highest.** Optimization is only useful when the bottleneck and the cost of measuring it are both understood.
 
-#### 1.1 Startup Profiler
+#### 1.1 Startup Profiler and Launch-Time Optimization
 
-- Measure Fiximizer's own initialization phases, from mod construction and registration through client setup and deferred service startup.
-- Separate Fiximizer initialization time from total Minecraft startup time.
-- Record per-subsystem timings and identify expensive class loading, registration, discovery, and setup.
-- Measure cold and warm starts separately where that distinction is meaningful.
-- Export a compact report that can be compared between builds.
-- Keep measurement bounded and avoid synchronous disk I/O on Minecraft's critical startup thread.
+**Goal:** reduce the time and resource cost between launching a modpack and reaching the title screen, within the parts of startup Fiximizer can safely influence.
 
-**Done when:** reports consistently identify Fiximizer's own startup cost, distinguish it from other mods and Minecraft, and have measured low overhead.
+- Measure the earliest available Fiximizer lifecycle points through mod initialization, client setup, resource reload milestones, and the first stable title-screen tick.
+- Keep Fiximizer's own initialization cost separate from the time spent by Minecraft, the loader, the launcher, and other mods. Do not report a partial measurement as total process startup time.
+- Use opt-in JFR/startup traces to identify class loading, mod initialization, resource reload, and filesystem bottlenecks where the available loader/JVM events expose them.
+- Keep hardware discovery, GPU/OpenCL probing, deep profiling, mod-JAR attribution, and report indexing lazy or deferred unless a feature is explicitly requested.
+- Remove redundant scans, repeated parsing, eager class loading, and synchronous disk work from the startup-critical path.
+- Introduce small, versioned caches only for deterministic metadata that can be validated and safely rebuilt. Include Minecraft, loader, mod, configuration, and cache-format fingerprints where relevant.
+- Profile cold starts separately from warm starts and compare equivalent launches.
+- Never skip required mod callbacks, registry setup, dependency checks, or resource validation to make the progress bar move faster.
+
+**Done when:** Fiximizer's startup contribution is measured separately, avoidable work is reduced, and repeated cold/warm-start tests show an improvement without missing registrations or breaking modpack correctness.
 
 #### 1.2 Low-allocation / zero-allocation hot paths
 
@@ -96,7 +100,7 @@ The following capabilities are already present in the repository:
 
 ### Phase 3 — First real Minecraft optimizations
 
-**Goal:** move from observing performance to improving it.
+**Goal:** move from observing performance to improving it across common bottleneck classes: launch time, resource reloads, chunks, entities, rendering, memory/GC, storage, and background work.
 
 Prioritize one measured bottleneck at a time. Candidate areas include:
 
@@ -185,7 +189,19 @@ Useful metrics include startup duration, frame-time percentiles, client/server t
 
 There is no universal FPS target. The relevant success metric depends on the bottleneck: a server-heavy pack needs different evidence from a GPU-bound shader pack.
 
-## 5. Engineering principles
+## 5. Language and runtime strategy
+
+Fiximizer is a Minecraft Java mod, so the main integration layer must remain compatible with NeoForge and the JVM. Additional languages are tools, not performance goals.
+
+| Language | Intended role | Adoption rule |
+|---|---|---|
+| Java | Core mod, loader integration, lifecycle hooks, UI, scheduler, and most runtime hot paths | Default choice. It has direct access to Minecraft/NeoForge APIs and avoids an extra language runtime. |
+| Kotlin | Optional isolated modules where null-safety, concise domain modelling, or multiplatform sharing materially improves maintainability | Do not add Kotlin solely to make the mod faster. Kotlin/JVM produces JVM-compatible bytecode; measure any standard-library, class-loading, and startup cost before adopting it. Keep hot paths allocation-aware regardless of language. |
+| Rust | Optional native compute or parsing modules for a large, independent CPU-bound workload | Adopt only after end-to-end benchmarks show a meaningful gain after JNI/FFI, copying, native loading, and packaging costs. Keep a Java fallback and ship native binaries only for tested OS/CPU targets. |
+
+No blanket rewrite is planned. Java remains the baseline; Kotlin and Rust are introduced only where a measured technical advantage outweighs startup time, memory, binary size, compatibility, and maintenance costs.
+
+## 6. Engineering principles
 
 - **Measure first.** No speculative “performance” patches.
 - **Correctness before speed.** Never trade world or player-data integrity for a benchmark result.
@@ -196,18 +212,18 @@ There is no universal FPS target. The relevant success metric depends on the bot
 - **Be honest about results.** Publish the test conditions and distinguish diagnostics, recommendations, and active optimizations.
 - **Privacy by default.** Local reports should avoid unnecessary personal paths, identifiers, and network uploads.
 
-## 6. What comes next
+## 7. What comes next
 
 The immediate engineering sequence is:
 
-1. Startup Profiler.
+1. Startup Profiler plus the first safe launch-time reductions.
 2. Low-allocation telemetry audit and hot-path cleanup.
 3. Adaptive Diagnostics with a visible overhead level.
 4. Repeatable benchmark/baseline export.
 5. The first evidence-backed optimization selected from a real modpack profile.
 6. A reusable optimization-policy and adapter architecture around that work.
 
-Rust, broad loader support, and automatic GPU acceleration are later possibilities—not prerequisites for making Fiximizer a useful optimizer.
+Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration is a first-class goal, not an afterthought.
 
 ---
 

@@ -329,7 +329,7 @@ The [Build workflow](.github/workflows/build.yml) runs on pushes and pull reques
 
 ## Roadmap
 
-The alpha release is the measurement and diagnostics foundation for a broader modpack optimizer. The full plan covers startup profiling, low-allocation telemetry, adaptive diagnostics, a safe optimization-policy engine, real Minecraft workload optimizations, per-mod adapters, caching, optional compute acceleration, and broader compatibility.
+The alpha release is the measurement and diagnostics foundation for a broader modpack optimizer. The full plan covers launch-time acceleration, startup profiling, low-allocation telemetry, adaptive diagnostics, a safe optimization-policy engine, real Minecraft workload optimizations, per-mod adapters, caching, optional compute acceleration, and broader compatibility.
 
 - [Full roadmap (English)](ROADMAP.md)
 - [Дорожная карта (русский)](ROADMAP.ru.md)
