@@ -20,6 +20,8 @@ import com.makakaiglitch.fiximizer.gpu.GpuReading;
 import com.makakaiglitch.fiximizer.gpu.GpuSpillService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
+import com.makakaiglitch.fiximizer.memory.MemoryOptimizer;
+import com.makakaiglitch.fiximizer.memory.StringDeduplicator;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
 import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
@@ -66,6 +68,8 @@ public final class FiximizerScreen extends Screen {
     private Button stopProfileButton;
     private Button copyJvmButton;
     private Button saveJvmButton;
+    private Button memoryDedupButton;
+    private Button g1StringDedupButton;
     private Button detectModsButton;
     private Button gpuTestButton;
     private Button gpuSpillButton;
@@ -229,6 +233,29 @@ public final class FiximizerScreen extends Screen {
                 button -> saveJvmArguments()
         ).bounds(contentLeft + 160, panelTop + 198, 180, 22).build());
 
+        memoryDedupButton = addRenderableWidget(Button.builder(
+                memoryDedupLabel(),
+                button -> {
+                    FiximizerConfig.ENABLE_STRING_CANONICALIZATION.set(
+                            !FiximizerConfig.ENABLE_STRING_CANONICALIZATION.get());
+                    FiximizerConfig.SPEC.save();
+                    if (!FiximizerConfig.ENABLE_STRING_CANONICALIZATION.get()) {
+                        MemoryOptimizer.clear();
+                    }
+                    memoryDedupButton.setMessage(memoryDedupLabel());
+                }
+        ).bounds(contentLeft, panelTop + 222, 165, 20).build());
+
+        g1StringDedupButton = addRenderableWidget(Button.builder(
+                g1StringDedupLabel(),
+                button -> {
+                    FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.set(
+                            !FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get());
+                    FiximizerConfig.SPEC.save();
+                    g1StringDedupButton.setMessage(g1StringDedupLabel());
+                }
+        ).bounds(contentLeft + 175, panelTop + 222, 165, 20).build());
+
         gpuSpillButton = addRenderableWidget(Button.builder(
                 gpuSpillLabel(),
                 button -> {
@@ -341,6 +368,8 @@ public final class FiximizerScreen extends Screen {
         detectModsButton.visible = integrations;
         copyJvmButton.visible = jvm;
         saveJvmButton.visible = jvm;
+        memoryDedupButton.visible = jvm;
+        g1StringDedupButton.visible = jvm;
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
         serverTickProfilerButton.visible = server;
@@ -408,6 +437,27 @@ public final class FiximizerScreen extends Screen {
                     OptimizationProfileManager.status()
             ));
         }
+    }
+
+    private Component memoryDedupLabel() {
+        return Component.translatable(
+                "screen.fiximizer.memory.string_dedup_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_STRING_CANONICALIZATION.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component g1StringDedupLabel() {
+        return Component.translatable(
+                "screen.fiximizer.memory.g1_string_dedup_toggle",
+                Component.translatable(FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled"),
+                Component.translatable(JvmArgumentAdvisor.supportsG1StringDeduplication()
+                        ? "screen.fiximizer.memory.g1_supported"
+                        : "screen.fiximizer.memory.g1_unavailable")
+        );
     }
 
     private void copyJvmArguments() {
@@ -1051,16 +1101,29 @@ public final class FiximizerScreen extends Screen {
         drawWrapped(graphics, Component.literal(recommendation.arguments()),
                 contentLeft + 8, panelTop + 178, 324, 0xFF8FD8E8);
 
+        StringDeduplicator.Snapshot memoryStats = MemoryOptimizer.stringSnapshot();
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory.stats",
+                        memoryStats.hits(),
+                        memoryStats.registrations(),
+                        memoryStats.collisionEvictions(),
+                        memoryStats.occupiedSlots(),
+                        memoryStats.capacity()),
+                contentLeft,
+                panelTop + 202,
+                contentWidth - 8,
+                0xFF9FB3C8);
+
         drawWrapped(graphics, Component.literal(recommendation.note()),
                 contentLeft,
-                panelTop + 229,
+                panelTop + 245,
                 contentWidth - 8,
                 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.jvm_restart_note"),
                 contentLeft,
-                panelTop + 259,
+                panelTop + 269,
                 contentWidth - 8,
                 0xFFFFC078);
     }
