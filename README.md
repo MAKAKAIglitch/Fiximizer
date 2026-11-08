@@ -1,5 +1,15 @@
 # Fiximizer
 
+## Project links
+
+- **Author:** [MAKAKAIglitch](https://github.com/MAKAKAIglitch)
+- **Source code and homepage:** [GitHub repository](https://github.com/MAKAKAIglitch/Fiximizer)
+- **License:** [MIT](https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE)
+- **Issues and bug reports:** [GitHub Issues](https://github.com/MAKAKAIglitch/Fiximizer/issues)
+- **Downloads:** [GitHub Releases](https://github.com/MAKAKAIglitch/Fiximizer/releases)
+- **Build status:** [GitHub Actions](https://github.com/MAKAKAIglitch/Fiximizer/actions)
+
+
 **Adaptive diagnostics, targeted mod integration gates, memory pressure control and experimental GPU compute for Minecraft 1.21.1 / NeoForge.**
 
 ## Current status
