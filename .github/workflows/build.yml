@@ -97,6 +97,20 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Install Rust (Linux native network backend)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust network backend
+        run: cargo test --manifest-path native/network/Cargo.toml
+
+      - name: Build Rust network backend
+        run: cargo build --manifest-path native/network/Cargo.toml --release
+
+      - name: Stage Rust network backend
+        run: |
+          mkdir -p src/main/resources/assets/fiximizer/native/linux-x86_64
+          cp native/network/target/release/libfiximizer_network_native.so src/main/resources/assets/fiximizer/native/linux-x86_64/
+
       - name: Validate Linux builder syntax
         run: sh -n ./build.sh
 
@@ -125,6 +139,21 @@ jobs:
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Rust (Windows native network backend)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust network backend
+        run: cargo test --manifest-path native/network/Cargo.toml
+
+      - name: Build Rust network backend
+        run: cargo build --manifest-path native/network/Cargo.toml --release
+
+      - name: Stage Rust network backend
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "src/main/resources/assets/fiximizer/native/windows-x86_64" | Out-Null
+          Copy-Item "native/network/target/release/fiximizer_network_native.dll" "src/main/resources/assets/fiximizer/native/windows-x86_64/"
 
       - name: Validate PowerShell builder syntax
         shell: powershell
