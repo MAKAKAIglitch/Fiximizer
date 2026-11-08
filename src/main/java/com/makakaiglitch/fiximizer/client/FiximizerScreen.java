@@ -234,7 +234,7 @@ public final class FiximizerScreen extends Screen {
                     ClientRuntimeProfiler.synchronizeEnabledState();
                     frameProfilerButton.setMessage(frameProfilerLabel());
                 }
-        ).bounds(contentLeft, panelTop + 122, 340, 20).build()));
+        ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
