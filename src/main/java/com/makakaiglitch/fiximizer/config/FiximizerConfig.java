@@ -28,6 +28,9 @@ public final class FiximizerConfig {
 
     public static final ModConfigSpec.BooleanValue ENABLE_GPU_TELEMETRY;
     public static final ModConfigSpec.BooleanValue ENABLE_OPENCL_PROBE;
+    public static final ModConfigSpec.BooleanValue ENABLE_GPU_BENCHMARK;
+    public static final ModConfigSpec.BooleanValue ENABLE_GPU_SPILL;
+    public static final ModConfigSpec.IntValue MAX_GPU_SPILL_MIB;
 
     public static final ModConfigSpec SPEC;
 
@@ -58,7 +61,7 @@ public final class FiximizerConfig {
                 .define("enableJfrProfiling", true);
 
         ENABLE_PROFILE_ANALYSIS = BUILDER
-                .comment("Generate a local hotspot and priority report after saving a JFR recording.")
+                .comment("Generate a local hotspot and investigation-priority report after a JFR recording.")
                 .translation("config.fiximizer.profiler.analysis_enabled")
                 .define("enableProfileAnalysis", true);
 
@@ -78,7 +81,7 @@ public final class FiximizerConfig {
         MAX_BACKGROUND_WORKERS = BUILDER
                 .comment("Global upper limit for Fiximizer-managed background workers; gameplay profiles may use fewer.")
                 .translation("config.fiximizer.scheduler.max_workers")
-                .defineInRange("maxBackgroundWorkers", 4, 1, 4);
+                .defineInRange("maxBackgroundWorkers", 4, 1, 8);
 
         ENABLE_MEMORY_GUARD = BUILDER
                 .comment("Temporarily switch Fiximizer to Memory Saver when heap or physical memory stays under pressure.")
@@ -140,6 +143,21 @@ public final class FiximizerConfig {
                 .comment("Check for an installed OpenCL runtime and available GPU compute devices.")
                 .translation("config.fiximizer.gpu.opencl_probe")
                 .define("enableOpenClProbe", true);
+
+        ENABLE_GPU_BENCHMARK = BUILDER
+                .comment("Allow a manual bounded OpenCL compute and transfer benchmark from the GPU tab.")
+                .translation("config.fiximizer.gpu.benchmark")
+                .define("enableBenchmark", true);
+
+        ENABLE_GPU_SPILL = BUILDER
+                .comment("Allow Fiximizer integrations to store explicitly managed disposable cache blocks in a bounded VRAM pool during memory pressure.")
+                .translation("config.fiximizer.gpu.spill")
+                .define("enableVramSpill", true);
+
+        MAX_GPU_SPILL_MIB = BUILDER
+                .comment("Maximum VRAM pool size. The live GPU memory monitor and a graphics reserve may lower this limit.")
+                .translation("config.fiximizer.gpu.spill_limit")
+                .defineInRange("maxVramSpillMiB", 256, 64, 512);
 
         BUILDER.pop();
         SPEC = BUILDER.build();

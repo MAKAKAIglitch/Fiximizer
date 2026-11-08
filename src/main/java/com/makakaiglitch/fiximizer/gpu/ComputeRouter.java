@@ -28,6 +28,9 @@ public final class ComputeRouter {
         if (!profile.openClAllowed()) {
             return cpu("OpenCL offload is disabled by the " + profile.id() + " profile.");
         }
+        if (!GpuBenchmarkService.latest().passed()) {
+            return cpu("The GPU has not passed Fiximizer's transfer + compute self-test yet.");
+        }
         if (workload == null || !workload.hasOpenClKernel()) {
             return cpu("No tested OpenCL kernel is registered for this workload.");
         }

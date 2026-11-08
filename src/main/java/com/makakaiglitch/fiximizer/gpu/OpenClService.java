@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.lwjgl.opencl.CL10.CL_DEVICE_GLOBAL_MEM_SIZE;
+import static org.lwjgl.opencl.CL10.CL_DEVICE_MAX_MEM_ALLOC_SIZE;
 import static org.lwjgl.opencl.CL10.CL_DEVICE_NAME;
 import static org.lwjgl.opencl.CL10.CL_DEVICE_TYPE_GPU;
 import static org.lwjgl.opencl.CL10.CL_DEVICE_VENDOR;
@@ -26,6 +27,7 @@ public final class OpenClService {
     private static final AtomicBoolean STARTED = new AtomicBoolean();
     private static volatile boolean checked;
     private static volatile List<OpenClDeviceInfo> devices = List.of();
+    private static volatile DeviceHandle primaryDevice;
     private static volatile String status = "Not checked";
 
     private OpenClService() {
@@ -65,6 +67,8 @@ public final class OpenClService {
             }
 
             List<OpenClDeviceInfo> found = new ArrayList<>();
+            DeviceHandle firstDevice = null;
+
             for (int platformIndex = 0; platformIndex < numberOfPlatforms; platformIndex++) {
                 long platform = platforms.get(platformIndex);
                 String platformName = readPlatformString(stack, platform, CL_PLATFORM_NAME);
@@ -77,10 +81,7 @@ public final class OpenClService {
                         deviceCount
                 );
 
-                if (deviceResult == -1) {
-                    continue;
-                }
-                if (deviceResult != CL_SUCCESS) {
+                if (deviceResult == -1 || deviceResult != CL_SUCCESS) {
                     continue;
                 }
 
@@ -106,11 +107,8 @@ public final class OpenClService {
                     String vendor = readDeviceString(stack, device, CL_DEVICE_VENDOR);
                     String version = readDeviceString(stack, device, CL_DEVICE_VERSION);
 
-                    LongBuffer memory = stack.mallocLong(1);
-                    long memoryBytes = -1L;
-                    if (CL10.clGetDeviceInfo(device, CL_DEVICE_GLOBAL_MEM_SIZE, memory, null) == CL_SUCCESS) {
-                        memoryBytes = memory.get(0);
-                    }
+                    long memoryBytes = readDeviceLong(stack, device, CL_DEVICE_GLOBAL_MEM_SIZE);
+                    long maximumAllocationBytes = readDeviceLong(stack, device, CL_DEVICE_MAX_MEM_ALLOC_SIZE);
 
                     found.add(new OpenClDeviceInfo(
                             platformName,
@@ -119,10 +117,24 @@ public final class OpenClService {
                             version,
                             memoryBytes
                     ));
+
+                    if (firstDevice == null) {
+                        firstDevice = new DeviceHandle(
+                                platform,
+                                device,
+                                platformName,
+                                name,
+                                vendor,
+                                version,
+                                memoryBytes,
+                                maximumAllocationBytes
+                        );
+                    }
                 }
             }
 
             devices = List.copyOf(found);
+            primaryDevice = firstDevice;
             checked = true;
             status = found.isEmpty()
                     ? "OpenCL runtime found, but no GPU device is exposed"
@@ -133,6 +145,13 @@ public final class OpenClService {
             setUnavailable("OpenCL unavailable: " + safeMessage(exception));
             Fiximizer.LOGGER.info("OpenCL probe skipped: {}", safeMessage(exception));
         }
+    }
+
+    private static long readDeviceLong(MemoryStack stack, long device, int parameter) {
+        LongBuffer value = stack.mallocLong(1);
+        return CL10.clGetDeviceInfo(device, parameter, value, null) == CL_SUCCESS
+                ? value.get(0)
+                : -1L;
     }
 
     private static String readPlatformString(MemoryStack stack, long platform, int parameter) {
@@ -150,6 +169,7 @@ public final class OpenClService {
     private static void setUnavailable(String reason) {
         checked = true;
         devices = List.of();
+        primaryDevice = null;
         status = reason;
     }
 
@@ -169,7 +189,23 @@ public final class OpenClService {
         return devices;
     }
 
+    public static DeviceHandle primaryDevice() {
+        return primaryDevice;
+    }
+
     public static String status() {
         return status;
+    }
+
+    public record DeviceHandle(
+            long platformPointer,
+            long devicePointer,
+            String platform,
+            String name,
+            String vendor,
+            String version,
+            long globalMemoryBytes,
+            long maximumAllocationBytes
+    ) {
     }
 }

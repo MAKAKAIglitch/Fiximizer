@@ -99,5 +99,7 @@
   "config.fiximizer.integrations.aeronautics": "Create Aeronautics integration",
   "config.fiximizer.integrations.sable": "Sable integration",
   "config.fiximizer.integrations.distanthorizons": "Distant Horizons integration",
-  "config.fiximizer.integrations.voxy": "Voxy integration"
+  "config.fiximizer.integrations.voxy": "Voxy integration",
+  "screen.fiximizer.gpu_spill_toggle": "VRAM cache: %s",
+  "screen.fiximizer.gpu_spill_limit": "VRAM cache limit: %s MiB  •  click to change"
 }

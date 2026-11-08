@@ -7,7 +7,11 @@ import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
 import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
+import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkResult;
+import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkService;
+import com.makakaiglitch.fiximizer.gpu.GpuMemoryBudget;
 import com.makakaiglitch.fiximizer.gpu.GpuReading;
+import com.makakaiglitch.fiximizer.gpu.GpuSpillService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
@@ -34,7 +38,8 @@ public final class FiximizerScreen extends Screen {
         OVERVIEW,
         PERFORMANCE,
         INTEGRATIONS,
-        JVM
+        JVM,
+        GPU
     }
 
     private final Screen parent;
@@ -51,6 +56,9 @@ public final class FiximizerScreen extends Screen {
     private Button copyJvmButton;
     private Button saveJvmButton;
     private Button detectModsButton;
+    private Button gpuTestButton;
+    private Button gpuSpillButton;
+    private Button gpuSpillLimitButton;
 
     private int panelLeft;
     private int panelTop;
@@ -95,6 +103,11 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.tab_jvm"),
                 button -> selectTab(Tab.JVM)
         ).bounds(navX, navY + 84, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_gpu"),
+                button -> selectTab(Tab.GPU)
+        ).bounds(navX, navY + 112, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -175,6 +188,38 @@ public final class FiximizerScreen extends Screen {
                 button -> saveJvmArguments()
         ).bounds(contentLeft + 160, panelTop + 198, 180, 22).build());
 
+        gpuSpillButton = addRenderableWidget(Button.builder(
+                gpuSpillLabel(),
+                button -> {
+                    FiximizerConfig.ENABLE_GPU_SPILL.set(!FiximizerConfig.ENABLE_GPU_SPILL.get());
+                    FiximizerConfig.SPEC.save();
+                    gpuSpillButton.setMessage(gpuSpillLabel());
+                }
+        ).bounds(contentLeft, panelTop + 190, 340, 20).build());
+
+        gpuSpillLimitButton = addRenderableWidget(Button.builder(
+                gpuSpillLimitLabel(),
+                button -> {
+                    int next = FiximizerConfig.MAX_GPU_SPILL_MIB.get() >= 512
+                            ? 128
+                            : FiximizerConfig.MAX_GPU_SPILL_MIB.get() + 128;
+                    FiximizerConfig.MAX_GPU_SPILL_MIB.set(next);
+                    FiximizerConfig.SPEC.save();
+                    gpuSpillLimitButton.setMessage(gpuSpillLimitLabel());
+                }
+        ).bounds(contentLeft, panelTop + 218, 340, 20).build());
+
+        gpuTestButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.gpu_test_button"),
+                button -> {
+                    if (!GpuBenchmarkService.runAsync(Minecraft.getInstance().gameDirectory.toPath())) {
+                        gpuTestButton.setMessage(Component.translatable("screen.fiximizer.gpu_test_running"));
+                    } else {
+                        gpuTestButton.setMessage(Component.translatable("screen.fiximizer.gpu_test_started"));
+                    }
+                }
+        ).bounds(contentLeft, panelTop + 272, 340, 20).build());
+
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.done"),
                 button -> onClose()
@@ -223,6 +268,7 @@ public final class FiximizerScreen extends Screen {
         boolean performance = selectedTab == Tab.PERFORMANCE;
         boolean integrations = selectedTab == Tab.INTEGRATIONS;
         boolean jvm = selectedTab == Tab.JVM;
+        boolean gpu = selectedTab == Tab.GPU;
 
         refreshButton.visible = overview;
         startProfileButton.visible = overview;
@@ -232,6 +278,11 @@ public final class FiximizerScreen extends Screen {
         detectModsButton.visible = integrations;
         copyJvmButton.visible = jvm;
         saveJvmButton.visible = jvm;
+        gpuTestButton.visible = gpu;
+        gpuSpillButton.visible = gpu;
+        gpuSpillLimitButton.visible = gpu;
+        gpuTestButton.active = !GpuBenchmarkService.running()
+                && FiximizerConfig.ENABLE_GPU_BENCHMARK.get();
 
         for (Button button : integrationButtons) {
             button.visible = integrations;
@@ -313,6 +364,23 @@ public final class FiximizerScreen extends Screen {
         }
     }
 
+
+    private Component gpuSpillLabel() {
+        return Component.translatable(
+                "screen.fiximizer.gpu_spill_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_GPU_SPILL.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component gpuSpillLimitLabel() {
+        return Component.translatable(
+                "screen.fiximizer.gpu_spill_limit",
+                FiximizerConfig.MAX_GPU_SPILL_MIB.get()
+        );
+    }
+
     private Component profileButtonLabel() {
         return Component.translatable(
                 "screen.fiximizer.profile_button",
@@ -364,6 +432,7 @@ public final class FiximizerScreen extends Screen {
             case PERFORMANCE -> drawPerformance(graphics);
             case INTEGRATIONS -> drawIntegrations(graphics);
             case JVM -> drawJvm(graphics);
+            case GPU -> drawGpu(graphics);
         }
     }
 
@@ -568,6 +637,98 @@ public final class FiximizerScreen extends Screen {
                 panelTop + 259,
                 contentWidth - 8,
                 0xFFFFC078);
+    }
+
+
+    private void drawGpu(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.gpu_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.gpu_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        int y = panelTop + 130;
+        if (!OpenClService.checked()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.gpu_waiting"),
+                    contentLeft, y, contentWidth - 8, 0xFFFFC078);
+            y += 22;
+        } else if (OpenClService.devices().isEmpty()) {
+            drawWrapped(graphics,
+                    Component.literal(OpenClService.status()),
+                    contentLeft, y, contentWidth - 8, 0xFFFFB85C);
+            y += 22;
+        } else {
+            OpenClService.DeviceHandle device = OpenClService.primaryDevice();
+            if (device != null) {
+                drawWrapped(graphics,
+                        Component.translatable("screen.fiximizer.gpu_device",
+                                device.name(),
+                                DiagnosticsService.formatBytes(device.globalMemoryBytes())),
+                        contentLeft, y, contentWidth - 8, 0xFFFFFFFF);
+                y += 20;
+            }
+        }
+
+        List<GpuReading> readings = GpuTelemetryService.latest();
+        if (!readings.isEmpty()) {
+            GpuReading reading = readings.get(0);
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.gpu_vram",
+                            DiagnosticsService.formatBytes(reading.vramUsedBytes()),
+                            DiagnosticsService.formatBytes(reading.vramTotalBytes())),
+                    contentLeft, y, contentWidth - 8, 0xFFFFFFFF);
+            y += 20;
+        }
+
+        GpuBenchmarkResult benchmark = GpuBenchmarkService.latest();
+        if (GpuBenchmarkService.running()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.gpu_test_running"),
+                    contentLeft, y, contentWidth - 8, 0xFFFFC078);
+            y += 20;
+        } else if (benchmark.passed()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.gpu_test_result",
+                            String.format(Locale.ROOT, "%.2f", benchmark.uploadMillis()),
+                            String.format(Locale.ROOT, "%.2f", benchmark.kernelMillis()),
+                            String.format(Locale.ROOT, "%.2f", benchmark.downloadMillis())),
+                    contentLeft, y, contentWidth - 8, 0xFF9BD9B0);
+            y += 20;
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.gpu_test_total",
+                            String.format(Locale.ROOT, "%.2f", benchmark.gpuTotalMillis()),
+                            String.format(Locale.ROOT, "%.2f", benchmark.cpuMillis()),
+                            String.format(Locale.ROOT, "%.2f", benchmark.endToEndSpeedup())),
+                    contentLeft, y, contentWidth - 8, 0xFFFFFFFF);
+            y += 22;
+            drawWrapped(graphics,
+                    Component.literal(benchmark.message()),
+                    contentLeft, y, contentWidth - 8,
+                    benchmark.endToEndSpeedup() > 1.05 ? 0xFF9BD9B0 : 0xFFFFC078);
+            y += 30;
+        } else {
+            drawWrapped(graphics,
+                    Component.literal(benchmark.message()),
+                    contentLeft, y, contentWidth - 8, 0xFFFFC078);
+            y += 24;
+        }
+
+        long spillBudget = GpuSpillService.currentBudgetBytes();
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.vram_spill",
+                        DiagnosticsService.formatBytes(spillBudget),
+                        DiagnosticsService.formatBytes(GpuSpillService.storedBytes()),
+                        GpuSpillService.blockCount()),
+                contentLeft, y, contentWidth - 8,
+                spillBudget > 0L ? 0xFF9BD9B0 : 0xFF9FB3C8);
+        y += 22;
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.vram_spill_note"),
+                contentLeft, y, contentWidth - 8, 0xFF9FB3C8);
     }
 
     private void drawSectionTitle(GuiGraphics graphics, String key, int y) {

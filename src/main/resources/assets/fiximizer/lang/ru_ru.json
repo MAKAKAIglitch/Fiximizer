@@ -99,5 +99,7 @@
   "config.fiximizer.integrations.aeronautics": "Интеграция Create Aeronautics",
   "config.fiximizer.integrations.sable": "Интеграция Sable",
   "config.fiximizer.integrations.distanthorizons": "Интеграция Distant Horizons",
-  "config.fiximizer.integrations.voxy": "Интеграция Voxy"
+  "config.fiximizer.integrations.voxy": "Интеграция Voxy",
+  "screen.fiximizer.gpu_spill_toggle": "VRAM-кэш: %s",
+  "screen.fiximizer.gpu_spill_limit": "Лимит VRAM-кэша: %s МиБ  •  нажми для изменения"
 }
