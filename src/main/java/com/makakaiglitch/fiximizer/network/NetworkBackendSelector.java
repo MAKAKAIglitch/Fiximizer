@@ -23,22 +23,42 @@ public final class NetworkBackendSelector {
     private NetworkBackendSelector() {
     }
 
-    public static void initializeAsync() {
+    public static synchronized void initializeAsync() {
         if (!STARTED.compareAndSet(false, true)) return;
+        RUNNING.set(true);
+        status = "Selecting network statistics backend...";
+        javaNanos = -1L;
+        rustNanos = -1L;
+
         Thread thread = new Thread(() -> {
-            RUNNING.set(true);
             try {
                 initialize();
             } finally {
-                RUNNING.set(false);
+                synchronized (NetworkBackendSelector.class) {
+                    RUNNING.set(false);
+                    if (RESELECT_PENDING.getAndSet(false)) {
+                        STARTED.set(false);
+                        initializeAsync();
+                    }
+                }
             }
         }, "Fiximizer-Network-Backend");
         thread.setDaemon(true);
-        thread.start();
+        try {
+            thread.start();
+        } catch (RuntimeException | Error failure) {
+            RUNNING.set(false);
+            STARTED.set(false);
+            status = "Java backend selected; background selection could not start";
+            throw failure;
+        }
     }
 
     public static synchronized void reselectAsync() {
-        if (RUNNING.get()) return;
+        if (RUNNING.get()) {
+            RESELECT_PENDING.set(true);
+            return;
+        }
         STARTED.set(false);
         initializeAsync();
     }
