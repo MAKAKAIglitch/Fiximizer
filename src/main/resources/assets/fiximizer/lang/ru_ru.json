@@ -195,5 +195,8 @@
   "screen.fiximizer.network_policy": "Политика совместимости: %s",
   "config.fiximizer.network.telemetry": "Включить пассивную сетевую телеметрию клиента",
   "config.fiximizer.network.native_backend": "Разрешить нативный Rust backend для статистики",
-  "config.fiximizer.network.backend_mode": "Режим сетевого вычислителя (0 Auto, 1 Java, 2 Rust)"
+  "config.fiximizer.network.backend_mode": "Режим сетевого вычислителя (0 Auto, 1 Java, 2 Rust)",
+  "screen.fiximizer.network_tcp_nodelay_toggle": "Предпочитать TCP_NODELAY для низкой задержки: %s",
+  "screen.fiximizer.network_tcp_nodelay": "Политика TCP_NODELAY: %s",
+  "config.fiximizer.network.tcp_nodelay": "Предпочитать TCP_NODELAY, если он поддерживается и не управляется другим сетевым оптимизатором"
 }
