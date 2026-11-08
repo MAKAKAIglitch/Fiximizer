@@ -4,6 +4,8 @@ import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
 import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
+import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -33,6 +35,13 @@ public final class ClientModEvents {
                         .count();
                 Fiximizer.LOGGER.info("Compatibility scan: {}/{} supported targets detected.",
                         detected, CompatibilityDetector.targetCount());
+            }
+
+            if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
+                GpuTelemetryService.start();
+            }
+            if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()) {
+                OpenClService.probeAsync();
             }
         });
     }

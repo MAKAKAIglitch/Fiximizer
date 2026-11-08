@@ -10,6 +10,15 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue SHOW_STARTUP_SUMMARY;
     public static final ModConfigSpec.BooleanValue DETECT_COMPATIBLE_MODS;
 
+    public static final ModConfigSpec.BooleanValue ENABLE_JFR_PROFILING;
+    public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
+
+    public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
+    public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
+
+    public static final ModConfigSpec.BooleanValue ENABLE_GPU_TELEMETRY;
+    public static final ModConfigSpec.BooleanValue ENABLE_OPENCL_PROBE;
+
     public static final ModConfigSpec SPEC;
 
     static {
@@ -37,6 +46,45 @@ public final class FiximizerConfig {
                 .comment("Detect known optional mods that may receive dedicated integrations in later releases.")
                 .translation("config.fiximizer.compatibility.detect_mods")
                 .define("detectKnownMods", true);
+
+        BUILDER.pop();
+        BUILDER.push("profiler");
+
+        ENABLE_JFR_PROFILING = BUILDER
+                .comment("Allow Java Flight Recorder CPU, thread, allocation and GC recordings.")
+                .translation("config.fiximizer.profiler.jfr_enabled")
+                .define("enableJfrProfiling", true);
+
+        MAX_PROFILE_SECONDS = BUILDER
+                .comment("Maximum duration of one JFR recording before it is automatically saved.")
+                .translation("config.fiximizer.profiler.max_seconds")
+                .defineInRange("maxProfileSeconds", 180, 30, 600);
+
+        BUILDER.pop();
+        BUILDER.push("scheduler");
+
+        ADAPTIVE_SCHEDULER_ENABLED = BUILDER
+                .comment("Reduce Fiximizer background worker count when system CPU load is high.")
+                .translation("config.fiximizer.scheduler.adaptive")
+                .define("adaptive", true);
+
+        MAX_BACKGROUND_WORKERS = BUILDER
+                .comment("Maximum number of Fiximizer-managed background workers.")
+                .translation("config.fiximizer.scheduler.max_workers")
+                .defineInRange("maxBackgroundWorkers", 3, 1, 4);
+
+        BUILDER.pop();
+        BUILDER.push("gpu");
+
+        ENABLE_GPU_TELEMETRY = BUILDER
+                .comment("Read GPU utilization, temperature and memory through OSHI when supported.")
+                .translation("config.fiximizer.gpu.telemetry")
+                .define("enableTelemetry", true);
+
+        ENABLE_OPENCL_PROBE = BUILDER
+                .comment("Check for an installed OpenCL runtime and available GPU compute devices.")
+                .translation("config.fiximizer.gpu.opencl_probe")
+                .define("enableOpenClProbe", true);
 
         BUILDER.pop();
         SPEC = BUILDER.build();

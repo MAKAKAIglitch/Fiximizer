@@ -13,6 +13,33 @@ base {
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // OSHI provides optional cross-platform GPU telemetry.
+    jarJar(implementation('com.github.oshi:oshi-core:7.7.3')) {
+        version {
+            strictly '[7.7.3,7.7.4)'
+            prefer '7.7.3'
+        }
+    }
+
+    // Minecraft 1.21.1 ships LWJGL 3.3.3 core. The OpenCL ICD/runtime itself
+    // is supplied by the graphics driver, not bundled by Fiximizer.
+    jarJar(implementation('org.lwjgl:lwjgl-opencl:3.3.3')) {
+        version {
+            strictly '[3.3.3]'
+            prefer '3.3.3'
+        }
+    }
+
+    // NeoForge 1.21.8 and older require non-mod libraries on the dev run classpath.
+    additionalRuntimeClasspath 'com.github.oshi:oshi-core:7.7.3'
+    additionalRuntimeClasspath 'org.lwjgl:lwjgl-opencl:3.3.3'
+}
+
 neoForge {
     version = project.neo_version
 

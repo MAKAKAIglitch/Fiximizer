@@ -1,6 +1,7 @@
 package com.makakaiglitch.fiximizer.diagnostics;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
 import net.neoforged.fml.ModList;
 
 import java.lang.management.ManagementFactory;
@@ -58,6 +59,8 @@ public final class DiagnosticsService {
                 systemCpuLoad,
                 processCpuLoad
         );
+
+        AdaptiveTaskScheduler.adaptToCpuLoad(systemCpuLoad);
     }
 
     public static DiagnosticsSnapshot latest() {

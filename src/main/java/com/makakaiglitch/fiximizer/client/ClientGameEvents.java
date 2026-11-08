@@ -1,7 +1,9 @@
 package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
+import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
+import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -16,6 +18,14 @@ public final class ClientGameEvents {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         DiagnosticsService.tick();
+
+        if (FlightRecorderService.state() == FlightRecorderService.State.RECORDING) {
+            Minecraft minecraft = Minecraft.getInstance();
+            FlightRecorderService.tick(
+                    minecraft.gameDirectory.toPath(),
+                    FiximizerConfig.MAX_PROFILE_SECONDS.get()
+            );
+        }
 
         while (KeyBindings.OPEN_DASHBOARD.consumeClick()) {
             Minecraft minecraft = Minecraft.getInstance();
