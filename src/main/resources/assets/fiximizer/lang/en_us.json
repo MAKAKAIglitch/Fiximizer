@@ -187,8 +187,8 @@
   "screen.fiximizer.tab_memory": "Memory",
   "screen.fiximizer.memory.title": "Memory optimizer",
   "screen.fiximizer.memory.intro": "Bounded, opt-in sharing of explicitly submitted immutable metadata. The cache is created only after first use; no heap scan, global object rewrite or recurring task is performed.",
-  "screen.fiximizer.memory.scope": "Scope: only values passed through Fiximizer's canonicalize API are considered. A hit means an equal live String instance was reused. Zero hits means no memory saving has been observed yet.",
-  "screen.fiximizer.memory.g1_note": "G1 option: JVM-managed String Deduplication can merge duplicate String storage across the heap. It requires G1 and a restart, and may add garbage-collection CPU work.",
+  "screen.fiximizer.memory.scope": "Only explicitly submitted immutable strings are considered. A hit reuses a different equal String instance; zero hits means no savings were observed.",
+  "screen.fiximizer.memory.g1_note": "G1 dedup is JVM-wide, requires G1 and a restart, and may add GC CPU work. It is off by default.",
   "screen.fiximizer.memory.stats_hits": "String reuse: %s duplicate hits from %s registrations",
   "screen.fiximizer.memory.stats_evictions": "Stale slots reused: %s | collision evictions: %s | contention bypasses: %s",
   "screen.fiximizer.memory.stats_capacity": "Bounded table: %s / %s slots occupied"
