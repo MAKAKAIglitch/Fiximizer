@@ -61,6 +61,7 @@ public final class FiximizerScreen extends Screen {
 
     private final List<Button> tabButtons = new ArrayList<>();
     private final List<Button> integrationButtons = new ArrayList<>();
+    private StringDeduplicator.Snapshot memoryStats = MemoryOptimizer.stringSnapshot();
 
     private Button refreshButton;
     private Button profileButton;
@@ -250,6 +251,7 @@ public final class FiximizerScreen extends Screen {
                     } else {
                         ModIntegrationManager.refresh();
                     }
+                    memoryStats = MemoryOptimizer.stringSnapshot();
                     memoryDedupButton.setMessage(memoryDedupLabel());
                 }
         ).bounds(contentLeft, panelTop + 260, 165, 20).build());
@@ -546,6 +548,14 @@ public final class FiximizerScreen extends Screen {
                         ? "screen.fiximizer.enabled"
                         : "screen.fiximizer.disabled")
         );
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (selectedTab == Tab.MEMORY) {
+            memoryStats = MemoryOptimizer.stringSnapshot();
+        }
     }
 
     @Override
@@ -1136,7 +1146,7 @@ public final class FiximizerScreen extends Screen {
                 contentWidth - 8,
                 0xFFB9C9DC);
 
-        StringDeduplicator.Snapshot stats = MemoryOptimizer.stringSnapshot();
+        StringDeduplicator.Snapshot stats = memoryStats;
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.memory.stats_hits",
                         stats.hits(), stats.registrations()),
