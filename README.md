@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.6.0-alpha — passive Create contraption profiling and experimental OpenCL tools**
+**0.7.0-alpha — passive Create and Sable physics profiling with experimental OpenCL tools**
 
 ### In-game menu
 
@@ -55,6 +55,17 @@ When Create is installed and its Fiximizer integration toggle is enabled, Fiximi
 
 **Scope:** this measurement is available for a local integrated single-player server. It does not measure remote dedicated-server CPU time, Create kinetic block-entity ticks, rendering, or arbitrary Create methods. Use the JFR profiler for whole-JVM method hotspots. This is a diagnostic integration, not yet an automatic FPS optimization or GPU offload.
 
+### Sable physics substep telemetry
+
+When Sable is installed, Fiximizer attaches to its public NeoForge pre/post physics-step events at runtime. This is an optional integration: no Sable classes are linked at compile time, and event registration is skipped when Sable is absent.
+
+- Measures the latest 1,000 physics substeps across the integrated server's Sable physics systems.
+- Reports substep count, average and peak wall-clock duration, total measured time, and the dimension with the largest accumulated cost in the window.
+- Uses the Sable physics-system instance supplied by each event to pair pre/post timestamps.
+- Runs only when the Sable integration toggle is enabled. It does not modify the timestep, forces, pipeline, entity order, or physics state.
+
+**Measurement boundary:** the timer starts at Sable's pre-physics event and ends at its post-physics event. It includes Sable's Java-side preparation, queued-force application, the physics-pipeline call (including native Rust/Rapier work), and pose/wake-up updates between those events. It is not a pure Rapier benchmark or a native CPU-time breakdown. Telemetry is available for the local integrated single-player server; it is not registered on a remote dedicated server by the client dashboard.
+
 ### Five user-selected profiles
 
 | Profile | Worker limit | Queue limit | GPU policy |
@@ -81,7 +92,7 @@ The guard reduces Fiximizer's own queue and worker usage. The VRAM cache can onl
 
 Fiximizer detects the loaded NeoForge ModContainer, mod ID and installed version for Create, Create Aeronautics, Sable, Distant Horizons and Voxy. Each target has an independent toggle. The runForInstalledMod gate invokes an adapter only when that exact mod is loaded and enabled.
 
-**Current scope:** detection, version reporting, toggles and conditional extension points are available. Create has a passive server-side contraption entity tick profiler. Intrusive Create/Aeronautics/Sable patches are not shipped and will be considered only after reproducible profiling and version-specific compatibility tests.
+**Current scope:** detection, version reporting, toggles and conditional extension points are available. Create has a passive server-side contraption entity tick profiler, and Sable has passive physics-substep telemetry through its public NeoForge events. Intrusive Create/Aeronautics/Sable optimization patches are not shipped and will be considered only after reproducible profiling and version-specific compatibility tests.
 
 ### JVM argument advisor
 
@@ -133,9 +144,10 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] OpenCL discovery and GPU telemetry
 - [x] Bounded CPU/GPU OpenCL self-test with result validation
 - [x] Passive Create server-side contraption entity tick profiler (100-tick rolling window)
+- [x] Passive Sable physics substep profiler (last 1,000 pre/post event pairs)
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
-- [ ] First production Sable integration using real profiled data
+- [ ] First Sable optimization based on reproducible physics profiling data
 - [ ] Benchmark real mod calculations with a per-workload CPU/GPU comparison
 - [ ] First real OpenCL kernel for an actual Fiximizer-owned gameplay workload
 - [ ] Use VRAM cache from an integration with serialization/rebuild support
