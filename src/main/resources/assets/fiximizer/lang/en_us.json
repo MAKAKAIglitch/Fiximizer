@@ -101,5 +101,12 @@
   "config.fiximizer.integrations.distanthorizons": "Distant Horizons integration",
   "config.fiximizer.integrations.voxy": "Voxy integration",
   "screen.fiximizer.gpu_spill_toggle": "VRAM cache: %s",
-  "screen.fiximizer.gpu_spill_limit": "VRAM cache limit: %s MiB  •  click to change"
+  "screen.fiximizer.gpu_spill_limit": "VRAM cache limit: %s MiB  •  click to change",
+  "screen.fiximizer.create_profiler_title": "Create: contraption timing (last 100 server ticks)",
+  "screen.fiximizer.create_profiler_inactive": "The Create integration is disabled.",
+  "screen.fiximizer.create_profiler_waiting": "Waiting for local server ticks...",
+  "screen.fiximizer.create_profiler_no_entities": "No contraption entities ticked in the last %s server ticks.",
+  "screen.fiximizer.create_profiler_stats": "Contraption ticks: %s | avg server tick cost: %s ms",
+  "screen.fiximizer.create_profiler_timing": "Average entity tick: %s ms | peak: %s ms",
+  "screen.fiximizer.create_profiler_top": "Top entity type this session: %s (%s ms)"
 }
