@@ -92,7 +92,7 @@ find_gradle_runtime_jdk() {
         if try_jdk_candidate "$JAVA_HOME"; then
             return 0
         fi
-        warn "JAVA_HOME does not point to a complete JDK 21; checking other known locations."
+        warn "JAVA_HOME does not point to a complete JDK 21 or 25; checking other known locations."
     fi
 
     # Resolve javac from PATH (including common /usr/bin alternatives symlinks).
