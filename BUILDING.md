@@ -33,6 +33,8 @@ The first run may download JDK 21, Gradle and Minecraft/NeoForge dependencies. L
 - Accepted NeoForge range: `[21.1.256, 21.2)`
 - CI checks the minimum (21.1.256) and a newer 21.1.x build (21.1.265).
 
+Minecraft 1.21.1 / NeoForge's documented baseline is Java 21. The JDK 25 CI job verifies that Gradle, tests, and the Java 21 toolchain work when Gradle itself runs on JDK 25; it is not a full in-game launch certification for running this older Minecraft version on Java 25.
+
 The builder defaults to the minimum supported NeoForge version so the produced JAR does not accidentally depend on APIs introduced only in a later 21.1.x release.
 
 ## Linux one-click build
