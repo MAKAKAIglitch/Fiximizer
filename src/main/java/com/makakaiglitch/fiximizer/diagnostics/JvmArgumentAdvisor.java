@@ -1,5 +1,6 @@
 package com.makakaiglitch.fiximizer.diagnostics;
 
+import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import net.neoforged.fml.ModList;
 
 import java.io.IOException;
@@ -34,7 +35,8 @@ public final class JvmArgumentAdvisor {
             totalPhysicalBytes = Math.max(8L * GIB, Runtime.getRuntime().maxMemory() * 2L);
         }
 
-        return recommend(totalPhysicalBytes, modCount);
+        Recommendation base = recommend(totalPhysicalBytes, modCount);
+        return appendOptionalStringDeduplication(base);
     }
 
     /**
@@ -81,6 +83,41 @@ public final class JvmArgumentAdvisor {
                 modCount,
                 arguments,
                 note
+        );
+    }
+
+    /**
+     * G1 String Deduplication is supported only when the active collector is G1.
+     * Reading collector names is a one-time advisor/UI operation, not a tick hook.
+     */
+    public static boolean supportsG1StringDeduplication() {
+        return ManagementFactory.getGarbageCollectorMXBeans().stream()
+                .anyMatch(bean -> bean.getName().toLowerCase(Locale.ROOT).contains("g1"));
+    }
+
+    private static Recommendation appendOptionalStringDeduplication(Recommendation base) {
+        if (!FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get()) {
+            return base;
+        }
+
+        if (!supportsG1StringDeduplication()) {
+            return new Recommendation(
+                    base.physicalMemoryBytes(),
+                    base.maximumHeapBytes(),
+                    base.initialHeapBytes(),
+                    base.loadedModCount(),
+                    base.arguments(),
+                    base.note() + " G1 String Deduplication was not added because the active garbage collector is not G1."
+            );
+        }
+
+        return new Recommendation(
+                base.physicalMemoryBytes(),
+                base.maximumHeapBytes(),
+                base.initialHeapBytes(),
+                base.loadedModCount(),
+                base.arguments() + " -XX:+UseStringDeduplication",
+                base.note() + " Optional G1 String Deduplication is included; it can reduce duplicate String backing storage but may add GC CPU work. Compare before and after."
         );
     }
 
