@@ -1,6 +1,7 @@
 package com.makakaiglitch.fiximizer.diagnostics;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities;
 import net.neoforged.fml.ModList;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ public final class JvmArgumentAdvisor {
      */
     public static Recommendation recommend() {
         Recommendation base = runtimeRecommendation();
+        base = withCompactObjectHeaders(base, RuntimeMemoryCapabilities.current());
 
         // Do not query collector MXBeans on every dashboard frame while the
         // optional G1 setting is disabled (the default).
@@ -130,6 +132,58 @@ public final class JvmArgumentAdvisor {
             }
         }
         return current;
+    }
+
+    /**
+     * Automatically selects the broad JDK 25 heap optimization when the
+     * running VM exposes it and its loaded-class safety limit is not reached.
+     * Java 21 and VMs without this HotSpot option keep the compatible fallback.
+     */
+    static Recommendation withCompactObjectHeaders(
+            Recommendation base,
+            RuntimeMemoryCapabilities.Snapshot capabilities
+    ) {
+        if (capabilities.compactObjectHeadersEnabled()) {
+            return copyWithNote(base, base.note()
+                    + " Compact Object Headers are already enabled by the running JVM.");
+        }
+
+        if (capabilities.shouldRecommendCompactObjectHeaders()) {
+            return copyWithArgumentsAndNote(
+                    base,
+                    base.arguments() + " -XX:+UseCompactObjectHeaders",
+                    base.note() + " JDK " + capabilities.javaMajor()
+                            + " exposes Compact Object Headers; the flag is recommended for the next launch."
+            );
+        }
+
+        if (capabilities.compactObjectHeadersClassLimitReached()
+                && capabilities.compactObjectHeadersSupported()) {
+            return copyWithNote(base, base.note()
+                    + " Compact Object Headers were not recommended because the JVM reports "
+                    + capabilities.loadedClassCount() + " loaded classes and the feature limit is 4,000,000.");
+        }
+
+        return base;
+    }
+
+    private static Recommendation copyWithNote(Recommendation base, String note) {
+        return copyWithArgumentsAndNote(base, base.arguments(), note);
+    }
+
+    private static Recommendation copyWithArgumentsAndNote(
+            Recommendation base,
+            String arguments,
+            String note
+    ) {
+        return new Recommendation(
+                base.physicalMemoryBytes(),
+                base.maximumHeapBytes(),
+                base.initialHeapBytes(),
+                base.loadedModCount(),
+                arguments,
+                note
+        );
     }
 
     /**
