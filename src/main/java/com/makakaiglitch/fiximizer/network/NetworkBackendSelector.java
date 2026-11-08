@@ -12,6 +12,7 @@ public final class NetworkBackendSelector {
     public enum Backend { JAVA, RUST }
 
     private static final AtomicBoolean STARTED = new AtomicBoolean();
+    private static final AtomicBoolean RUNNING = new AtomicBoolean();
     private static volatile Backend selected = Backend.JAVA;
     private static volatile RustNetworkBackend rustBackend;
     private static volatile String status = "Java backend (not benchmarked)";
@@ -23,7 +24,14 @@ public final class NetworkBackendSelector {
 
     public static void initializeAsync() {
         if (!STARTED.compareAndSet(false, true)) return;
-        Thread thread = new Thread(NetworkBackendSelector::initialize, "Fiximizer-Network-Backend");
+        Thread thread = new Thread(() -> {
+            RUNNING.set(true);
+            try {
+                initialize();
+            } finally {
+                RUNNING.set(false);
+            }
+        }, "Fiximizer-Network-Backend");
         thread.setDaemon(true);
         thread.start();
     }
@@ -136,6 +144,7 @@ public final class NetworkBackendSelector {
         return NetworkStatistics.summarizeJava(samples, output);
     }
 
+    public static boolean isRunning() { return RUNNING.get(); }
     public static Backend selected() { return selected; }
     public static String status() { return status; }
     public static long javaMedianNanos() { return javaNanos; }
