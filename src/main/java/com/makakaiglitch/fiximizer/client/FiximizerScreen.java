@@ -545,15 +545,6 @@ public final class FiximizerScreen extends Screen {
         return Component.translatable("screen.fiximizer.network_backend_button", mode);
     }
 
-    private Component networkNativeBackendLabel() {
-        return Component.translatable(
-                "screen.fiximizer.network_native_backend_toggle",
-                Component.translatable(FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()
-                        ? "screen.fiximizer.enabled"
-                        : "screen.fiximizer.disabled")
-        );
-    }
-
     private Component serverTickProfilerLabel() {
         return Component.translatable(
                 "screen.fiximizer.server_profiler_toggle",
