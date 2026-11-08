@@ -7,7 +7,7 @@
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/stargazers"><img src="https://img.shields.io/github/stars/MAKAKAIglitch/Fiximizer?style=for-the-badge&logo=github" alt="Звёзды GitHub"></a>
     <a href="https://github.com/MAKAKAIglitch/Fiximizer/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MAKAKAIglitch/Fiximizer?style=for-the-badge" alt="Лицензия MIT"></a>
     <img src="https://img.shields.io/badge/Minecraft-1.21.1-3C8B55?style=for-the-badge&logo=minecraft&logoColor=white" alt="Minecraft 1.21.1">
-    <img src="https://img.shields.io/badge/NeoForge-21.1.265%2B-E56B36?style=for-the-badge" alt="NeoForge">
+    <img src="https://img.shields.io/badge/NeoForge-21.1.256%2B-E56B36?style=for-the-badge" alt="NeoForge 21.1.256 and newer compatible 21.1.x versions">
     <img src="https://img.shields.io/badge/Java-21-4479A1?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21">
     <img src="https://img.shields.io/badge/Версия-0.14.0--alpha-9B83FF?style=for-the-badge" alt="Версия 0.14.0 alpha">
   </p>
@@ -41,6 +41,30 @@
 | Инструкция по сборке | [BUILDING.md](BUILDING.md) |
 | Лицензия | [MIT](LICENSE) |
 
+
+## Содержание
+
+- [Как устроен Fiximizer](#как-устроен-fiximizer)
+- [Совместимость](#совместимость)
+- [Быстрый старт](#быстрый-старт)
+  - [Как открыть панель](#как-открыть-панель)
+  - [Разделы панели управления](#разделы-панели-управления)
+- [Возможности](#возможности)
+  - [Профили нагрузки](#профили-нагрузки)
+  - [Телеметрия в реальном времени](#телеметрия-в-реальном-времени)
+  - [Watchdog зависаний и Java Flight Recorder](#watchdog-зависаний-и-java-flight-recorder)
+  - [Адаптивный планировщик и защита памяти](#адаптивный-планировщик-и-защита-памяти)
+  - [Инструменты GPU и VRAM](#инструменты-gpu-и-vram)
+  - [Необязательные интеграции с модами](#необязательные-интеграции-с-модами)
+  - [Советник параметров JVM](#советник-параметров-jvm)
+- [Где находятся отчёты](#где-находятся-отчёты)
+- [Установка](#установка)
+  - [Dev-сборки](#dev-сборки)
+  - [Локальная сборка](#локальная-сборка)
+- [Статус разработки](#статус-разработки)
+- [Сообщить об ошибке и помочь проекту](#сообщить-об-ошибке-и-помочь-проекту)
+- [Лицензия](#лицензия)
+
 ## Как устроен Fiximizer
 
 На схеме показаны основные потоки данных. Телеметрия и отчёты об инцидентах отделены от планировщика, который управляет только задачами самого Fiximizer.
@@ -66,12 +90,12 @@ flowchart TD
 | Компонент | Целевая версия |
 |---|---|
 | Minecraft | **1.21.1** |
-| Загрузчик модов | **NeoForge**, проект собирается на <code>21.1.265</code> |
+| Загрузчик модов | **NeoForge 21.1.256 и новее в линейке 21.1.x** |
 | Java | **Java 21** |
 | Версия проекта | **<code>0.14.0-alpha</code>** |
 | Mod ID | <code>fiximizer</code> |
 
-В проекте указана версия Minecraft в диапазоне <code>[1.21.1, 1.21.2)</code>. Диапазон зависимости NeoForge начинается с <code>21.1.265</code>. Для игрового экземпляра используй Java 21.
+Версия Minecraft ограничена диапазоном <code>[1.21.1, 1.21.2)</code>. Диапазон NeoForge — <code>[21.1.256, 21.2)</code>: поддерживаются релизы 21.1.256 и новее в той же ветке 21.1.x. CI отдельно собирает и тестирует минимальную версию 21.1.256 и более новую контрольную версию 21.1.265. Для игрового экземпляра используй Java 21.
 
 В интерфейсе мода доступны английский и русский переводы.
 
