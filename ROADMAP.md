@@ -188,6 +188,14 @@ The first optimization targets will be selected from reproducible profiles of re
 - Expose each active policy, its preconditions, measured overhead, and fallback state in the dashboard.
 - Keep the default mode passive until an optimization has passed compatibility and workload testing.
 
+##### Java/Rust backend selection and TCP socket policy
+
+- Keep Java as the always-available fallback and offer an optional Rust native backend for **batch processing of Fiximizer telemetry statistics only**. Do not cross JNI/JNA for every game packet.
+- In Auto mode, verify identical output first, warm up both implementations, then compare repeated runs on the same bounded input. Select Rust only when it is at least 10% faster in the local batch benchmark; otherwise keep Java.
+- If the native library is absent, unsupported on the current OS/architecture, fails ABI/correctness validation, or errors at runtime, fall back to Java without affecting the game connection.
+- Expose Auto / Java / Rust selection and a separate Rust availability toggle in the dashboard. Build and test native binaries in CI for each advertised platform; unsupported platforms continue with Java.
+- Keep TCP_NODELAY a separate opt-in client socket policy, off by default. Apply it only when the channel supports the option and no known external Netty stack optimizer is present; restore the previous value on disable/disconnect. Benchmark end-to-end latency and CPU before claiming a benefit.
+
 ##### Connection recovery and protocol compatibility
 
 - Diagnose DNS resolution, SRV records, IPv4/IPv6 address selection, socket connection, encryption/compression negotiation, login/configuration phases, and server disconnect reasons as separate stages.
