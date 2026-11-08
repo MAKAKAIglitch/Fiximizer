@@ -8,6 +8,7 @@ import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
+import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.commands.Commands;
