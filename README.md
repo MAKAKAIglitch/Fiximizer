@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.11.0-alpha — rolling JFR snapshots and heuristic mod attribution**
+**0.12.0-alpha — incident timelines and automatic JFR analysis**
 
 ### In-game menu
 
@@ -80,6 +80,8 @@ The watchdog observes three long-running NeoForge event spans independently: the
 - The Overview page has a manual snapshot button. Settings for JFR enablement, its age/size limits, export interval and retention are available in the generated NeoForge config under `watchdog`.
 
 **Measurement boundary:** the watchdog measures wall-clock time between event callbacks, not CPU time, GPU execution or actual displayed-frame cadence. Stack frames and mod attribution are investigative evidence, not proof of causation. JFR is bounded and configurable, but continuous profiling can still add CPU/disk overhead; disable `watchdog.rollingJfr` to keep text/thread snapshots without the JFR ring. Shared packages, multi-mod JARs, transformed/hidden classes and native code may remain unattributed.
+
+**Incident correlation and automatic profile analysis:** repeated snapshots from one continuously active event share an incident ID and filenames. Each report includes the bounded history of recent capture times, elapsed time since the first capture, current/peak observed duration and change since the first snapshot. When a new rolling JFR export is created, Fiximizer automatically runs the existing JFR analyzer and writes a sibling `*-analysis.txt` report with statistical CPU method hotspots, sampled allocation classes, thread shares and package namespace candidates. The main stall report links that analysis file. JFR export cooldowns do not trigger redundant parsing. The history is deliberately bounded and is not a full per-tick trace.
 
 ### Create contraption tick telemetry
 
@@ -189,6 +191,8 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] Non-blocking server/client/render stall watchdog with bounded JVM stack snapshots and local report retention
 - [x] Bounded rolling JFR snapshots exported on stalls without stopping the live recorder
 - [x] Heuristic stack-frame attribution to mod JARs with ambiguous-package handling and confidence labels
+- [x] Incident IDs and bounded timeline of repeated stall snapshots
+- [x] Automatic analysis of exported rolling JFR snapshots with linked CPU/allocation hotspot reports
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
 - [ ] First Sable optimization based on reproducible physics profiling data

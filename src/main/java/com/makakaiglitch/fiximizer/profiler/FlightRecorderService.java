@@ -170,7 +170,11 @@ public final class FlightRecorderService {
 
             for (int index = Math.max(1, maximum); index < exports.size(); index++) {
                 try {
-                    Files.deleteIfExists(exports.get(index));
+                    Path oldExport = exports.get(index);
+                    Files.deleteIfExists(oldExport);
+                    String filename = oldExport.getFileName().toString();
+                    String stem = filename.substring(0, filename.length() - ".jfr".length());
+                    Files.deleteIfExists(directory.resolve(stem + "-analysis.txt"));
                 } catch (IOException exception) {
                     Fiximizer.LOGGER.debug("Could not prune old rolling JFR export {}.",
                             exports.get(index).getFileName(), exception);

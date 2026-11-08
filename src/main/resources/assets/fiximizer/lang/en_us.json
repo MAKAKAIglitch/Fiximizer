@@ -164,5 +164,6 @@
   "config.fiximizer.watchdog.jfr_window": "Maximum JFR history age (seconds; size limit may shorten it)",
   "config.fiximizer.watchdog.jfr_size": "Maximum rolling JFR repository size (MiB)",
   "config.fiximizer.watchdog.jfr_interval": "Minimum interval between exported stall JFR files (milliseconds)",
-  "config.fiximizer.watchdog.jfr_retention": "Maximum retained stall JFR exports"
+  "config.fiximizer.watchdog.jfr_retention": "Maximum retained stall JFR exports",
+  "screen.fiximizer.watchdog_jfr_analysis": "Automatic JFR analysis: %s"
 }

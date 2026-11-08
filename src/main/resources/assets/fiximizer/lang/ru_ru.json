@@ -164,5 +164,6 @@
   "config.fiximizer.watchdog.jfr_window": "Максимальный возраст данных JFR (секунды; лимит размера может сократить окно)",
   "config.fiximizer.watchdog.jfr_size": "Максимальный размер кольцевого буфера JFR (МиБ)",
   "config.fiximizer.watchdog.jfr_interval": "Минимальный интервал между экспортами JFR при зависаниях (мс)",
-  "config.fiximizer.watchdog.jfr_retention": "Максимум сохраняемых JFR-снимков зависаний"
+  "config.fiximizer.watchdog.jfr_retention": "Максимум сохраняемых JFR-снимков зависаний",
+  "screen.fiximizer.watchdog_jfr_analysis": "Автоматический анализ JFR: %s"
 }

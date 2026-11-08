@@ -30,7 +30,7 @@ jobs:
       - name: Upload Linux build
         uses: actions/upload-artifact@v7
         with:
-          name: Fiximizer-0.11.0-alpha-linux
+          name: Fiximizer-0.12.0-alpha-linux
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
@@ -66,7 +66,7 @@ jobs:
       - name: Upload Windows build
         uses: actions/upload-artifact@v7
         with:
-          name: Fiximizer-0.11.0-alpha-windows
+          name: Fiximizer-0.12.0-alpha-windows
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14

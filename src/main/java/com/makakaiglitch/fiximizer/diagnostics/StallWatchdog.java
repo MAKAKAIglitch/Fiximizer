@@ -15,7 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -57,7 +56,7 @@ public final class StallWatchdog {
             DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss-SSS", Locale.ROOT);
     private static final AtomicBoolean STARTED = new AtomicBoolean();
     private static final AtomicBoolean MANUAL_DUMP_REQUESTED = new AtomicBoolean();
-    private static final AtomicLong FILE_SEQUENCE = new AtomicLong();
+    private static final AtomicLong INCIDENT_SEQUENCE = new AtomicLong();
     private static final AtomicReference<ActiveSpan> SERVER_TICK = new AtomicReference<>();
     private static final AtomicReference<ActiveSpan> CLIENT_TICK = new AtomicReference<>();
     private static final AtomicReference<ActiveSpan> RENDER_FRAME = new AtomicReference<>();
@@ -75,6 +74,7 @@ public final class StallWatchdog {
     private static volatile Path gameDirectory;
     private static volatile String lastReportFile = "";
     private static volatile String lastJfrFile = "";
+    private static volatile String lastJfrAnalysisFile = "";
     private static volatile long lastQueueWarningNanos;
 
     private StallWatchdog() {
@@ -146,7 +146,7 @@ public final class StallWatchdog {
             }
 
             if (MANUAL_DUMP_REQUESTED.compareAndSet(true, false)) {
-                captureAndQueue("manual diagnostic snapshot", null, 0L);
+                captureAndQueue("manual diagnostic snapshot", null, 0L, null);
             }
 
             long now = System.nanoTime();
@@ -186,20 +186,36 @@ public final class StallWatchdog {
 
         // Throttle attempts even if the writer queue is full.
         span.lastCaptureAtNanos = now;
-        if (captureAndQueue(span.type.label, span.thread, duration)) {
+        if (captureAndQueue(span.type.label, span.thread, duration, span.timeline)) {
             span.captureCount++;
         }
     }
 
-    private static boolean captureAndQueue(String cause, Thread targetThread, long durationNanos) {
+    private static boolean captureAndQueue(
+            String cause,
+            Thread targetThread,
+            long durationNanos,
+            IncidentTimeline timeline
+    ) {
         if (WRITER.getQueue().remainingCapacity() == 0) {
             logQueueSaturated();
             return false;
         }
 
+        IncidentTimeline activeTimeline = timeline;
+        if (activeTimeline == null) {
+            Instant startedAt = Instant.now();
+            activeTimeline = new IncidentTimeline(
+                    "manual-" + startedAt.toEpochMilli() + "-" + INCIDENT_SEQUENCE.incrementAndGet(),
+                    startedAt,
+                    System.nanoTime(),
+                    8
+            );
+        }
+
         CapturedSnapshot snapshot;
         try {
-            snapshot = captureSnapshot(cause, targetThread, durationNanos);
+            snapshot = captureSnapshot(cause, targetThread, durationNanos, activeTimeline);
         } catch (RuntimeException exception) {
             Fiximizer.LOGGER.warn("Unable to capture a stall snapshot.", exception);
             return false;
@@ -222,9 +238,11 @@ public final class StallWatchdog {
     private static CapturedSnapshot captureSnapshot(
             String cause,
             Thread targetThread,
-            long durationNanos
+            long durationNanos,
+            IncidentTimeline timeline
     ) {
         Instant capturedAt = Instant.now();
+        long capturedAtNanos = System.nanoTime();
         Runtime runtime = Runtime.getRuntime();
         MemoryUsage heap = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage();
 
@@ -303,25 +321,49 @@ public final class StallWatchdog {
                 deadlockedIds == null ? new long[0] : deadlockedIds,
                 deadlockedInfos,
                 deadlockStatus,
-                allIds.length > MAX_CAPTURED_THREADS
+                allIds.length > MAX_CAPTURED_THREADS,
+                timeline.recordCapture(capturedAt, capturedAtNanos, durationNanos)
         );
     }
 
     private static void writeSnapshot(CapturedSnapshot snapshot) {
         Path directory = gameDirectory.resolve("logs").resolve("fiximizer").resolve("stalls");
-        String baseName = "stall-" + FILE_TIME.format(LocalDateTime.now())
-                + "-" + FILE_SEQUENCE.incrementAndGet();
+        IncidentTimeline.Snapshot incident = snapshot.incidentTimeline;
+        String baseName = "stall-" + incident.incidentId() + "-snapshot-"
+                + String.format(Locale.ROOT, "%02d", incident.totalCaptures());
 
         try {
             Files.createDirectories(directory);
 
             // JFR cloning/dumping happens on the writer, never on a game thread.
             String jfrResult = FlightRecorderService.dumpRollingSnapshot(directory, baseName);
+            String analysisResult = "not available";
             if (jfrResult.endsWith(".jfr")) {
                 lastJfrFile = jfrResult;
+                if (FiximizerConfig.ENABLE_PROFILE_ANALYSIS.get()) {
+                    try {
+                        Path analysis = JfrProfileAnalyzer.analyzeAndWrite(directory.resolve(jfrResult));
+                        lastJfrAnalysisFile = analysis.getFileName().toString();
+                        analysisResult = lastJfrAnalysisFile;
+                    } catch (IOException | RuntimeException | LinkageError exception) {
+                        lastJfrAnalysisFile = "";
+                        analysisResult = "analysis failed: " + exception.getClass().getSimpleName();
+                        Fiximizer.LOGGER.warn("Could not analyze rolling JFR export {}.", jfrResult, exception);
+                    }
+                } else {
+                    lastJfrAnalysisFile = "";
+                    analysisResult = "disabled by config";
+                }
+            } else if ("cooldown".equals(jfrResult)) {
+                analysisResult = lastJfrAnalysisFile.isBlank()
+                        ? "cooldown; no previous analysis"
+                        : "cooldown; latest analysis: " + lastJfrAnalysisFile;
+                if (!lastJfrFile.isBlank()) {
+                    jfrResult = "cooldown; latest export: " + lastJfrFile;
+                }
             }
 
-            String report = buildReport(snapshot, jfrResult);
+            String report = buildReport(snapshot, jfrResult, analysisResult);
             Path output = directory.resolve(baseName + ".txt");
             Files.writeString(
                     output,
@@ -343,11 +385,16 @@ public final class StallWatchdog {
         }
     }
 
-    private static String buildReport(CapturedSnapshot snapshot, String jfrResult) {
+    private static String buildReport(
+            CapturedSnapshot snapshot,
+            String jfrResult,
+            String analysisResult
+    ) {
         StringBuilder report = new StringBuilder(32_768);
         report.append("Fiximizer stall diagnostic\n");
         report.append("===========================\n");
         report.append("Captured: ").append(snapshot.capturedAt).append('\n');
+        appendIncidentTimeline(report, snapshot.incidentTimeline);
         report.append("Trigger: ").append(snapshot.cause).append('\n');
         report.append("Trigger thread: ").append(snapshot.targetThreadName)
                 .append(" (id=").append(snapshot.targetThreadId).append(")\n");
@@ -382,6 +429,7 @@ public final class StallWatchdog {
 
         report.append("\n[JFR ROLLING SNAPSHOT]\n");
         report.append("status=").append(jfrResult).append('\n');
+        report.append("analysis=").append(analysisResult).append('\n');
         report.append("buffer=").append(FlightRecorderService.rollingStatus()).append('\n');
 
         report.append("\n[MOD ATTRIBUTION — HEURISTIC]\n");
@@ -464,17 +512,48 @@ public final class StallWatchdog {
         return report.toString();
     }
 
+    private static void appendIncidentTimeline(
+            StringBuilder report,
+            IncidentTimeline.Snapshot incident
+    ) {
+        report.append("\n[INCIDENT HISTORY]\n");
+        report.append("incidentId=").append(incident.incidentId()).append('\n');
+        report.append("startedAt=").append(incident.startedAt()).append('\n');
+        report.append("captureNumber=").append(incident.totalCaptures()).append('\n');
+        report.append("retainedPoints=").append(incident.captures().size()).append('\n');
+        report.append("firstDuration=").append(incident.firstDurationMillis()).append(" ms\n");
+        report.append("latestDuration=").append(incident.latestDurationMillis()).append(" ms\n");
+        report.append("peakDurationInHistory=").append(incident.peakDurationMillis()).append(" ms\n");
+        report.append("changeSinceFirst=").append(incident.durationChangeMillis()).append(" ms\n");
+        report.append("capture | elapsed since start | observed duration | captured at\n");
+        for (IncidentTimeline.Capture point : incident.captures()) {
+            report.append(point.number()).append(" | ")
+                    .append(point.elapsedMillis()).append(" ms | ")
+                    .append(point.durationMillis()).append(" ms | ")
+                    .append(point.capturedAt()).append('\n');
+        }
+    }
+
     private static void pruneReports(Path directory, int keepCount) {
         try (Stream<Path> files = Files.list(directory)) {
             List<Path> reports = files
                     .filter(Files::isRegularFile)
-                    .filter(path -> path.getFileName().toString().endsWith(".txt"))
+                    .filter(path -> {
+                        String name = path.getFileName().toString();
+                        return name.endsWith(".txt") && !name.endsWith("-analysis.txt");
+                    })
                     .sorted(Comparator.comparingLong(StallWatchdog::lastModifiedMillis).reversed())
                     .toList();
 
             for (int index = Math.max(1, keepCount); index < reports.size(); index++) {
                 try {
-                    Files.deleteIfExists(reports.get(index));
+                    Path report = reports.get(index);
+                    String filename = report.getFileName().toString();
+                    Files.deleteIfExists(report);
+                    if (filename.endsWith(".txt")) {
+                        String stem = filename.substring(0, filename.length() - 4);
+                        Files.deleteIfExists(directory.resolve(stem + "-analysis.txt"));
+                    }
                 } catch (IOException exception) {
                     Fiximizer.LOGGER.debug("Unable to prune old stall report {}.",
                             reports.get(index).getFileName(), exception);
@@ -558,7 +637,8 @@ public final class StallWatchdog {
             long[] deadlockedThreadIds,
             ThreadInfo[] deadlockedInfos,
             String deadlockStatus,
-            boolean threadLimitReached
+            boolean threadLimitReached,
+            IncidentTimeline.Snapshot incidentTimeline
     ) {
     }
 
@@ -568,11 +648,19 @@ public final class StallWatchdog {
         private final long startedAtNanos;
         private long lastCaptureAtNanos;
         private int captureCount;
+        private final IncidentTimeline timeline;
 
         private ActiveSpan(SpanType type, Thread thread, long startedAtNanos) {
             this.type = type;
             this.thread = thread;
             this.startedAtNanos = startedAtNanos;
+            Instant startedAt = Instant.now();
+            this.timeline = new IncidentTimeline(
+                    "incident-" + startedAt.toEpochMilli() + "-" + INCIDENT_SEQUENCE.incrementAndGet(),
+                    startedAt,
+                    startedAtNanos,
+                    Math.min(16, Math.max(4, FiximizerConfig.MAX_DUMPS_PER_STALL.get()))
+            );
         }
     }
 }
