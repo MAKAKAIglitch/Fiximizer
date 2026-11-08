@@ -136,5 +136,17 @@
   "screen.fiximizer.frame_slow": ">16,7 мс: %s | >33,3 мс: %s",
   "screen.fiximizer.tick_stats": "Тиков: %s | среднее: %s мс | p50: %s мс",
   "screen.fiximizer.tick_percentiles": "p95: %s мс | p99: %s мс | пик: %s мс",
-  "screen.fiximizer.tick_slow": ">50 мс: %s | >100 мс: %s"
+  "screen.fiximizer.tick_slow": ">50 мс: %s | >100 мс: %s",
+  "config.fiximizer.profiler.server_tick": "Измерять длительность серверного тика",
+  "screen.fiximizer.tab_server": "Сервер",
+  "screen.fiximizer.server_title": "Нагрузка интегрированного сервера",
+  "screen.fiximizer.server_intro": "Измеряется полная длительность серверного тика между событиями ServerTickEvent.Pre и Post. Доступно в одиночном мире.",
+  "screen.fiximizer.server_profiler_toggle": "Профилирование сервера: %s • нажми для переключения",
+  "screen.fiximizer.server_profiler_disabled": "Профилирование серверного тика выключено.",
+  "screen.fiximizer.server_tick_title": "Длительность тика (окно до 600 тиков)",
+  "screen.fiximizer.server_profiler_waiting": "Ожидание первых серверных тиков...",
+  "screen.fiximizer.server_stats": "Замеров: %s | среднее: %s мс | p50: %s мс",
+  "screen.fiximizer.server_percentiles": "p95: %s мс | p99: %s мс | максимум: %s мс",
+  "screen.fiximizer.server_stalls": "Дольше 50 мс: %s | дольше 100 мс: %s",
+  "screen.fiximizer.server_budget": "Ориентир — 50 мс на тик для 20 TPS. Эти показатели включают Create, Sable и остальные серверные задачи; не складывай их с отдельными профайлерами."
 }

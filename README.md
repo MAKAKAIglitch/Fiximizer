@@ -4,13 +4,13 @@
 
 ## Current status
 
-**0.8.0-alpha — client render/tick workload telemetry alongside Create and Sable physics profiling**
+**0.9.0-alpha — integrated server tick telemetry joins client, Create and Sable profiling**
 
 ### In-game menu
 
 - Open the dashboard with F8.
 - Open the same Fiximizer control center from the Config button in NeoForge's mod list.
-- Seven sections: Overview, Optimization, Integrations, Physics, Java / JVM, GPU / VRAM, and Frames.
+- Eight sections: Overview, Optimization, Integrations, Physics, Java / JVM, GPU / VRAM, Frames, and Server.
 - Russian and English translations.
 
 ### CPU / GPU self-test
@@ -55,6 +55,18 @@ The Frames tab passively measures two client-thread workloads with NeoForge even
 - The collector is independently configurable and can be disabled from the Frames tab.
 
 **Measurement boundary:** render-call duration is not the time between displayed frames. It does not include presentation cadence or VSync waiting outside `GameRenderer.render()`, and it is not GPU execution time. Client tick measurements do not replace integrated-server or dedicated-server profiling. Use these metrics to distinguish expensive client rendering work from slow client logic, then capture JFR for method-level investigation.
+
+### Integrated server tick telemetry
+
+The Server tab measures full logical-server tick duration on a local single-player world:
+
+- Reuses the existing `ServerTickEvent.Pre/Post` listener and records wall-clock duration with `System.nanoTime()`.
+- Uses a bounded 600-tick rolling window.
+- Reports average, p50, p95, p99, peak and counts above 50 ms / 100 ms.
+- The profiler can be disabled independently from the Server tab; when the setting changes, its rolling window resets on the server thread.
+- The 50 ms target corresponds to 20 ticks per second when maintained consistently.
+
+**Measurement boundary:** this is the complete integrated-server tick duration between NeoForge pre/post events. It includes Create, Sable and other server-side mod work. Do not add these values to the Create or Sable sub-profiler values; they overlap. The client-side integration does not measure a remote multiplayer server.
 
 ### Create contraption tick telemetry
 
@@ -145,7 +157,7 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 
 ## Roadmap
 
-- [ ] Validate client render/tick telemetry in a real 1.21.1 modpack and compare its readings with an external frame-time capture
+- [ ] Validate client render/tick and integrated-server telemetry in a real 1.21.1 modpack against external measurements
 
 - [x] NeoForge 1.21.1 project foundation
 - [x] Five user-selectable gameplay profiles
@@ -160,6 +172,7 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] Passive Create server-side contraption entity tick profiler (100-tick rolling window)
 - [x] Passive Sable physics substep profiler (last 1,000 pre/post event pairs)
 - [x] Client render-call and client-tick workload profiler (600-sample rolling windows)
+- [x] Integrated single-player server tick profiler (600-tick rolling window)
 - [x] VRAM budgeting and explicit disposable cache block API
 - [ ] First production Create optimization based on reproducible profiling data
 - [ ] First Sable optimization based on reproducible physics profiling data

@@ -136,5 +136,17 @@
   "screen.fiximizer.frame_slow": ">16.7 ms: %s | >33.3 ms: %s",
   "screen.fiximizer.tick_stats": "Ticks: %s | average: %s ms | p50: %s ms",
   "screen.fiximizer.tick_percentiles": "p95: %s ms | p99: %s ms | peak: %s ms",
-  "screen.fiximizer.tick_slow": ">50 ms: %s | >100 ms: %s"
+  "screen.fiximizer.tick_slow": ">50 ms: %s | >100 ms: %s",
+  "config.fiximizer.profiler.server_tick": "Measure integrated server tick duration",
+  "screen.fiximizer.tab_server": "Server",
+  "screen.fiximizer.server_title": "Integrated server workload",
+  "screen.fiximizer.server_intro": "Measures the full server tick between ServerTickEvent.Pre and Post. Available in a local single-player world.",
+  "screen.fiximizer.server_profiler_toggle": "Server profiling: %s • click to toggle",
+  "screen.fiximizer.server_profiler_disabled": "Server tick profiling is disabled.",
+  "screen.fiximizer.server_tick_title": "Tick duration (up to 600 recent ticks)",
+  "screen.fiximizer.server_profiler_waiting": "Waiting for server tick samples...",
+  "screen.fiximizer.server_stats": "Samples: %s | average: %s ms | p50: %s ms",
+  "screen.fiximizer.server_percentiles": "p95: %s ms | p99: %s ms | peak: %s ms",
+  "screen.fiximizer.server_stalls": "Over 50 ms: %s | over 100 ms: %s",
+  "screen.fiximizer.server_budget": "The 20 TPS budget is 50 ms per tick. These timings include Create, Sable and all other server work; do not add them to the sub-profiler timings."
 }

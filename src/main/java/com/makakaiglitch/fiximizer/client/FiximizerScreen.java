@@ -10,6 +10,7 @@ import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
+import com.makakaiglitch.fiximizer.diagnostics.ServerTickProfiler;
 import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkResult;
 import com.makakaiglitch.fiximizer.gpu.GpuBenchmarkService;
@@ -45,7 +46,8 @@ public final class FiximizerScreen extends Screen {
         PHYSICS,
         JVM,
         GPU,
-        FRAMES
+        FRAMES,
+        SERVER
     }
 
     private final Screen parent;
@@ -66,6 +68,7 @@ public final class FiximizerScreen extends Screen {
     private Button gpuSpillButton;
     private Button gpuSpillLimitButton;
     private Button frameProfilerButton;
+    private Button serverTickProfilerButton;
 
     private int panelLeft;
     private int panelTop;
@@ -125,6 +128,11 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.tab_frames"),
                 button -> selectTab(Tab.FRAMES)
         ).bounds(navX, navY + 168, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_server"),
+                button -> selectTab(Tab.SERVER)
+        ).bounds(navX, navY + 196, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -236,6 +244,14 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
+        serverTickProfilerButton = addRenderableWidget(Button.builder(
+                serverTickProfilerLabel(),
+                button -> {
+                    toggleConfig(FiximizerConfig.ENABLE_SERVER_TICK_PROFILING);
+                    serverTickProfilerButton.setMessage(serverTickProfilerLabel());
+                }
+        ).bounds(contentLeft, panelTop + 122, 340, 20).build()));
+
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
                 button -> {
@@ -298,6 +314,7 @@ public final class FiximizerScreen extends Screen {
         boolean jvm = selectedTab == Tab.JVM;
         boolean gpu = selectedTab == Tab.GPU;
         boolean frames = selectedTab == Tab.FRAMES;
+        boolean server = selectedTab == Tab.SERVER;
 
         refreshButton.visible = overview;
         startProfileButton.visible = overview;
@@ -309,6 +326,7 @@ public final class FiximizerScreen extends Screen {
         saveJvmButton.visible = jvm;
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
+        serverTickProfilerButton.visible = server;
         gpuSpillButton.visible = gpu;
         gpuSpillLimitButton.visible = gpu;
         gpuTestButton.active = !GpuBenchmarkService.running()
@@ -395,6 +413,15 @@ public final class FiximizerScreen extends Screen {
     }
 
 
+    private Component serverTickProfilerLabel() {
+        return Component.translatable(
+                "screen.fiximizer.server_profiler_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_SERVER_TICK_PROFILING.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
     private Component frameProfilerLabel() {
         return Component.translatable(
                 "screen.fiximizer.frame_profiler_toggle",
@@ -474,6 +501,7 @@ public final class FiximizerScreen extends Screen {
             case JVM -> drawJvm(graphics);
             case GPU -> drawGpu(graphics);
             case FRAMES -> drawFrames(graphics);
+            case SERVER -> drawServer(graphics);
         }
     }
 
@@ -546,6 +574,72 @@ public final class FiximizerScreen extends Screen {
                 scheduler.targetWorkers(),
                 scheduler.maximumWorkers(),
                 y);
+    }
+
+    private void drawServer(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.server_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.server_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        if (!FiximizerConfig.ENABLE_SERVER_TICK_PROFILING.get()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.server_profiler_disabled"),
+                    contentLeft,
+                    panelTop + 158,
+                    0xFFFFB85C);
+            return;
+        }
+
+        drawSectionTitle(graphics,
+                "screen.fiximizer.server_tick_title",
+                panelTop + 151);
+
+        RollingDurationWindow.Snapshot snapshot = ServerTickProfiler.snapshot();
+        if (!snapshot.hasSamples()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.server_profiler_waiting"),
+                    contentLeft,
+                    panelTop + 174,
+                    0xFF9FB3C8);
+            return;
+        }
+
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.server_stats",
+                        snapshot.sampleCount(),
+                        String.format(Locale.ROOT, "%.2f", snapshot.averageMillis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p50Millis())),
+                contentLeft,
+                panelTop + 174,
+                0xFFFFFFFF);
+
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.server_percentiles",
+                        String.format(Locale.ROOT, "%.2f", snapshot.p95Millis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p99Millis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.peakMillis())),
+                contentLeft,
+                panelTop + 192,
+                0xFFB9C9DC);
+
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.server_stalls",
+                        snapshot.over50Millis(),
+                        snapshot.over100Millis()),
+                contentLeft,
+                panelTop + 210,
+                0xFFB9C9DC);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.server_budget"),
+                contentLeft,
+                panelTop + 239,
+                contentWidth - 8,
+                0xFF9FB3C8);
     }
 
     private void drawFrames(GuiGraphics graphics) {

@@ -14,6 +14,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_PROFILE_ANALYSIS;
     public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
     public static final ModConfigSpec.BooleanValue ENABLE_FRAME_TIME_PROFILING;
+    public static final ModConfigSpec.BooleanValue ENABLE_SERVER_TICK_PROFILING;
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
     public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
@@ -75,6 +76,11 @@ public final class FiximizerConfig {
                 .comment("Measure client render-call and client-tick wall-clock durations with bounded rolling windows.")
                 .translation("config.fiximizer.profiler.frame_timing")
                 .define("enableClientTiming", true);
+
+        ENABLE_SERVER_TICK_PROFILING = BUILDER
+                .comment("Measure integrated single-player server tick wall-clock duration.")
+                .translation("config.fiximizer.profiler.server_tick")
+                .define("enableServerTickTiming", true);
 
         BUILDER.pop();
         BUILDER.push("scheduler");
