@@ -82,7 +82,6 @@ public final class FiximizerScreen extends Screen {
     private Button networkTelemetryButton;
     private Button networkBackendButton;
     private Button networkNativeBackendButton;
-    private Button networkNativeBackendButton;
     private Button networkTcpNoDelayButton;
     private Button networkBenchmarkButton;
 
@@ -324,18 +323,6 @@ public final class FiximizerScreen extends Screen {
                 button -> {
                     FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.set(
                             !FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get());
-                    FiximizerConfig.SPEC.save();
-                    NetworkBackendSelector.reselectAsync();
-                    networkNativeBackendButton.setMessage(networkNativeBackendLabel());
-                }
-        ).bounds(contentLeft, panelTop + 189, 340, 20).build());
-
-        networkNativeBackendButton = addRenderableWidget(Button.builder(
-                networkNativeBackendLabel(),
-                button -> {
-                    FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.set(
-                            !FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()
-                    );
                     FiximizerConfig.SPEC.save();
                     NetworkBackendSelector.reselectAsync();
                     networkNativeBackendButton.setMessage(networkNativeBackendLabel());
