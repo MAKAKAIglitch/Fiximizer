@@ -29,7 +29,7 @@ These settings apply to Fiximizer-owned background tasks. They do not modify Min
 - F8 diagnostics dashboard (rebindable in Controls).
 - Heap, JVM, processor, CPU and thread metrics.
 - Java Flight Recorder (JFR) recording with start/stop controls.
-- An automatic offline hotspot report beside each JFR file: CPU methods ranked by execution-sample share, sampled allocation hotspots, and HIGH / MEDIUM / LOW investigation priorities.
+- An automatic offline hotspot report beside each JFR file: CPU methods ranked by execution-sample share, per-thread load, hot package namespaces, sampled allocation hotspots, and HIGH / MEDIUM / LOW investigation priorities.
 - JFR captures execution samples, CPU load, thread CPU load, garbage collection and allocation samples.
 - A scoped profiler API for timing Fiximizer-owned sections.
 - A bounded priority queue for Fiximizer-managed background tasks: CRITICAL, HIGH, NORMAL, and BACKGROUND.
@@ -105,7 +105,7 @@ The JAR is generated in `build/libs`. GitHub Actions builds the project on Linux
 - [x] Profile-aware CPU/GPU routing policy
 - [x] Automatic Windows JDK 21 builder
 - [x] GPU telemetry and OpenCL device detection
-- [ ] Thread hotspot analysis in JFR reports
+- [x] Thread hotspot and package namespace analysis in JFR reports
 - [ ] First real OpenCL kernel for a Fiximizer-owned batch workload
 - [ ] Profiling-guided Create / Aeronautics integration
 - [ ] Profiling-guided Sable integration
