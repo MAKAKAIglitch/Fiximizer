@@ -131,6 +131,8 @@ Prioritize one measured bottleneck at a time. Candidate areas include:
 - Investigate duplicate baked model data, vertex arrays, BakedQuad data, and VoxelShape-related structures. Share them only where the relevant API and every participating mod treat the data as immutable.
 - Use a hash as a lookup accelerator, then verify full content equality before reusing an object. A hash match alone is never sufficient.
 - [x] Add an opt-in JVM Advisor recommendation for G1 String Deduplication, guarded by detection of the active G1 collector and an explicit restart warning.
+- [x] Detect JDK 25+ HotSpot Compact Object Headers at runtime and recommend the JVM flag only when the option is exposed, not already enabled, and below the 4-million loaded-class limit.
+- [x] Keep the Java 21 bytecode path as the fallback and verify Gradle builds/tests with JDK 21 and JDK 25 runtimes.
 - [ ] Benchmark JVM-provided G1 String Deduplication against custom adapters. Prefer the built-in JVM mechanism when it already addresses the measured case; do not duplicate its work blindly.
 
 ##### Store data more compactly
