@@ -71,6 +71,7 @@ Fiximizer combines bounded runtime measurements, Java Flight Recorder (JFR), inc
 | JFR profiling | Bounded rolling recording, on-demand exports, CPU/allocation analysis and incident correlation |
 | Incident reports | Related snapshots, incident timeline, ranked investigative candidates and a self-contained local HTML overview |
 | Memory guard | Temporarily switches Fiximizer to its Memory Saver profile when configured memory-pressure conditions persist |
+| Memory optimizer | Opt-in bounded weak String canonicalization for selected integration metadata, live reuse counters and optional G1 JVM advice |
 | Adaptive scheduler | Queue-aware worker control, p95 timings and task counters for Fiximizer-owned work |
 | JVM advisor | Recommends `-Xms` / `-Xmx` values based on detected RAM and loaded mod count |
 | Optional integrations | Mod detection and independent gates for Create, Create Aeronautics, Sable, Distant Horizons and Voxy |
