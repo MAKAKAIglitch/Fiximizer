@@ -41,6 +41,30 @@ It combines:
 | Build instructions | [BUILDING.md](BUILDING.md) |
 | License | [MIT](LICENSE) |
 
+
+## Contents
+
+- [How it works](#how-it-works)
+- [Compatibility](#compatibility)
+- [Getting started](#getting-started)
+  - [Open the dashboard](#open-the-dashboard)
+  - [Dashboard sections](#dashboard-sections)
+- [Features](#features)
+  - [Workload profiles](#workload-profiles)
+  - [Runtime telemetry](#runtime-telemetry)
+  - [Stall watchdog and Java Flight Recorder](#stall-watchdog-and-java-flight-recorder)
+  - [Adaptive scheduler and memory guard](#adaptive-scheduler-and-memory-guard)
+  - [GPU and VRAM tools](#gpu-and-vram-tools)
+  - [Optional mod integrations](#optional-mod-integrations)
+  - [JVM argument advisor](#jvm-argument-advisor)
+- [Where reports are saved](#where-reports-are-saved)
+- [Installation](#installation)
+  - [Development builds](#development-builds)
+  - [Build locally](#build-locally)
+- [Development status](#development-status)
+- [Bug reports and contributions](#bug-reports-and-contributions)
+- [License](#license)
+
 ## How it works
 
 The diagram shows the main data paths. Telemetry and incident reporting are separate from the scheduler that controls Fiximizer-owned tasks.
