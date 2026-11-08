@@ -18,6 +18,8 @@ public final class StringDeduplicator {
     private static final int MAX_CAS_RETRIES = 3;
     private static final int MINIMUM_STRING_LENGTH = 8;
 
+    public static final int DEFAULT_CAPACITY = DEFAULT_SET_COUNT * WAYS;
+
     private final int setMask;
     private final AtomicReferenceArray<Entry> entries;
     private final AtomicInteger occupiedSlots = new AtomicInteger();
