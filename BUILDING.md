@@ -45,11 +45,7 @@ Fiximizer checks for OpenCL GPU devices through LWJGL. The OpenCL ICD/runtime is
 
 ## Output
 
-The mod JAR is written to:
-
-```text
-build/libs/fiximizer-0.9.0-alpha.jar
-```
+The mod JAR is written to `build/libs/`. Its filename is generated from `mod_id` and `mod_version` in `gradle.properties` (for the current project version: `fiximizer-0.14.0-alpha.jar`).
 
 ## Local tools and caches
 
