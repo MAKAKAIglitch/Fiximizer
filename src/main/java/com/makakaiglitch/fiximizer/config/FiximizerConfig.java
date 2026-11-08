@@ -39,6 +39,10 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_DH_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_VOXY_INTEGRATION;
 
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_TELEMETRY;
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_NATIVE_BACKEND;
+    public static final ModConfigSpec.IntValue NETWORK_BACKEND_MODE;
+
     public static final ModConfigSpec.BooleanValue ENABLE_GPU_TELEMETRY;
     public static final ModConfigSpec.BooleanValue ENABLE_OPENCL_PROBE;
     public static final ModConfigSpec.BooleanValue ENABLE_GPU_BENCHMARK;
@@ -211,6 +215,24 @@ public final class FiximizerConfig {
                 .comment("Allow the Voxy integration to activate only when Voxy is installed.")
                 .translation("config.fiximizer.integrations.voxy")
                 .define("voxy", true);
+
+        BUILDER.pop();
+        BUILDER.push("network");
+
+        ENABLE_NETWORK_TELEMETRY = BUILDER
+                .comment("Enable passive client-side Netty byte and server-reported latency telemetry.")
+                .translation("config.fiximizer.network.telemetry")
+                .define("enableTelemetry", false);
+
+        ENABLE_NETWORK_NATIVE_BACKEND = BUILDER
+                .comment("Allow the optional Rust native backend for local network-statistics processing.")
+                .translation("config.fiximizer.network.native_backend")
+                .define("enableRustBackend", true);
+
+        NETWORK_BACKEND_MODE = BUILDER
+                .comment("Network statistics backend: 0 = automatic benchmark, 1 = Java, 2 = Rust.")
+                .translation("config.fiximizer.network.backend_mode")
+                .defineInRange("backendMode", 0, 0, 2);
 
         BUILDER.pop();
         BUILDER.push("gpu");
