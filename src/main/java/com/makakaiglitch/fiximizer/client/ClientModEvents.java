@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
+import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
@@ -38,6 +39,7 @@ public final class ClientModEvents {
             MemoryPressureController.reset();
 
             ModIntegrationManager.refresh();
+            SablePhysicsProfiler.registerIfLoaded();
             DiagnosticsService.sampleNow();
 
             Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
