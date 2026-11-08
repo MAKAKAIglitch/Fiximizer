@@ -42,34 +42,14 @@ neoForge {
 // NeoForge runs above, so keep additionalRuntimeClasspath declarations below
 // the neoForge block. Jar-in-Jar packages each required runtime library.
 dependencies {
-    // OSHI 6.11.1 keeps the GPU telemetry API in one artifact.
-    // OSHI 6.12+ splits common/core into named modules that conflict in
-    // NeoForge's module layer because both export oshi.software.common.
-    jarJar(implementation('com.github.oshi:oshi-core:6.11.1') {
+    // Minecraft 1.21.1 already provides OSHI 6.4.10 and JNA 5.14.0.
+    // Compile against the game-provided OSHI API rather than embedding another
+    // com.github.oshi module, which breaks ModLauncher module resolution.
+    compileOnly('com.github.oshi:oshi-core:6.4.10') {
         exclude group: 'org.slf4j', module: 'slf4j-api'
-    }) {
-        version {
-            strictly '[6.11.1]'
-            prefer '6.11.1'
-        }
     }
 
-    // Match OSHI 6.11.x's JNA artifact coordinates while keeping the
-    // already selected, newer JNA runtime version.
-    jarJar(implementation('net.java.dev.jna:jna:5.19.1')) {
-        version {
-            strictly '[5.19.1]'
-            prefer '5.19.1'
-        }
-    }
-
-    jarJar(implementation('net.java.dev.jna:jna-platform:5.19.1')) {
-        version {
-            strictly '[5.19.1]'
-            prefer '5.19.1'
-        }
-    }
-
+    // OpenCL is not part of Minecraft's standard LWJGL bundle.
     jarJar(implementation('org.lwjgl:lwjgl-opencl:3.3.3')) {
         version {
             strictly '[3.3.3]'
@@ -77,9 +57,6 @@ dependencies {
         }
     }
 
-    additionalRuntimeClasspath('com.github.oshi:oshi-core:6.11.1') {
-        exclude group: 'org.slf4j', module: 'slf4j-api'
-    }
     additionalRuntimeClasspath 'org.lwjgl:lwjgl-opencl:3.3.3'
 
     testImplementation platform('org.junit:junit-bom:5.12.2')
