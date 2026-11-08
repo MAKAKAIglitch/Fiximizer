@@ -10,6 +10,44 @@ class JvmArgumentAdvisorTest {
     private static final long GIB = 1024L * 1024L * 1024L;
 
     @Test
+    void recommendsCompactHeadersForJava25ButNotTheJava21Fallback() {
+        JvmArgumentAdvisor.Recommendation base =
+                JvmArgumentAdvisor.recommend(16L * GIB, 80);
+
+        var java25 = com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities.evaluate(
+                25, true, false, true, 250_000);
+        var java21 = com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities.evaluate(
+                21, false, false, true, 250_000);
+
+        JvmArgumentAdvisor.Recommendation java25Result =
+                JvmArgumentAdvisor.withCompactObjectHeaders(base, java25);
+        JvmArgumentAdvisor.Recommendation java21Result =
+                JvmArgumentAdvisor.withCompactObjectHeaders(base, java21);
+
+        assertTrue(java25Result.arguments().contains("-XX:+UseCompactObjectHeaders"));
+        assertFalse(java21Result.arguments().contains("-XX:+UseCompactObjectHeaders"));
+    }
+
+    @Test
+    void doesNotRecommendCompactHeadersWhenTheRuntimeClassLimitIsReached() {
+        JvmArgumentAdvisor.Recommendation base =
+                JvmArgumentAdvisor.recommend(16L * GIB, 80);
+        var capabilities = com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities.evaluate(
+                25,
+                true,
+                false,
+                true,
+                com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities.COMPACT_HEADERS_CLASS_LIMIT
+        );
+
+        JvmArgumentAdvisor.Recommendation result =
+                JvmArgumentAdvisor.withCompactObjectHeaders(base, capabilities);
+
+        assertFalse(result.arguments().contains("-XX:+UseCompactObjectHeaders"));
+        assertTrue(result.note().contains("4,000,000"));
+    }
+
+    @Test
     void leavesJvmArgumentsUnchangedWhenStringDeduplicationWasNotRequested() {
         JvmArgumentAdvisor.Recommendation base = JvmArgumentAdvisor.recommend(16L * GIB, 80);
 
