@@ -28,6 +28,17 @@ class StringDeduplicatorTest {
     }
 
     @Test
+    void repeatedCallsWithTheSameInstanceAreNotCountedAsMemorySavings() {
+        StringDeduplicator deduplicator = new StringDeduplicator();
+        String value = new String("minecraft:the_nether");
+
+        assertSame(value, deduplicator.deduplicate(value));
+        assertSame(value, deduplicator.deduplicate(value));
+        assertEquals(0L, deduplicator.snapshot().hits());
+        assertEquals(1L, deduplicator.snapshot().registrations());
+    }
+
+    @Test
     void bypassesShortStringsWithoutCreatingEntries() {
         StringDeduplicator deduplicator = new StringDeduplicator();
         String first = new String("short");
