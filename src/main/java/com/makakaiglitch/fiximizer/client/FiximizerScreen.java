@@ -151,6 +151,7 @@ public final class FiximizerScreen extends Screen {
                 button -> {
                     toggleConfig(FiximizerConfig.DETECT_COMPATIBLE_MODS);
                     ModIntegrationManager.refresh();
+                    SablePhysicsProfiler.syncIntegrationState();
                     detectModsButton.setMessage(detectModsLabel());
                 }
         ).bounds(contentLeft, panelTop + 105, 340, 22).build());
@@ -248,6 +249,7 @@ public final class FiximizerScreen extends Screen {
                 button -> {
                     toggleConfig(setting);
                     ModIntegrationManager.refresh();
+                    SablePhysicsProfiler.syncIntegrationState();
                     button.setMessage(integrationLabel(translationKey, setting));
                 }
         ).bounds(contentLeft + 222, y, 118, 20).build());
