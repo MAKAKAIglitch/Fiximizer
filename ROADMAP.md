@@ -159,6 +159,64 @@ The first optimization targets will be selected from reproducible profiles of re
 
 **Done when:** each shipped optimization has a documented bottleneck, a reproducible before/after benchmark, compatibility checks, and a safe disable/rollback path.
 
+#### 3.2 Network stack optimization and connection compatibility
+
+**Goal:** reduce the CPU time, allocation rate, and memory overhead caused by Minecraft networking, improve client-side packet processing stability, and make connection failures easier to recover from. Network optimizations must preserve the vanilla wire protocol unless both endpoints explicitly negotiate an extension.
+
+##### Measure before changing the pipeline
+
+- Add opt-in, low-allocation network telemetry for packet/byte rates, packet-size distributions, inbound/outbound processing time, queue pressure, disconnect causes, and available server-reported latency.
+- Keep telemetry bounded per connection and use primitive counters/ring buffers; do not allocate strings, collections, or log entries per packet.
+- Distinguish server-reported ping/RTT, client-side packet-processing delay, event-loop queue delay, jitter, packet loss where measurable, and server tick delay. Never present one as another.
+- Keep addresses, player identifiers, packet payloads, authentication data, and chat content out of telemetry and reports by default.
+- Make deep sampling opt-in and automatically reduce its frequency under CPU or memory pressure.
+
+##### Low-overhead packet processing
+
+- Profile the existing Netty pipeline on the exact Minecraft/NeoForge version before introducing handlers or mixins.
+- Optimize VarInt/VarLong, string, and packet-buffer serialization only when byte-for-byte protocol equivalence and representative benchmarks are demonstrated.
+- Reduce avoidable temporary objects and copies; reuse buffers only with explicit ownership, reference-counting, lifetime, and per-connection memory bounds.
+- Evaluate compression encoder/decoder improvements with the negotiated server threshold unchanged. Preserve all vanilla framing, validation, and error semantics.
+- Evaluate flush consolidation only where ordering and latency semantics are preserved. Do not delay latency-sensitive packets or change gameplay-visible timing to improve a benchmark.
+- Keep packet processing on the expected Netty event loop unless a task is proven independent and safe to move. Never reorder packets or run Minecraft packet handlers concurrently without an explicit protocol guarantee.
+- Treat TCP socket options as measured, platform-specific policies, not universal tweaks. Do not replace Minecraft TCP with UDP for ordinary server connections.
+
+##### Adaptive network profiles
+
+- Provide conservative, low-latency, balanced, and memory-saver policies for Fiximizer-owned telemetry and optional pipeline features.
+- Adapt diagnostic sampling and bounded telemetry capacity to CPU/RAM pressure and connection activity.
+- Expose each active policy, its preconditions, measured overhead, and fallback state in the dashboard.
+- Keep the default mode passive until an optimization has passed compatibility and workload testing.
+
+##### Connection recovery and protocol compatibility
+
+- Diagnose DNS resolution, SRV records, IPv4/IPv6 address selection, socket connection, encryption/compression negotiation, login/configuration phases, and server disconnect reasons as separate stages.
+- When a hostname resolves to multiple valid endpoints, evaluate a carefully bounded retry of another resolved endpoint after a transport-level failure, while preserving the original hostname for TLS/proxy/SRV semantics where applicable.
+- Never silently change a server's game protocol, authentication state, account identity, or mod handshake. A retry must be bounded, visible, and must not replay gameplay packets or duplicate login side effects.
+- Detect common protocol/version mismatch signals and recommend a compatible client/server version or an explicitly installed protocol translation layer.
+- Treat ViaForge/ViaVersion-style translation as an optional, separately versioned integration. Do not implement a partial protocol translator inside the core.
+- UDP/QUIC or another transport may be explored only as an optional extension when both client and server/proxy support the same negotiated protocol. Vanilla TCP connections must remain fully supported.
+- A client-only mod cannot lower the physical route latency or remote server CPU time. Report those limits clearly and focus client-side optimization on local CPU, memory, and processing delay.
+
+##### Compatibility-first integration system
+
+- Detect networking-related mods and their exact versions at startup, then check actual capabilities rather than relying only on mod IDs.
+- Initial compatibility targets to investigate include KryptonFoxified / Krypton Reno, Connectivity, Packet Fixer, ViaForge/ViaVersion integrations, and network libraries such as Modern Networking.
+- Maintain a compatibility matrix with tested Minecraft/NeoForge versions, client/server presence, overlapping transformations, known limitations, and regression results.
+- Detect duplicate Netty handlers, competing compression/decoder replacements, overlapping Mixins, protocol translators, and packet-limit modifications before activating a Fiximizer patch.
+- Use isolated optional adapters and feature-level conflict policies. If a safe coexistence mode cannot be proven, disable only the conflicting Fiximizer feature and explain why; never block unrelated integrations.
+- Test with each target mod alone, in relevant pairs, and in representative large modpacks. Missing, disabled, or incompatible optional mods must not affect startup or ordinary vanilla networking.
+
+##### Acceptance criteria
+
+- Verify exact packet bytes, VarInt/VarLong boundaries, compression framing, ordering, encryption, login/configuration phases, and disconnect behavior.
+- Test single-player integrated server, LAN, remote dedicated servers, proxies, IPv4/IPv6, SRV, high-latency/loss/jitter scenarios, and large modded payloads.
+- Compare CPU time, allocations per packet, retained memory, bytes copied, packet-processing p50/p95/p99, event-loop backlog, and connection success rate before/after.
+- Demonstrate repeatable net benefit on both a low-load and a network-heavy workload; account for the optimizer's own overhead.
+- Provide per-feature switches, safe fallback to the unmodified vanilla pipeline, and tests proving that disabling the feature restores ordinary behavior.
+
+**Done when:** at least one network optimization has a repeatable end-to-end benefit, exact protocol correctness tests, documented mod compatibility, and a reliable vanilla fallback. Do not claim lower internet ping unless measured RTT to the same endpoint improves under controlled conditions.
+
 ### Phase 4 — Modpack compatibility modules
 
 **Goal:** make Fiximizer useful across packs without turning the core into a collection of fragile special cases.
