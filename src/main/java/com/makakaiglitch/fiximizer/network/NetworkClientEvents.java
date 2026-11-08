@@ -14,10 +14,12 @@ public final class NetworkClientEvents {
     @SubscribeEvent
     public static void onLoggingIn(ClientPlayerNetworkEvent.LoggingIn event) {
         NetworkTelemetryService.onLogin(event.getConnection());
+        NetworkSocketTuning.onLogin(event.getConnection());
     }
 
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         NetworkTelemetryService.onLogout(event.getConnection());
+        NetworkSocketTuning.onLogout(event.getConnection());
     }
 }
