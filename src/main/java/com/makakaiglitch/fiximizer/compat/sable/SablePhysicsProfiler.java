@@ -155,8 +155,7 @@ public final class SablePhysicsProfiler {
         if (!available) {
             return;
         }
-        if (!ModIntegrationManager.isActive("sable")) {
-            reset();
+        if (!integrationActive()) {
             return;
         }
 
