@@ -163,7 +163,7 @@ public final class FiximizerScreen extends Screen {
                         dumpDiagnosticsButton.setMessage(Component.translatable("screen.fiximizer.watchdog_queue_full"));
                     }
                 }
-        ).bounds(contentLeft + 284, panelTop + 272, 86, 20).build()));
+        ).bounds(contentLeft + 284, panelTop + 272, 86, 20).build());
 
         profileButton = addRenderableWidget(Button.builder(
                 profileButtonLabel(),
