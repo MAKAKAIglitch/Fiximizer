@@ -23,11 +23,15 @@ public final class NetworkTelemetryService {
     private static int pingSampleCursor;
     private static long lastPingSampleNanos;
     private static volatile int serverReportedPingMillis = -1;
+    private static volatile NetworkTelemetrySnapshot cachedSnapshot =
+            NetworkTelemetrySnapshot.idle("Waiting for a multiplayer connection");
+    private static long lastSnapshotRefreshNanos;
 
     private NetworkTelemetryService() {
     }
 
     public static void onLogin(Connection connection) {
+        clearLatencyHistory();
         activeConnection = connection;
         if (FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) installHandler(connection);
     }
@@ -145,15 +149,23 @@ public final class NetworkTelemetryService {
         serverReportedPingMillis = -1;
     }
 
-    public static NetworkTelemetrySnapshot snapshot() {
+    public static synchronized NetworkTelemetrySnapshot snapshot() {
+        long now = System.nanoTime();
+        if (now - lastSnapshotRefreshNanos < PING_SAMPLE_INTERVAL_NANOS) {
+            return cachedSnapshot;
+        }
+        lastSnapshotRefreshNanos = now;
+
         NetworkTrafficHandler handler = trafficHandler;
         Channel channel = activeChannel;
         boolean connected = channel != null && channel.isActive() && handler != null;
         if (!FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) {
-            return NetworkTelemetrySnapshot.idle("Network telemetry disabled");
+            cachedSnapshot = NetworkTelemetrySnapshot.idle("Network telemetry disabled");
+            return cachedSnapshot;
         }
         if (!connected) {
-            return NetworkTelemetrySnapshot.idle("Waiting for a multiplayer connection");
+            cachedSnapshot = NetworkTelemetrySnapshot.idle("Waiting for a multiplayer connection");
+            return cachedSnapshot;
         }
 
         long[] samples = copyPingSamples();
@@ -161,7 +173,7 @@ public final class NetworkTelemetryService {
         boolean hasPingSamples = samples.length > 0
                 && NetworkBackendSelector.summarize(samples, percentiles);
         long jitter = calculateJitter(samples);
-        return new NetworkTelemetrySnapshot(
+        cachedSnapshot = new NetworkTelemetrySnapshot(
                 true, handler.inboundBytes(), handler.outboundBytes(),
                 handler.inboundFrames(), handler.outboundFrames(),
                 serverReportedPingMillis,
@@ -169,6 +181,7 @@ public final class NetworkTelemetryService {
                 hasPingSamples ? percentiles[1] : -1L,
                 jitter, "Passive Netty byte observer"
         );
+        return cachedSnapshot;
     }
 
     private static long[] copyPingSamples() {
