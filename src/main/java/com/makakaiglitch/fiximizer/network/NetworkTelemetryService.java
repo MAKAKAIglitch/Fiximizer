@@ -31,6 +31,10 @@ public final class NetworkTelemetryService {
     }
 
     public static void onLogin(Connection connection) {
+        Connection previous = activeConnection;
+        if (previous != null && previous != connection) {
+            uninstallHandler();
+        }
         clearLatencyHistory();
         activeConnection = connection;
         if (FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) installHandler(connection);
@@ -86,9 +90,10 @@ public final class NetworkTelemetryService {
         if (activeChannel == channel && currentHandler != null
                 && channel.pipeline().get(HANDLER_NAME) == currentHandler) return;
 
-        channel.eventLoop().execute(() -> {
-            if (!channel.isActive()) return;
-            ChannelPipeline pipeline = channel.pipeline();
+        try {
+            channel.eventLoop().execute(() -> {
+                if (activeConnection != connection || !channel.isActive()) return;
+                ChannelPipeline pipeline = channel.pipeline();
             if (pipeline.get(HANDLER_NAME) instanceof NetworkTrafficHandler existing) {
                 activeChannel = channel;
                 trafficHandler = existing;
@@ -96,9 +101,12 @@ public final class NetworkTelemetryService {
             }
             NetworkTrafficHandler handler = new NetworkTrafficHandler();
             pipeline.addFirst(HANDLER_NAME, handler);
-            activeChannel = channel;
-            trafficHandler = handler;
-        });
+                activeChannel = channel;
+                trafficHandler = handler;
+            });
+        } catch (RuntimeException ignored) {
+            // The channel may be shutting down while the client tick observes it.
+        }
     }
 
     private static void uninstallHandler() {
