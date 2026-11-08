@@ -96,11 +96,27 @@ public final class JvmArgumentAdvisor {
     }
 
     private static Recommendation appendOptionalStringDeduplication(Recommendation base) {
-        if (!FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get()) {
+        return withG1StringDeduplication(
+                base,
+                FiximizerConfig.RECOMMEND_G1_STRING_DEDUP.get(),
+                supportsG1StringDeduplication()
+        );
+    }
+
+    /**
+     * Pure policy function so JVM-flag selection can be tested without a live
+     * HotSpot collector or NeoForge configuration.
+     */
+    static Recommendation withG1StringDeduplication(
+            Recommendation base,
+            boolean requested,
+            boolean g1Detected
+    ) {
+        if (!requested) {
             return base;
         }
 
-        if (!supportsG1StringDeduplication()) {
+        if (!g1Detected) {
             return new Recommendation(
                     base.physicalMemoryBytes(),
                     base.maximumHeapBytes(),
