@@ -24,7 +24,7 @@ build.bat clean build
 build.bat runClient
 ```
 
-The first run may download JDK 21, Gradle and Minecraft/NeoForge dependencies. Later runs reuse cached files.
+The first run may download the JDK 21 fallback (only when neither JDK 21 nor JDK 25 is installed), Gradle and Minecraft/NeoForge dependencies. Later runs reuse cached files.
 
 ## Minecraft / NeoForge compatibility
 
@@ -63,7 +63,7 @@ The Linux builder follows the same approach as the Windows builder:
 - Uses Gradle's separately resolved Java 21 toolchain to compile the mod with `--release 21`, even when Gradle runs on JDK 25.
 - Uses the repository's Gradle Wrapper and reuses the normal Gradle caches.
 
-The automatic download requires `curl`, `tar`, and a SHA-256 utility (`sha256sum` or `shasum`). If JDK 21 is already installed, the builder does not need to download it.
+The automatic download requires `curl`, `tar`, and a SHA-256 utility (`sha256sum` or `shasum`). If JDK 21 or JDK 25 is already installed, the builder does not need to download a JDK.
 
 ## Manual build
 
