@@ -8,7 +8,13 @@ import java.util.List;
 public final class CompatibilityDetector {
     private static final List<Target> TARGETS = List.of(
             new Target("Create", List.of("create")),
-            new Target("Create Aeronautics", List.of("create_aeronautics")),
+            // The official NeoForge bundled distribution declares aeronautics_bundled.
+            // Aliases keep detection tolerant of repackaged distributions.
+            new Target("Create Aeronautics", List.of(
+                    "aeronautics_bundled",
+                    "create_aeronautics",
+                    "aeronautics"
+            )),
             new Target("Sable", List.of("sable")),
             new Target("Distant Horizons", List.of("distanthorizons")),
             new Target("Voxy", List.of("voxy"))
