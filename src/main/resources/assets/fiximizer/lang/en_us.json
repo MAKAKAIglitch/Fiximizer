@@ -195,5 +195,8 @@
   "screen.fiximizer.network_policy": "Compatibility policy: %s",
   "config.fiximizer.network.telemetry": "Enable passive client network telemetry",
   "config.fiximizer.network.native_backend": "Allow optional Rust native statistics backend",
-  "config.fiximizer.network.backend_mode": "Network statistics backend mode (0 Auto, 1 Java, 2 Rust)"
+  "config.fiximizer.network.backend_mode": "Network statistics backend mode (0 Auto, 1 Java, 2 Rust)",
+  "screen.fiximizer.network_tcp_nodelay_toggle": "Prefer low-latency TCP_NODELAY: %s",
+  "screen.fiximizer.network_tcp_nodelay": "TCP_NODELAY policy: %s",
+  "config.fiximizer.network.tcp_nodelay": "Prefer TCP_NODELAY when supported and not managed by another stack optimizer"
 }
