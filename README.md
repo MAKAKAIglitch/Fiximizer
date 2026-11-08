@@ -34,6 +34,7 @@
 - [Features](#features)
 - [In-game dashboard](#in-game-dashboard)
 - [Profiles and adaptive scheduler](#profiles-and-adaptive-scheduler)
+- [Memory optimizer](#memory-optimizer)
 - [Diagnostics and reports](#diagnostics-and-reports)
 - [Optional mod integrations](#optional-mod-integrations)
 - [GPU, OpenCL and VRAM](#gpu-opencl-and-vram)
@@ -63,7 +64,7 @@ Fiximizer combines bounded runtime measurements, Java Flight Recorder (JFR), inc
 
 | Area | What is implemented |
 |---|---|
-| Runtime dashboard | Eight sections for overview, optimization, integrations, physics, JVM, GPU/VRAM, frames and server telemetry |
+| Runtime dashboard | Nine sections, including a dedicated Memory optimizer view |
 | Client measurements | `GameRenderer.render()` call duration and client tick duration, with rolling percentiles |
 | Integrated-server measurements | Full local single-player server tick duration and slow-tick counters |
 | Stall watchdog | Detects long-running client, render and integrated-server event spans; captures JVM thread snapshots |
@@ -115,6 +116,7 @@ Its eight sections are:
 6. **GPU / VRAM** — GPU and OpenCL status, self-test and explicit VRAM cache controls.
 7. **Frames** — client render-call and client tick measurements.
 8. **Server** — integrated single-player server tick measurements.
+9. **Memory** — bounded string-sharing counters and optional G1 String Deduplication advice.
 
 Optional hardware probes and stall-watchdog startup are deferred until the title screen or a loaded world has been ticking for **40 stable client ticks** (about two seconds). This keeps optional diagnostics work out of the critical initial loading path.
 
@@ -147,6 +149,17 @@ This is a scheduler for independent Fiximizer tasks, not a general-purpose Minec
 The memory guard samples Java heap usage and available physical RAM. When configured pressure conditions persist, it temporarily switches Fiximizer to **Memory Saver**. Separate recovery thresholds and repeated samples help avoid rapid profile switching.
 
 When memory conditions recover, the previously selected profile is restored. The guard does not call `System.gc()`, unload objects owned by other mods or change the running JVM's heap limits.
+
+## Memory optimizer
+
+The Memory tab exposes two deliberately separate mechanisms:
+
+- **Bounded string canonicalization:** an opt-in weak-reference table for immutable strings explicitly passed through Fiximizer's integration API. It uses 16 buckets with four ways each (64 slots total), checks full string equality after a hash match, skips strings shorter than eight characters, and stops after three failed compare-and-set attempts. Under contention it bypasses the cache instead of spinning or blocking.
+- **JVM G1 String Deduplication advice:** an optional JVM argument recommendation. It is offered only when G1 is detected and is applied after a game restart. G1 may spend additional CPU time during garbage collection; this option is off by default.
+
+The table is created lazily after the feature is enabled and is released when it is disabled. It does not scan the heap, rewrite arbitrary Minecraft or third-party object graphs, or run a recurring background task.
+
+**Current scope is intentionally small:** the first adapter covers selected optional-mod metadata (IDs and version strings). It is an integration foundation, not a claim that the entire modpack heap is compressed. The dashboard counts only reuse of a different, equal String instance as a deduplication hit; seeing the same object again is not counted as saved memory. A zero-hit result means no saving has been observed. See [the Memory Optimizer implementation notes](docs/MEMORY_OPTIMIZER.md).
 
 ## Diagnostics and reports
 
