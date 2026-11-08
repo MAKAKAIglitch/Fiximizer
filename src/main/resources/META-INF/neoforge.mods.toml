@@ -1,13 +1,23 @@
 modLoader="javafml"
 loaderVersion="[1,)"
 license="${mod_license}"
+issueTrackerURL="${mod_issue_tracker}"
 
 [[mods]]
 modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
+displayURL="${mod_homepage}"
+modUrl="${mod_download_url}"
+updateJSONURL="${mod_update_json}"
+authors="${mod_authors}"
+credits="${mod_credits}"
 description='''
-Intelligent diagnostics, profiling, adaptive task scheduling and optional GPU compute detection for Minecraft 1.21.1.
+Adaptive diagnostics and profiling for Minecraft 1.21.1 / NeoForge.
+Measures client rendering and ticks, integrated-server workload, JVM stalls,
+and Fiximizer-owned background scheduling. Includes optional Create and Sable
+telemetry plus a manual OpenCL correctness benchmark. It does not automatically
+rewrite or optimize arbitrary third-party mod code.
 '''
 
 [[dependencies.${mod_id}]]
