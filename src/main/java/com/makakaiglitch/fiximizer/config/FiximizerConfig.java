@@ -187,7 +187,7 @@ public final class FiximizerConfig {
         ENABLE_STRING_CANONICALIZATION = BUILDER
                 .comment("Enable bounded, weak string canonicalization for explicitly submitted immutable integration metadata. No heap scanning or per-tick work.")
                 .translation("config.fiximizer.memory.string_dedup")
-                .define("stringCanonicalization", true);
+                .define("stringCanonicalization", false);
 
         RECOMMEND_G1_STRING_DEDUP = BUILDER
                 .comment("Add optional G1 String Deduplication to JVM argument recommendations. Requires G1 and a restart; it may add garbage-collection CPU work.")
