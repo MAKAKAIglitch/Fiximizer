@@ -52,7 +52,8 @@ public final class FiximizerScreen extends Screen {
         JVM,
         GPU,
         FRAMES,
-        SERVER
+        SERVER,
+        MEMORY
     }
 
     private final Screen parent;
@@ -141,6 +142,11 @@ public final class FiximizerScreen extends Screen {
                 Component.translatable("screen.fiximizer.tab_server"),
                 button -> selectTab(Tab.SERVER)
         ).bounds(navX, navY + 196, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_memory"),
+                button -> selectTab(Tab.MEMORY)
+        ).bounds(navX, navY + 224, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -357,6 +363,7 @@ public final class FiximizerScreen extends Screen {
         boolean gpu = selectedTab == Tab.GPU;
         boolean frames = selectedTab == Tab.FRAMES;
         boolean server = selectedTab == Tab.SERVER;
+        boolean memory = selectedTab == Tab.MEMORY;
 
         refreshButton.visible = overview;
         dumpDiagnosticsButton.visible = overview;
@@ -368,8 +375,8 @@ public final class FiximizerScreen extends Screen {
         detectModsButton.visible = integrations;
         copyJvmButton.visible = jvm;
         saveJvmButton.visible = jvm;
-        memoryDedupButton.visible = jvm;
-        g1StringDedupButton.visible = jvm;
+        memoryDedupButton.visible = memory;
+        g1StringDedupButton.visible = memory;
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
         serverTickProfilerButton.visible = server;
@@ -569,6 +576,7 @@ public final class FiximizerScreen extends Screen {
             case GPU -> drawGpu(graphics);
             case FRAMES -> drawFrames(graphics);
             case SERVER -> drawServer(graphics);
+            case MEMORY -> drawMemory(graphics);
         }
     }
 
@@ -1101,33 +1109,60 @@ public final class FiximizerScreen extends Screen {
         drawWrapped(graphics, Component.literal(recommendation.arguments()),
                 contentLeft + 8, panelTop + 178, 324, 0xFF8FD8E8);
 
-        StringDeduplicator.Snapshot memoryStats = MemoryOptimizer.stringSnapshot();
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.memory.stats",
-                        memoryStats.hits(),
-                        memoryStats.registrations(),
-                        memoryStats.collisionEvictions(),
-                        memoryStats.occupiedSlots(),
-                        memoryStats.capacity()),
-                contentLeft,
-                panelTop + 202,
-                contentWidth - 8,
-                0xFF9FB3C8);
-
         drawWrapped(graphics, Component.literal(recommendation.note()),
                 contentLeft,
-                panelTop + 245,
+                panelTop + 229,
                 contentWidth - 8,
                 0xFF9FB3C8);
 
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.jvm_restart_note"),
                 contentLeft,
-                panelTop + 269,
+                panelTop + 259,
                 contentWidth - 8,
                 0xFFFFC078);
     }
 
+
+    private void drawMemory(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.memory.title", panelTop + 60);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory.intro"),
+                contentLeft,
+                panelTop + 82,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        StringDeduplicator.Snapshot stats = MemoryOptimizer.stringSnapshot();
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory.stats",
+                        stats.hits(),
+                        stats.registrations(),
+                        stats.staleReuses(),
+                        stats.collisionEvictions(),
+                        stats.contentionFallbacks(),
+                        stats.occupiedSlots(),
+                        stats.capacity()),
+                contentLeft,
+                panelTop + 132,
+                contentWidth - 8,
+                0xFF9BD9B0);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory.scope"),
+                contentLeft,
+                panelTop + 171,
+                contentWidth - 8,
+                0xFF9FB3C8);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory.g1_note"),
+                contentLeft,
+                panelTop + 202,
+                contentWidth - 8,
+                0xFFFFC078);
+    }
 
     private void drawGpu(GuiGraphics graphics) {
         drawSectionTitle(graphics, "screen.fiximizer.gpu_title", panelTop + 58);
