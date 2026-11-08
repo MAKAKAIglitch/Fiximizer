@@ -26,6 +26,7 @@ import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfile;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
+import com.makakaiglitch.fiximizer.scheduler.SchedulerTelemetry;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -590,6 +591,18 @@ public final class FiximizerScreen extends Screen {
                 scheduler.maximumWorkers(),
                 y);
         y += 17;
+        SchedulerTelemetry.Snapshot schedulerTelemetry = scheduler.telemetry();
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.scheduler_latency",
+                        String.format(Locale.ROOT, "%.1f", schedulerTelemetry.queueWaitP95Millis()),
+                        String.format(Locale.ROOT, "%.1f", schedulerTelemetry.executionP95Millis()),
+                        schedulerTelemetry.failedTasks(),
+                        schedulerTelemetry.rejectedTasks()),
+                contentLeft,
+                y,
+                contentWidth - 8,
+                0xFF9FB3C8);
+        y += 18;
         String lastDump = StallWatchdog.lastReportFile();
         drawWrapped(graphics,
                 Component.translatable("screen.fiximizer.watchdog_status",
@@ -790,6 +803,14 @@ public final class FiximizerScreen extends Screen {
                         MemoryPressureController.reason()),
                 contentLeft,
                 panelTop + 248,
+                contentWidth - 8,
+                0xFF9FB3C8);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.scheduler_reason."
+                        + AdaptiveTaskScheduler.snapshot().scalingReason()),
+                contentLeft,
+                panelTop + 280,
                 contentWidth - 8,
                 0xFF9FB3C8);
     }

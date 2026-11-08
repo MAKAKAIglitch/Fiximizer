@@ -5,6 +5,8 @@ public record SchedulerSnapshot(
         int queuedTasks,
         int poolSize,
         int targetWorkers,
-        int maximumWorkers
+        int maximumWorkers,
+        SchedulerTelemetry.Snapshot telemetry,
+        String scalingReason
 ) {
 }

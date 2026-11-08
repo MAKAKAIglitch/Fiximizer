@@ -155,7 +155,7 @@ public final class FiximizerConfig {
         BUILDER.push("scheduler");
 
         ADAPTIVE_SCHEDULER_ENABLED = BUILDER
-                .comment("Reduce Fiximizer background worker count when system CPU load is high.")
+                .comment("Adapt Fiximizer worker count using system CPU load and observed queue wait.")
                 .translation("config.fiximizer.scheduler.adaptive")
                 .define("adaptive", true);
 

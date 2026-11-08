@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.13.0-alpha — JFR / thread / mod correlation and incident HTML reports**
+**0.14.0-alpha — queue-aware adaptive worker governor and scheduler telemetry**
 
 ### In-game menu
 
@@ -121,6 +121,18 @@ When Sable is installed, Fiximizer attaches to its public NeoForge pre/post phys
 
 Profiles regulate Fiximizer-owned background work only. They do not reorder Minecraft's render thread or third-party mods' workers.
 
+### Queue-aware adaptive worker governor
+
+The background scheduler now measures its own queue wait and task execution time using a fixed rolling window of the latest 128 tasks. The dashboard exposes p95 queue-wait and execution timings, completed/failed/cancelled/rejected counters, and the localized reason for the current worker policy.
+
+- Starts conservatively and adds at most one worker per diagnostics sample when the oldest queued task or recent p95 queue wait reaches 150 ms, all current workers are busy, and system CPU load is below the selected profile's reduction threshold.
+- Reduces concurrency when system CPU load rises; at the profile's critical threshold it limits Fiximizer to one worker.
+- Gradually releases unused worker capacity when the scheduler is idle.
+- Holds the current worker limit if system CPU telemetry is unavailable, rather than treating missing data as free CPU.
+- Respects the selected profile and global worker cap (maximum four workers). Lowering the pool limit does not interrupt already-running tasks.
+
+This governor only schedules independent work submitted to Fiximizer's own daemon executor. It never moves, reprioritizes or changes the thread priority of Minecraft or another mod. Queue and task timing is observational; it does not guarantee higher game FPS.
+
 ### Automatic memory guard
 
 - Samples Java heap and available physical memory.
@@ -207,6 +219,8 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [ ] First real OpenCL kernel for an actual Fiximizer-owned gameplay workload
 - [ ] Use VRAM cache from an integration with serialization/rebuild support
 - [ ] Rolling benchmark comparison and before/after reports
+- [x] Bounded scheduler queue/run telemetry with p95 timings
+- [x] Queue-aware adaptive worker governor with CPU headroom checks and conservative fallback
 
 ## License
 

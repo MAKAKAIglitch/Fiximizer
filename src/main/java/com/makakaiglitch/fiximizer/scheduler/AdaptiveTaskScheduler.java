@@ -35,6 +35,7 @@ public final class AdaptiveTaskScheduler {
     );
 
     private static volatile int targetWorkers = 1;
+    private static volatile String scalingReason = "starting";
 
     static {
         EXECUTOR.allowCoreThreadTimeOut(true);
@@ -63,6 +64,7 @@ public final class AdaptiveTaskScheduler {
         int pending = QUEUED_TASKS.incrementAndGet();
         if (pending > profile.queueCapacity()) {
             QUEUED_TASKS.decrementAndGet();
+            SchedulerTelemetry.recordRejected();
             return CompletableFuture.failedFuture(
                     new RejectedExecutionException(
                             "Fiximizer " + profile.id() + " queue is full (" + profile.queueCapacity() + ")."
@@ -81,6 +83,7 @@ public final class AdaptiveTaskScheduler {
             EXECUTOR.execute(task);
         } catch (RuntimeException exception) {
             QUEUED_TASKS.updateAndGet(value -> Math.max(0, value - 1));
+            SchedulerTelemetry.recordRejected();
             task.completion.completeExceptionally(exception);
         }
 
@@ -88,7 +91,8 @@ public final class AdaptiveTaskScheduler {
     }
 
     /**
-     * Adapt only Fiximizer's worker count to the current system CPU sample.
+     * Adapt Fiximizer's worker count from system CPU load and observed queue pressure.
+     * Only independent Fiximizer-owned background tasks are affected.
      * Running tasks are never interrupted when the pool is reduced.
      *
      * @param cpuLoad system CPU load in the range 0..1, or a negative value if unavailable
@@ -99,24 +103,42 @@ public final class AdaptiveTaskScheduler {
                 HARD_MAX_WORKERS,
                 Math.min(profile.maximumWorkers(), Math.max(1, FiximizerConfig.MAX_BACKGROUND_WORKERS.get()))
         );
+        SchedulerTelemetry.Snapshot telemetry = SchedulerTelemetry.snapshot();
+        SchedulerLoadController.Decision decision = SchedulerLoadController.decide(
+                FiximizerConfig.ADAPTIVE_SCHEDULER_ENABLED.get(),
+                cpuLoad,
+                EXECUTOR.getActiveCount(),
+                QUEUED_TASKS.get(),
+                EXECUTOR.getCorePoolSize(),
+                configuredMaximum,
+                telemetry.queueWaitP95Millis(),
+                oldestQueuedAgeMillis(),
+                profile
+        );
 
-        int desired = configuredMaximum;
-        if (FiximizerConfig.ADAPTIVE_SCHEDULER_ENABLED.get()
-                && Double.isFinite(cpuLoad)
-                && cpuLoad >= 0.0) {
-            if (cpuLoad >= profile.singleWorkerAtCpuLoad()) {
-                desired = 1;
-            } else if (cpuLoad >= profile.reduceWorkersAtCpuLoad()) {
-                desired = Math.max(1, configuredMaximum - 1);
-            }
-        }
-
-        desired = Math.min(HARD_MAX_WORKERS, Math.max(1, desired));
+        int desired = Math.min(HARD_MAX_WORKERS,
+                Math.max(1, Math.min(configuredMaximum, decision.targetWorkers())));
         if (desired != EXECUTOR.getCorePoolSize()) {
+            // Lowering the core size never interrupts a running task.
             EXECUTOR.setCorePoolSize(desired);
         }
 
         targetWorkers = desired;
+        scalingReason = decision.reasonKey();
+    }
+
+    private static double oldestQueuedAgeMillis() {
+        long now = System.nanoTime();
+        long oldestWaitNanos = 0L;
+        for (Runnable queued : EXECUTOR.getQueue()) {
+            if (queued instanceof PrioritizedTask<?> task) {
+                oldestWaitNanos = Math.max(
+                        oldestWaitNanos,
+                        Math.max(0L, now - task.submittedAtNanos)
+                );
+            }
+        }
+        return oldestWaitNanos / 1_000_000.0;
     }
 
     public static SchedulerSnapshot snapshot() {
@@ -131,7 +153,9 @@ public final class AdaptiveTaskScheduler {
                 QUEUED_TASKS.get(),
                 EXECUTOR.getPoolSize(),
                 targetWorkers,
-                configuredMaximum
+                configuredMaximum,
+                SchedulerTelemetry.snapshot(),
+                scalingReason
         );
     }
 
@@ -144,6 +168,7 @@ public final class AdaptiveTaskScheduler {
         private final int queueOrder;
         private final long sequence;
         private final Callable<T> callable;
+        private final long submittedAtNanos = System.nanoTime();
         private final CompletableFuture<T> completion = new CompletableFuture<>();
 
         private PrioritizedTask(
@@ -161,16 +186,38 @@ public final class AdaptiveTaskScheduler {
         @Override
         public void run() {
             QUEUED_TASKS.updateAndGet(value -> Math.max(0, value - 1));
+            long startedAtNanos = System.nanoTime();
+            long queueWaitNanos = Math.max(0L, startedAtNanos - submittedAtNanos);
             if (completion.isCancelled()) {
+                SchedulerTelemetry.recordTask(queueWaitNanos, 0L, false, true);
                 return;
             }
 
+            long executionStartedAtNanos = System.nanoTime();
+            T result = null;
+            Throwable failure = null;
             try (SectionProfiler.Scope ignored = SectionProfiler.begin("scheduler/" + name)) {
-                completion.complete(callable.call());
+                result = callable.call();
             } catch (Exception exception) {
-                completion.completeExceptionally(exception);
+                failure = exception;
+                if (exception instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                }
             } catch (LinkageError error) {
-                completion.completeExceptionally(error);
+                failure = error;
+            } finally {
+                SchedulerTelemetry.recordTask(
+                        queueWaitNanos,
+                        Math.max(0L, System.nanoTime() - executionStartedAtNanos),
+                        failure != null,
+                        false
+                );
+            }
+
+            if (failure == null) {
+                completion.complete(result);
+            } else {
+                completion.completeExceptionally(failure);
             }
         }
     }
