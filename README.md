@@ -153,12 +153,13 @@ When memory conditions recover, the previously selected profile is restored. The
 
 ## Memory optimizer
 
-The Memory tab exposes two deliberately separate mechanisms:
+The Memory tab selects JVM-specific memory mechanisms from the **actually running runtime**, rather than assuming every Java vendor exposes the same features.
 
-- **Bounded string canonicalization:** an opt-in weak-reference table for immutable strings explicitly passed through Fiximizer's integration API. It uses 16 buckets with four ways each (64 slots total), checks full string equality after a hash match, skips strings shorter than eight characters, and stops after three failed compare-and-set attempts. Under contention it bypasses the cache instead of spinning or blocking.
-- **JVM G1 String Deduplication advice:** an optional JVM argument recommendation. It is offered only when G1 is detected and is applied after a game restart. G1 may spend additional CPU time during garbage collection; this option is off by default.
+- **JDK 25+ Compact Object Headers:** when the active VM exposes HotSpot's `UseCompactObjectHeaders` option, the class-count safety limit is not reached, and the feature is not already enabled, the JVM Advisor automatically includes `-XX:+UseCompactObjectHeaders` in the recommended arguments. This reduces object headers from 96/128 bits to 64 bits on supported 64-bit HotSpot builds. The option is applied only after restarting the game.
+- **Java 21 compatible fallback:** Java 21 does not expose the JDK 25 compact-header option. Fiximizer keeps Java 21 bytecode and uses its bounded explicit String canonicalization API; no Java 25-only classes or APIs are loaded.
+- **Optional G1 String Deduplication:** the JVM Advisor can add `-XX:+UseStringDeduplication` only when G1 is detected and the user enables the setting. It may add garbage-collection CPU work, so it is off by default.
 
-The table is created lazily after the feature is enabled and is released when it is disabled. It does not scan the heap, rewrite arbitrary Minecraft or third-party object graphs, or run a recurring background task.
+The explicit String table uses weak references, 16 buckets with four ways each (64 slots total), full string equality after hash matches, skips strings shorter than eight characters, and stops after three failed compare-and-set attempts. Under contention it bypasses the cache instead of spinning or blocking. It is created lazily and released when disabled; it never scans the heap, rewrites arbitrary Minecraft or third-party object graphs, or runs a recurring task.
 
 **Current scope is intentionally small:** the first adapter covers selected optional-mod metadata (IDs and version strings). It is an integration foundation, not a claim that the entire modpack heap is compressed. The dashboard counts only reuse of a different, equal String instance as a deduplication hit; seeing the same object again is not counted as saved memory. A zero-hit result means no saving has been observed. See [the Memory Optimizer implementation notes](docs/MEMORY_OPTIMIZER.md).
 
