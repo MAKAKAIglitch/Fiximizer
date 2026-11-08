@@ -47,7 +47,9 @@ public final class NetworkTelemetryService {
 
     public static void tick() {
         if (!FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()) {
-            uninstallHandler();
+            if (activeChannel != null || trafficHandler != null) {
+                uninstallHandler();
+            }
             return;
         }
 
@@ -147,6 +149,8 @@ public final class NetworkTelemetryService {
         pingSampleCursor = 0;
         lastPingSampleNanos = 0L;
         serverReportedPingMillis = -1;
+        cachedSnapshot = NetworkTelemetrySnapshot.idle("Waiting for a multiplayer connection");
+        lastSnapshotRefreshNanos = 0L;
     }
 
     public static synchronized NetworkTelemetrySnapshot snapshot() {
