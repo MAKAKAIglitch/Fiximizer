@@ -190,7 +190,7 @@
   "screen.fiximizer.network_ping": "Server-reported ping: %s ms | p50: %s ms | p95: %s ms | avg sample-to-sample ping change: %s ms",
   "screen.fiximizer.network_ping_waiting": "Waiting for server-reported ping samples.",
   "screen.fiximizer.network_traffic": "Traffic in/out: %s / %s | buffers in/out: %s / %s",
-  "screen.fiximizer.network_backend": "Selected statistics engine: %s | %s",
+  "screen.fiximizer.network_backend": "Statistics engine: %s | %s | Java %s ms | Rust %s ms",
   "screen.fiximizer.network_native_times": "Batch benchmark: Java %s ms | Rust %s ms",
   "screen.fiximizer.network_mods": "Detected networking mods: %s",
   "screen.fiximizer.network_policy": "Compatibility policy: %s",
@@ -199,5 +199,6 @@
   "config.fiximizer.network.backend_mode": "Network statistics backend mode (0 Auto, 1 Java, 2 Rust)",
   "screen.fiximizer.network_tcp_nodelay_toggle": "Prefer low-latency TCP_NODELAY: %s",
   "screen.fiximizer.network_tcp_nodelay": "TCP_NODELAY policy: %s",
-  "config.fiximizer.network.tcp_nodelay": "Prefer TCP_NODELAY when supported and not managed by another stack optimizer"
+  "config.fiximizer.network.tcp_nodelay": "Prefer TCP_NODELAY when supported and not managed by another stack optimizer",
+  "screen.fiximizer.network_compatibility": "Networking mods: %s | policy: %s"
 }
