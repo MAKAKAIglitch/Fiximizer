@@ -190,7 +190,7 @@
   "screen.fiximizer.network_ping": "Ping от сервера: %s мс | p50: %s мс | p95: %s мс | среднее изменение ping между замерами: %s мс",
   "screen.fiximizer.network_ping_waiting": "Ожидание измерений ping от сервера.",
   "screen.fiximizer.network_traffic": "Трафик вход/выход: %s / %s | буферов вход/выход: %s / %s",
-  "screen.fiximizer.network_backend": "Выбранный вычислитель статистики: %s | %s",
+  "screen.fiximizer.network_backend": "Вычислитель статистики: %s | %s | Java %s мс | Rust %s мс",
   "screen.fiximizer.network_native_times": "Пакетный тест: Java %s мс | Rust %s мс",
   "screen.fiximizer.network_mods": "Обнаруженные сетевые моды: %s",
   "screen.fiximizer.network_policy": "Политика совместимости: %s",
@@ -199,5 +199,6 @@
   "config.fiximizer.network.backend_mode": "Режим сетевого вычислителя (0 Auto, 1 Java, 2 Rust)",
   "screen.fiximizer.network_tcp_nodelay_toggle": "Предпочитать TCP_NODELAY для низкой задержки: %s",
   "screen.fiximizer.network_tcp_nodelay": "Политика TCP_NODELAY: %s",
-  "config.fiximizer.network.tcp_nodelay": "Предпочитать TCP_NODELAY, если он поддерживается и не управляется другим сетевым оптимизатором"
+  "config.fiximizer.network.tcp_nodelay": "Предпочитать TCP_NODELAY, если он поддерживается и не управляется другим сетевым оптимизатором",
+  "screen.fiximizer.network_compatibility": "Сетевые моды: %s | политика: %s"
 }
