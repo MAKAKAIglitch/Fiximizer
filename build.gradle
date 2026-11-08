@@ -38,11 +38,15 @@ neoForge {
     }
 }
 
-// ModDevGradle creates its legacy run classpath while configuring the
+// ModDevGradle creates the legacy run classpath while configuring the
 // NeoForge runs above, so keep additionalRuntimeClasspath declarations below
 // the neoForge block. Jar-in-Jar packages the libraries in the published mod.
 dependencies {
-    jarJar(implementation('com.github.oshi:oshi-core:7.7.3')) {
+    jarJar(implementation('com.github.oshi:oshi-core:7.7.3') {
+        // NeoForge/Minecraft provides SLF4J 2.0.9. OSHI's newer compile-time
+        // facade is not bundled; use the platform logger already on the classpath.
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+    }) {
         version {
             strictly '[7.7.3,7.7.4)'
             prefer '7.7.3'
