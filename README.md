@@ -285,6 +285,23 @@ build.bat clean build
 build.bat runClient
 ~~~
 
+### Linux — automatic builder
+
+Run from the repository root:
+
+~~~sh
+./build.sh
+~~~
+
+Examples:
+
+~~~sh
+./build.sh clean build
+./build.sh runClient
+~~~
+
+The Linux builder searches for a complete JDK 21, including common Prism Launcher locations. If none is available, it downloads Eclipse Temurin 21 for the detected CPU architecture, verifies the official SHA-256 checksum and stores the isolated JDK in `.tools/jdk-21-temurin`. It does not change system Java settings. See [BUILDING.md](BUILDING.md) for details.
+
 ### Any platform — Gradle Wrapper
 
 With JDK 21 installed:

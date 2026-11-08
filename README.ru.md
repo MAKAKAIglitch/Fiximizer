@@ -301,6 +301,16 @@ build.bat
 
 Сборщик ищет полноценный JDK 21. Если его нет, скрипт может скачать Eclipse Temurin 21 через официальный Adoptium API, проверить архив по SHA-256 и сохранить отдельный JDK в <code>.tools/jdk-21-temurin</code>. Системные настройки Java при этом не меняются.
 
+В Linux используй аналогичный автоматический сборщик:
+
+```sh
+./build.sh
+./build.sh clean build
+./build.sh runClient
+```
+
+Linux-сборщик проверяет <code>JAVA_HOME</code>, <code>javac</code> в PATH, стандартные каталоги JDK и распространённые каталоги Prism Launcher. При отсутствии JDK 21 он скачивает отдельный Eclipse Temurin под архитектуру процессора, проверяет SHA-256 и устанавливает его только в <code>.tools/jdk-21-temurin</code>. Системные настройки Java не меняются.
+
 Ручная сборка Gradle:
 
 ```powershell
