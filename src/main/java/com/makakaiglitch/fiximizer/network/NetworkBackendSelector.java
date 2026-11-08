@@ -36,7 +36,8 @@ public final class NetworkBackendSelector {
         thread.start();
     }
 
-    public static void reselectAsync() {
+    public static synchronized void reselectAsync() {
+        if (RUNNING.get()) return;
         STARTED.set(false);
         initializeAsync();
     }
