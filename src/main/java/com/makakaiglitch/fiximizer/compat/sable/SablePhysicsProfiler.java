@@ -43,6 +43,8 @@ public final class SablePhysicsProfiler {
     };
 
     private static final AtomicBoolean FAILURE_LOGGED = new AtomicBoolean();
+    private static final RollingPhysicsWindow.Snapshot EMPTY_SNAPSHOT =
+            new RollingPhysicsWindow(1).snapshot();
     private static volatile boolean registrationAttempted;
     private static volatile boolean available;
     private static volatile String status = "Not checked";
@@ -219,7 +221,7 @@ public final class SablePhysicsProfiler {
 
     public static RollingPhysicsWindow.Snapshot latest() {
         if (!ModIntegrationManager.isActive("sable") || !available) {
-            return new RollingPhysicsWindow(1).snapshot();
+            return EMPTY_SNAPSHOT;
         }
         return WINDOW.snapshot();
     }
