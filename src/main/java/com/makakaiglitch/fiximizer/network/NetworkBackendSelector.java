@@ -41,6 +41,13 @@ public final class NetworkBackendSelector {
             return;
         }
 
+        if (!FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()) {
+            rustBackend = null;
+            selected = Backend.JAVA;
+            status = "Java selected; Rust backend disabled in settings";
+            return;
+        }
+
         try {
             rustBackend = RustNetworkBackend.load();
         } catch (IOException | RuntimeException | LinkageError exception) {
@@ -62,8 +69,8 @@ public final class NetworkBackendSelector {
     }
 
     private static void benchmarkAndSelect() {
-        final int sampleCount = 512;
-        final int rounds = 25;
+        final int sampleCount = 64; // Match the live ping-statistics window.
+        final int rounds = 40;
         long[] samples = new long[sampleCount];
         long[] javaOutput = new long[3];
         long[] rustOutput = new long[3];
