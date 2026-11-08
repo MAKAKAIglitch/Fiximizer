@@ -55,9 +55,12 @@ public final class MemoryOptimizer {
      * Existing String references remain valid.
      */
     public static void clear() {
-        StringDeduplicator current = strings;
-        if (current != null) {
-            current.clear();
+        synchronized (MemoryOptimizer.class) {
+            StringDeduplicator current = strings;
+            if (current != null) {
+                current.clear();
+                strings = null;
+            }
         }
     }
 }
