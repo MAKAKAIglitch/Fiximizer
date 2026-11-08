@@ -1,6 +1,7 @@
 #!/bin/sh
 # Fiximizer automatic Linux builder.
-# Uses an existing JDK 21 or installs an isolated Eclipse Temurin JDK 21 in .tools/.
+# Runs Gradle on an existing JDK 21 or 25; compiles the mod with the Java 21 toolchain.
+# If neither is available, installs an isolated Eclipse Temurin JDK 21 in .tools/.
 set -eu
 
 PROJECT_ROOT=$(CDPATH= cd -P "$(dirname "$0")" && pwd)
@@ -130,7 +131,7 @@ find_gradle_runtime_jdk() {
 }
 
 install_temurin21() {
-    command -v curl >/dev/null 2>&1 || fail "curl is required to download Temurin automatically. Install curl or provide JDK 21 through JAVA_HOME."
+    command -v curl >/dev/null 2>&1 || fail "curl is required to download Temurin automatically. Install curl or provide JDK 21 or 25 through JAVA_HOME."
     command -v tar >/dev/null 2>&1 || fail "tar is required to extract Temurin. Install tar or provide JDK 21 through JAVA_HOME."
 
     case "$(uname -m)" in
@@ -140,7 +141,7 @@ install_temurin21() {
         s390x) ARCHITECTURE="s390x" ;;
         riscv64) ARCHITECTURE="riscv64" ;;
         armv7l|armv6l) ARCHITECTURE="arm" ;;
-        *) fail "Automatic Temurin installation does not yet support CPU architecture '$(uname -m)'. Install a full JDK 21 and set JAVA_HOME." ;;
+        *) fail "Automatic Temurin installation does not yet support CPU architecture '$(uname -m)'. Install a full JDK 21 or 25 and set JAVA_HOME." ;;
     esac
 
     if command -v sha256sum >/dev/null 2>&1; then
@@ -157,7 +158,7 @@ install_temurin21() {
     mkdir -p "$TEMP_EXTRACT_ROOT"
 
     API_URL="https://api.adoptium.net/v3/binary/latest/21/ga/linux/$ARCHITECTURE/jdk/hotspot/normal/eclipse"
-    info "No complete JDK 21 was found."
+    info "No supported Gradle runtime JDK 21 or 25 was found."
     info "Downloading an isolated Eclipse Temurin JDK 21 ($ARCHITECTURE) into .tools/; system Java settings will remain unchanged."
     info "Resolving the official Adoptium download..."
 
