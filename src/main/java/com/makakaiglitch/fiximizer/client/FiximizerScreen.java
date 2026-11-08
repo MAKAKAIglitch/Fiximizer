@@ -250,7 +250,7 @@ public final class FiximizerScreen extends Screen {
                     toggleConfig(FiximizerConfig.ENABLE_SERVER_TICK_PROFILING);
                     serverTickProfilerButton.setMessage(serverTickProfilerLabel());
                 }
-        ).bounds(contentLeft, panelTop + 122, 340, 20).build()));
+        ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
