@@ -27,6 +27,7 @@ public final class FlightRecorderService {
     private static volatile State state = State.IDLE;
     private static volatile String message = "Idle";
     private static volatile String lastSavedFile = "";
+    private static volatile String lastReportFile = "";
     private static volatile long startedAtNanos;
     private static Recording activeRecording;
 
@@ -110,6 +111,10 @@ public final class FlightRecorderService {
         return lastSavedFile;
     }
 
+    public static String lastReportFile() {
+        return lastReportFile;
+    }
+
     public static long elapsedSeconds() {
         if (state != State.RECORDING || startedAtNanos == 0L) {
             return 0L;
@@ -118,19 +123,21 @@ public final class FlightRecorderService {
     }
 
     private static void saveRecording(Recording recording, Path gameDirectory) {
+        Path output = null;
+        boolean saved = false;
+
         try {
             Path profileDirectory = gameDirectory.resolve("fiximizer").resolve("profiles");
             Files.createDirectories(profileDirectory);
 
             String timestamp = LocalDateTime.now().format(FILE_TIME);
-            Path output = profileDirectory.resolve("fiximizer-" + timestamp + ".jfr");
+            output = profileDirectory.resolve("fiximizer-" + timestamp + ".jfr");
 
             recording.stop();
             recording.dump(output);
 
             lastSavedFile = output.getFileName().toString();
-            message = "Saved: " + lastSavedFile;
-            state = State.IDLE;
+            saved = true;
             Fiximizer.LOGGER.info("JFR profile saved to {}", output.toAbsolutePath());
         } catch (IOException | RuntimeException | LinkageError exception) {
             state = State.FAILED;
@@ -143,6 +150,27 @@ public final class FlightRecorderService {
                 // Preserve the original save result.
             }
         }
+
+        if (!saved || output == null) {
+            return;
+        }
+
+        if (FiximizerConfig.ENABLE_PROFILE_ANALYSIS.get()) {
+            message = "Recording saved; analysing hotspots...";
+            try {
+                Path report = JfrProfileAnalyzer.analyzeAndWrite(output);
+                lastReportFile = report.getFileName().toString();
+                message = "Saved " + lastSavedFile + " / analysis " + lastReportFile;
+                Fiximizer.LOGGER.info("JFR hotspot report saved to {}", report.toAbsolutePath());
+            } catch (IOException | RuntimeException | LinkageError exception) {
+                message = "JFR saved; analysis failed: " + safeMessage(exception);
+                Fiximizer.LOGGER.warn("Unable to analyse Fiximizer JFR recording.", exception);
+            }
+        } else {
+            message = "Saved: " + lastSavedFile;
+        }
+
+        state = State.IDLE;
     }
 
     private static String safeMessage(Throwable throwable) {

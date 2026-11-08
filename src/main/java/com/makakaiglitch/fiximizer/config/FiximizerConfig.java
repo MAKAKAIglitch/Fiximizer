@@ -11,6 +11,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue DETECT_COMPATIBLE_MODS;
 
     public static final ModConfigSpec.BooleanValue ENABLE_JFR_PROFILING;
+    public static final ModConfigSpec.BooleanValue ENABLE_PROFILE_ANALYSIS;
     public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
@@ -54,6 +55,11 @@ public final class FiximizerConfig {
                 .comment("Allow Java Flight Recorder CPU, thread, allocation and GC recordings.")
                 .translation("config.fiximizer.profiler.jfr_enabled")
                 .define("enableJfrProfiling", true);
+
+        ENABLE_PROFILE_ANALYSIS = BUILDER
+                .comment("Generate a local hotspot and investigation-priority report after saving a JFR recording.")
+                .translation("config.fiximizer.profiler.analysis_enabled")
+                .define("enableProfileAnalysis", true);
 
         MAX_PROFILE_SECONDS = BUILDER
                 .comment("Maximum duration of one JFR recording before it is automatically saved.")

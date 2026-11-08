@@ -28,6 +28,7 @@
   "config.fiximizer.diagnostics.startup_summary": "Log compatibility summary at startup",
   "config.fiximizer.compatibility.detect_mods": "Detect known optional mods",
   "config.fiximizer.profiler.jfr_enabled": "Enable Java Flight Recorder profiling",
+  "config.fiximizer.profiler.analysis_enabled": "Generate automatic hotspot and priority report after recording",
   "config.fiximizer.profiler.max_seconds": "Maximum recording duration (seconds)",
   "config.fiximizer.scheduler.adaptive": "Adapt Fiximizer workers to CPU load",
   "config.fiximizer.scheduler.max_workers": "Maximum background workers",

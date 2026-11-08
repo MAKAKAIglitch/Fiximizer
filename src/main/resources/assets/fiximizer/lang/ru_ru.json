@@ -28,6 +28,7 @@
   "config.fiximizer.diagnostics.startup_summary": "Записывать сводку совместимости при запуске",
   "config.fiximizer.compatibility.detect_mods": "Обнаруживать известные дополнительные моды",
   "config.fiximizer.profiler.jfr_enabled": "Включить профилирование Java Flight Recorder",
+  "config.fiximizer.profiler.analysis_enabled": "Создавать отчёт горячих методов и приоритетов после записи",
   "config.fiximizer.profiler.max_seconds": "Максимальная длительность записи (секунды)",
   "config.fiximizer.scheduler.adaptive": "Адаптировать потоки Fiximizer под загрузку CPU",
   "config.fiximizer.scheduler.max_workers": "Максимум фоновых потоков",
