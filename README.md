@@ -302,8 +302,9 @@ The JAR is written to `build/libs/`. See [BUILDING.md](BUILDING.md) for the deta
 
 The [Build workflow](.github/workflows/build.yml) runs on pushes and pull requests. It:
 
-- builds on Ubuntu and Windows with Java 21;
-- validates the PowerShell builder syntax on Windows;
+- builds and tests against NeoForge 21.1.256 and 21.1.265 in its compatibility matrix;
+- builds the mod on Ubuntu and Windows with Java 21;
+- validates the PowerShell builder syntax and runs the automatic builder on Windows;
 - uploads the resulting JARs as workflow artifacts;
 - keeps those artifacts for 14 days.
 
