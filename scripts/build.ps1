@@ -249,6 +249,41 @@ try {
     Write-Ok "Using JDK 21: $($Jdk.Home)"
     Write-Host $Jdk.Version
 
+    # Build and embed the optional Rust statistics backend when Cargo is already installed.
+    # The native feature is deliberately optional: failed/missing Cargo leaves Java fallback.
+    $NativeResourceDirectory = Join-Path $ProjectRoot "src\main\resources\assets\fiximizer\native\windows-x86_64"
+    $NativeLibrary = Join-Path $ProjectRoot "native\network\target\release\fiximizer_network_native.dll"
+    if (Test-Path -LiteralPath $NativeLibrary) {
+        Remove-Item -LiteralPath $NativeLibrary -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path -LiteralPath $NativeResourceDirectory) {
+        Remove-Item -LiteralPath $NativeResourceDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $CargoCommand = Get-Command cargo.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64" -and $CargoCommand) {
+        Write-Info "Building optional Rust network statistics backend..."
+        Push-Location $ProjectRoot
+        try {
+            & $CargoCommand.Source build --manifest-path (Join-Path $ProjectRoot "native\network\Cargo.toml") --release
+            $CargoExitCode = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+
+        if ($CargoExitCode -eq 0 -and (Test-Path -LiteralPath $NativeLibrary -PathType Leaf)) {
+            New-Item -ItemType Directory -Force -Path $NativeResourceDirectory | Out-Null
+            Copy-Item -LiteralPath $NativeLibrary -Destination $NativeResourceDirectory
+            Write-Ok "Rust network backend staged for windows-x86_64."
+        } else {
+            Write-Warn "Rust backend build failed or produced no library; continuing with the Java network backend."
+        }
+    } elseif (!$CargoCommand) {
+        Write-Warn "Cargo was not found; continuing with the Java network backend."
+    } else {
+        Write-Warn "Rust native backend is not packaged for this Windows architecture; using Java fallback."
+    }
+
     if (!$GradleArgs -or $GradleArgs.Count -eq 0) {
         $GradleArgs = @("build", "--build-cache", "--parallel")
     } else {
