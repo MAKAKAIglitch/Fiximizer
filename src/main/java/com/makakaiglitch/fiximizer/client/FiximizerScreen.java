@@ -27,6 +27,9 @@ import com.makakaiglitch.fiximizer.scheduler.OptimizationProfile;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerTelemetry;
+import com.makakaiglitch.fiximizer.startup.StartupOptimizer;
+import com.makakaiglitch.fiximizer.startup.StartupProfiler;
+import com.makakaiglitch.fiximizer.startup.StartupTimeline.Stage;
 import com.makakaiglitch.fiximizer.util.TextSanitizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -50,7 +53,8 @@ public final class FiximizerScreen extends Screen {
         JVM,
         GPU,
         FRAMES,
-        SERVER
+        SERVER,
+        STARTUP
     }
 
     private final Screen parent;
@@ -72,7 +76,9 @@ public final class FiximizerScreen extends Screen {
     private Button gpuSpillLimitButton;
     private Button frameProfilerButton;
     private Button serverTickProfilerButton;
+    private Button copyStartupReportButton;
     private Button dumpDiagnosticsButton;
+    private boolean integrationButtonsSynchronized;
 
     private int panelLeft;
     private int panelTop;
@@ -138,11 +144,18 @@ public final class FiximizerScreen extends Screen {
                 button -> selectTab(Tab.SERVER)
         ).bounds(navX, navY + 196, navWidth, 22).build()));
 
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_startup"),
+                button -> selectTab(Tab.STARTUP)
+        ).bounds(navX, navY + 224, navWidth, 22).build()));
+
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
                 button -> {
                     DiagnosticsService.sampleNow();
                     ModIntegrationManager.refresh();
+                    updateIntegrationButtons();
+                    integrationButtonsSynchronized = ModIntegrationManager.isInitialized();
                 }
         ).bounds(contentLeft, panelTop + 272, 82, 20).build());
 
@@ -183,6 +196,8 @@ public final class FiximizerScreen extends Screen {
                     toggleConfig(FiximizerConfig.DETECT_COMPATIBLE_MODS);
                     ModIntegrationManager.refresh();
                     SablePhysicsProfiler.syncIntegrationState();
+                    updateIntegrationButtons();
+                    integrationButtonsSynchronized = ModIntegrationManager.isInitialized();
                     detectModsButton.setMessage(detectModsLabel());
                 }
         ).bounds(contentLeft, panelTop + 105, 340, 22).build());
@@ -267,6 +282,14 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
+        copyStartupReportButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.startup_copy_report"),
+                button -> {
+                    Minecraft.getInstance().keyboardHandler.setClipboard(StartupProfiler.createReport());
+                    copyStartupReportButton.setMessage(Component.translatable("screen.fiximizer.startup_copied"));
+                }
+        ).bounds(contentLeft, panelTop + 272, 160, 20).build());
+
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
                 button -> {
@@ -298,6 +321,8 @@ public final class FiximizerScreen extends Screen {
                     toggleConfig(setting);
                     ModIntegrationManager.refresh();
                     SablePhysicsProfiler.syncIntegrationState();
+                    updateIntegrationButtons();
+                    integrationButtonsSynchronized = ModIntegrationManager.isInitialized();
                     button.setMessage(integrationLabel(translationKey, setting));
                 }
         ).bounds(contentLeft + 222, y, 118, 20).build());
@@ -330,6 +355,7 @@ public final class FiximizerScreen extends Screen {
         boolean gpu = selectedTab == Tab.GPU;
         boolean frames = selectedTab == Tab.FRAMES;
         boolean server = selectedTab == Tab.SERVER;
+        boolean startup = selectedTab == Tab.STARTUP;
 
         refreshButton.visible = overview;
         dumpDiagnosticsButton.visible = overview;
@@ -344,6 +370,7 @@ public final class FiximizerScreen extends Screen {
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
         serverTickProfilerButton.visible = server;
+        copyStartupReportButton.visible = startup;
         gpuSpillButton.visible = gpu;
         gpuSpillLimitButton.visible = gpu;
         gpuTestButton.active = !GpuBenchmarkService.running()
@@ -359,6 +386,16 @@ public final class FiximizerScreen extends Screen {
         stopProfileButton.active = recorderState == FlightRecorderService.State.RECORDING;
 
         updateIntegrationButtons();
+        integrationButtonsSynchronized = ModIntegrationManager.isInitialized();
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (!integrationButtonsSynchronized && ModIntegrationManager.isInitialized()) {
+            updateIntegrationButtons();
+            integrationButtonsSynchronized = true;
+        }
     }
 
     private void updateIntegrationButtons() {
@@ -519,6 +556,7 @@ public final class FiximizerScreen extends Screen {
             case GPU -> drawGpu(graphics);
             case FRAMES -> drawFrames(graphics);
             case SERVER -> drawServer(graphics);
+            case STARTUP -> drawStartup(graphics);
         }
     }
 
@@ -636,6 +674,66 @@ public final class FiximizerScreen extends Screen {
         }
 
         graphics.drawString(this.font, Component.literal(text), x, y, color);
+    }
+
+    private void drawStartup(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.startup_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.startup_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        int y = panelTop + 126;
+        drawCompactValue(graphics, "screen.fiximizer.startup_jvm_first_title", y,
+                formatStartupDuration(StartupProfiler.millisFromJvmStartToFirstTitle()));
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_jvm_stable", y,
+                formatStartupDuration(StartupProfiler.millisFromJvmStartToStableClient()));
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_fiximizer_init", y,
+                formatStartupDuration(StartupProfiler.elapsedMillis(
+                        Stage.FIXIMIZER_MOD_CONSTRUCTED,
+                        Stage.CLIENT_SETUP_COMPLETED)));
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_client_setup", y,
+                formatStartupDuration(StartupProfiler.elapsedMillis(
+                        Stage.CLIENT_SETUP_STARTED,
+                        Stage.CLIENT_SETUP_COMPLETED)));
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_stable_wait", y,
+                formatStartupDuration(StartupProfiler.elapsedMillis(
+                        Stage.FIRST_TITLE_SCREEN_TICK,
+                        Stage.STABLE_CLIENT_READY)));
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_mod_scan_time", y,
+                formatStartupDuration(StartupProfiler.elapsedMillis(
+                        Stage.OPTIONAL_MOD_SCAN_STARTED,
+                        Stage.OPTIONAL_MOD_SCAN_COMPLETED)));
+        y += 17;
+
+        String scanStatus;
+        if (!ModIntegrationManager.isInitialized()) {
+            scanStatus = Component.translatable("screen.fiximizer.startup_scan_pending").getString();
+        } else {
+            scanStatus = Component.translatable(StartupOptimizer.compatibilityScanSucceeded()
+                    ? "screen.fiximizer.startup_scan_done"
+                    : "screen.fiximizer.startup_scan_failed").getString();
+        }
+        drawCompactValue(graphics, "screen.fiximizer.startup_mod_scan", y, scanStatus);
+        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.startup_optional_services", y,
+                Component.translatable(StartupOptimizer.completed()
+                        ? "screen.fiximizer.startup_services_scheduled"
+                        : "screen.fiximizer.startup_scan_pending").getString());
+    }
+
+    private String formatStartupDuration(long millis) {
+        if (millis < 0L) {
+            return Component.translatable("screen.fiximizer.startup_pending").getString();
+        }
+        return String.format(Locale.ROOT, "%.1f ms", (double) millis);
     }
 
     private void drawServer(GuiGraphics graphics) {
@@ -847,6 +945,24 @@ public final class FiximizerScreen extends Screen {
         int y = panelTop + 136;
         List<IntegrationStatus> statuses = ModIntegrationManager.statuses();
 
+        if (!FiximizerConfig.DETECT_COMPATIBLE_MODS.get()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.integrations_detection_disabled"),
+                    contentLeft,
+                    y,
+                    contentWidth - 8,
+                    0xFFFFB85C);
+            return;
+        }
+        if (!ModIntegrationManager.isInitialized()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.integrations_waiting"),
+                    contentLeft,
+                    y,
+                    contentWidth - 8,
+                    0xFFFFC078);
+            return;
+        }
         if (statuses.isEmpty()) {
             drawWrapped(graphics,
                     Component.translatable("screen.fiximizer.integrations_detection_disabled"),
