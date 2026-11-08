@@ -21,7 +21,7 @@ public final class TextSanitizer {
             offset += Character.charCount(codePoint);
 
             if (Character.isISOControl(codePoint) || Character.isWhitespace(codePoint)) {
-                if (!sanitized.isEmpty()) {
+                if (sanitized.length() > 0) {
                     pendingSpace = true;
                 }
                 continue;

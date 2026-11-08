@@ -44,7 +44,7 @@ class OpenClTextTest {
 
     @Test
     void stripsControlCharactersFromDecodedText() {
-        byte[] nativeBuffer = "OpenCL\u0001 GPU\nDriver".getBytes(StandardCharsets.UTF_8);
+        byte[] nativeBuffer = ("OpenCL" + (char) 1 + " GPU\nDriver").getBytes(StandardCharsets.UTF_8);
         assertEquals(
                 "OpenCL GPU Driver",
                 OpenClText.decode(ByteBuffer.wrap(nativeBuffer), nativeBuffer.length)

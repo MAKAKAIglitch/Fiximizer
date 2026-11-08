@@ -9,7 +9,7 @@ class TextSanitizerTest {
     void removesNulAndNormalizesWhitespace() {
         assertEquals(
                 "Fiximizer OpenCL GPU status",
-                TextSanitizer.sanitize("  Fiximizer\u0000 OpenCL\nGPU\tstatus  ")
+                TextSanitizer.sanitize("  Fiximizer" + (char) 0 + " OpenCL\nGPU\tstatus  ")
         );
     }
 

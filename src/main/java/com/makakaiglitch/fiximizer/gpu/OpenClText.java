@@ -23,6 +23,7 @@ public final class OpenClText {
 
         ByteBuffer bytes = source.duplicate();
         bytes.position(0);
+        bytes.limit(source.capacity());
 
         int actualLength = byteLength;
         for (int index = 0; index < byteLength; index++) {
