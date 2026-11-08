@@ -276,7 +276,6 @@ public final class FiximizerScreen extends Screen {
         boolean overview = selectedTab == Tab.OVERVIEW;
         boolean performance = selectedTab == Tab.PERFORMANCE;
         boolean integrations = selectedTab == Tab.INTEGRATIONS;
-        boolean physics = selectedTab == Tab.PHYSICS;
         boolean jvm = selectedTab == Tab.JVM;
         boolean gpu = selectedTab == Tab.GPU;
 
