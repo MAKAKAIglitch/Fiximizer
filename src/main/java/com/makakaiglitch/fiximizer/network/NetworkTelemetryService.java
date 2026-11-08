@@ -93,14 +93,16 @@ public final class NetworkTelemetryService {
         try {
             channel.eventLoop().execute(() -> {
                 if (activeConnection != connection || !channel.isActive()) return;
+
                 ChannelPipeline pipeline = channel.pipeline();
-            if (pipeline.get(HANDLER_NAME) instanceof NetworkTrafficHandler existing) {
-                activeChannel = channel;
-                trafficHandler = existing;
-                return;
-            }
-            NetworkTrafficHandler handler = new NetworkTrafficHandler();
-            pipeline.addFirst(HANDLER_NAME, handler);
+                if (pipeline.get(HANDLER_NAME) instanceof NetworkTrafficHandler existing) {
+                    activeChannel = channel;
+                    trafficHandler = existing;
+                    return;
+                }
+
+                NetworkTrafficHandler handler = new NetworkTrafficHandler();
+                pipeline.addFirst(HANDLER_NAME, handler);
                 activeChannel = channel;
                 trafficHandler = handler;
             });
