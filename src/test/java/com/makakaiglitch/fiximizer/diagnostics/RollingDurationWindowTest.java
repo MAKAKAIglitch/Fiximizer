@@ -62,12 +62,12 @@ class RollingDurationWindowTest {
     @Test
     void refreshesSnapshotAfterBatchAndClearsOnReset() {
         RollingDurationWindow window = new RollingDurationWindow(32);
-        for (int i = 1; i <= 16; i++) {
+        for (int i = 1; i <= 30; i++) {
             window.record(i * 1_000_000L);
         }
 
-        assertEquals(16, window.snapshot().sampleCount());
-        assertEquals(16.0, window.snapshot().peakMillis(), 0.0001);
+        assertEquals(30, window.snapshot().sampleCount());
+        assertEquals(30.0, window.snapshot().peakMillis(), 0.0001);
 
         window.reset();
         assertFalse(window.snapshot().hasSamples());
