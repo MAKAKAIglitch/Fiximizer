@@ -4,7 +4,7 @@
 
 ## Current status
 
-**0.5.0-alpha — experimental OpenCL benchmark and bounded VRAM cache**
+**0.6.0-alpha — passive Create contraption profiling and experimental OpenCL tools**
 
 ### In-game menu
 
@@ -44,6 +44,17 @@ Fiximizer includes an opt-in VRAM store for temporary cache blocks that a Fiximi
 
 **Important limitation:** this is not an extension of Java heap, system RAM, or the Windows page file. It cannot move arbitrary objects from Minecraft or third-party mods. An integration must serialize or otherwise provide its own disposable data, keep a valid handle, and know how to rebuild data if the LRU cache evicts it. No Create/Aeronautics/Sable object is automatically moved to VRAM yet.
 
+### Create contraption tick telemetry
+
+When Create is installed and its Fiximizer integration toggle is enabled, Fiximizer passively measures server-side tick time for entities inheriting Create's `AbstractContraptionEntity`.
+
+- Uses NeoForge entity pre/post tick events and a bounded rolling window of the last 100 logical-server ticks.
+- Reports total contraption entity ticks, average time charged per server tick, average and peak time per contraption entity tick, and the most expensive entity type seen during the current session.
+- Uses class-hierarchy name matching and has no compile-time or runtime hard dependency on Create classes.
+- Does not cancel, reorder, accelerate or otherwise change Create entity behavior.
+
+**Scope:** this measurement is available for a local integrated single-player server. It does not measure remote dedicated-server CPU time, Create kinetic block-entity ticks, rendering, or arbitrary Create methods. Use the JFR profiler for whole-JVM method hotspots. This is a diagnostic integration, not yet an automatic FPS optimization or GPU offload.
+
 ### Five user-selected profiles
 
 | Profile | Worker limit | Queue limit | GPU policy |
@@ -70,7 +81,7 @@ The guard reduces Fiximizer's own queue and worker usage. The VRAM cache can onl
 
 Fiximizer detects the loaded NeoForge ModContainer, mod ID and installed version for Create, Create Aeronautics, Sable, Distant Horizons and Voxy. Each target has an independent toggle. The runForInstalledMod gate invokes an adapter only when that exact mod is loaded and enabled.
 
-**Current scope:** detection, version reporting, toggles and conditional extension points are available. Intrusive Create/Aeronautics/Sable patches are not yet shipped. They will be added only after profiling and version-specific compatibility tests.
+**Current scope:** detection, version reporting, toggles and conditional extension points are available. Create has a passive server-side contraption entity tick profiler. Intrusive Create/Aeronautics/Sable patches are not shipped and will be considered only after reproducible profiling and version-specific compatibility tests.
 
 ### JVM argument advisor
 
@@ -121,8 +132,9 @@ OpenCL lets Fiximizer test GPU computation on supported vendors using the existi
 - [x] JFR hotspot, thread and package reports
 - [x] OpenCL discovery and GPU telemetry
 - [x] Bounded CPU/GPU OpenCL self-test with result validation
+- [x] Passive Create server-side contraption entity tick profiler (100-tick rolling window)
 - [x] VRAM budgeting and explicit disposable cache block API
-- [ ] First production Create integration using real profiled data
+- [ ] First production Create optimization based on reproducible profiling data
 - [ ] First production Sable integration using real profiled data
 - [ ] Benchmark real mod calculations with a per-workload CPU/GPU comparison
 - [ ] First real OpenCL kernel for an actual Fiximizer-owned gameplay workload
