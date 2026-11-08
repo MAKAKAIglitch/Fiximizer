@@ -200,6 +200,10 @@ public final class SablePhysicsProfiler {
         return level.dimension().location().toString();
     }
 
+    public static void syncIntegrationState() {
+        integrationActive();
+    }
+
     private static boolean integrationActive() {
         if (ModIntegrationManager.isActive("sable")) {
             wasEnabled = true;
@@ -242,7 +246,7 @@ public final class SablePhysicsProfiler {
     }
 
     public static RollingPhysicsWindow.Snapshot latest() {
-        if (!ModIntegrationManager.isActive("sable") || !available) {
+        if (!available || !integrationActive()) {
             return EMPTY_SNAPSHOT;
         }
         return WINDOW.snapshot();
