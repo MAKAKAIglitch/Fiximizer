@@ -260,7 +260,7 @@ GPU identification and total VRAM can be read through the game-provided API. Liv
 | Minecraft | Java Edition **1.21.1** |
 | Mod loader | **NeoForge 21.1.256 or newer compatible 21.1.x releases** |
 | Java runtime | **Java 21** |
-| Build JDK | **JDK 21** |
+| Build / Gradle runtime | **JDK 21 or 25** (Java 21 compiler toolchain) |
 | Optional integrations | Create, Create Aeronautics, Sable, Distant Horizons and Voxy |
 | OpenCL | An OpenCL-capable device and runtime supplied by the graphics driver; required only for GPU features |
 
@@ -291,7 +291,7 @@ Run this from the repository root:
 build.bat
 ~~~
 
-The builder searches for a full JDK 21. If none is available, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum and stores the isolated JDK in `.tools/jdk-21-temurin`. It does not change system Java settings.
+The builder accepts a full JDK 21 or 25 to run Gradle. If neither is available, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum and stores the isolated fallback JDK in `.tools/jdk-21-temurin`. Gradle still compiles the mod with the Java 21 toolchain; system Java settings are not changed.
 
 Other examples:
 
@@ -315,11 +315,11 @@ Examples:
 ./build.sh runClient
 ~~~
 
-The Linux builder searches for a complete JDK 21, including common Prism Launcher locations. If none is available, it downloads Eclipse Temurin 21 for the detected CPU architecture, verifies the official SHA-256 checksum and stores the isolated JDK in `.tools/jdk-21-temurin`. It does not change system Java settings. See [BUILDING.md](BUILDING.md) for details.
+The Linux builder accepts a complete JDK 21 or 25 for Gradle, including common Prism Launcher locations. If neither is available, it downloads Eclipse Temurin 21 for the detected CPU architecture, verifies the official SHA-256 checksum and stores it as an isolated fallback in `.tools/jdk-21-temurin`. Compilation remains Java 21. See [BUILDING.md](BUILDING.md) for details.
 
 ### Any platform — Gradle Wrapper
 
-With JDK 21 installed:
+With JDK 21 or 25 installed as the Gradle runtime:
 
 ~~~bash
 # Windows
@@ -337,6 +337,7 @@ The [Build workflow](.github/workflows/build.yml) runs on pushes and pull reques
 
 - builds and tests against NeoForge 21.1.256 and 21.1.265 in its compatibility matrix;
 - builds the mod on Ubuntu and Windows with Java 21;
+- runs an additional Windows/Linux build-and-test matrix with Gradle on JDK 25 while preserving Java 21 bytecode;
 - validates the POSIX shell builder and runs the automatic Linux builder;
 - validates the PowerShell builder syntax and runs the automatic builder on Windows;
 - uploads the resulting JARs as workflow artifacts;
