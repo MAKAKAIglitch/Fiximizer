@@ -188,14 +188,15 @@
   "screen.fiximizer.memory.title": "Оптимизатор памяти",
   "screen.fiximizer.memory.intro": "Ограниченное и необязательное совместное использование явно переданных неизменяемых метаданных. Кэш создаётся только при первом использовании; сканирования heap, глобальной замены объектов и фоновых циклов нет.",
   "screen.fiximizer.memory.scope": "Учитываются только явно переданные неизменяемые строки. Попадание означает повторное использование другого равного объекта String; ноль попаданий — экономия не обнаружена.",
-  "screen.fiximizer.memory.g1_note": "Дедупликация G1 — отдельный необязательный механизм JVM, который может добавить нагрузку на CPU при GC. Compact Object Headers выбираются независимо, когда доступны.",
+  "screen.fiximizer.memory.g1_note": "Дедупликация G1 необязательна и может добавить нагрузку на CPU при GC.",
   "screen.fiximizer.memory.stats_hits": "Повторное использование строк: совпадений %s из %s регистраций",
   "screen.fiximizer.memory.stats_evictions": "Устаревших слотов повторно занято: %s | вытеснений из-за коллизий: %s | пропусков из-за конкуренции: %s",
   "screen.fiximizer.memory.stats_capacity": "Ограниченная таблица: занято %s из %s слотов",
   "screen.fiximizer.memory.runtime": "Обнаружена JVM игры: Java %s",
   "screen.fiximizer.memory.compact_active": "Compact Object Headers уже включён в этой JVM.",
-  "screen.fiximizer.memory.compact_recommended": "JDK 25+ поддерживает Compact Object Headers. JVM Advisor добавляет флаг для следующего запуска.",
-  "screen.fiximizer.memory.compact_class_limit": "Compact Object Headers не рекомендуется: JVM достигла лимита в 4 000 000 загруженных классов.",
+  "screen.fiximizer.memory.compact_recommended": "JDK 25+ предоставляет Compact Object Headers; JVM Advisor добавляет флаг запуска.",
+  "screen.fiximizer.memory.compact_class_limit": "Не рекомендуется: достигнут лимит JVM в 4 000 000 загруженных классов.",
   "screen.fiximizer.memory.java21_fallback": "Выбран совместимый режим: стандартная раскладка объектов Java 21, ограниченное совместное использование строк и необязательная дедупликация G1.",
-  "screen.fiximizer.memory.compact_default": "Эта JVM не предоставляет Compact Object Headers; остаётся совместимый механизм оптимизации памяти."
+  "screen.fiximizer.memory.compact_default": "Эта JVM не предоставляет Compact Object Headers; остаётся совместимый механизм оптимизации памяти.",
+  "screen.fiximizer.memory.compatible_fallback": "Дополнительная функция компактных заголовков не обнаружена. Fiximizer использует совместимый путь с байткодом Java 21."
 }
