@@ -50,9 +50,10 @@ public final class RuntimeMemoryCapabilities {
             boolean g1Available,
             int loadedClassCount
     ) {
-        boolean classLimitReached = loadedClassCount >= COMPACT_HEADERS_CLASS_LIMIT;
         boolean supported = javaMajor >= COMPACT_HEADERS_MIN_JAVA
                 && compactHeadersOptionAvailable;
+        boolean classLimitReached = supported
+                && loadedClassCount >= COMPACT_HEADERS_CLASS_LIMIT;
 
         boolean recommendCompactHeaders = supported
                 && !compactHeadersEnabled
