@@ -47,8 +47,8 @@ jobs:
           retention-days: 14
 
   build-with-jdk25:
-    name: Build + tests on JDK 25 (\${{ matrix.os }}) with Java 21 bytecode
-    runs-on: \${{ matrix.os }}
+    name: Build + tests on JDK 25 (${{ matrix.os }}) with Java 21 bytecode
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
