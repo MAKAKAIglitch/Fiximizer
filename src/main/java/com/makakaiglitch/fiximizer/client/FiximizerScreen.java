@@ -81,6 +81,7 @@ public final class FiximizerScreen extends Screen {
     private Button dumpDiagnosticsButton;
     private Button networkTelemetryButton;
     private Button networkBackendButton;
+    private Button networkNativeBackendButton;
     private Button networkTcpNoDelayButton;
     private Button networkBenchmarkButton;
 
@@ -317,6 +318,17 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 161, 340, 20).build());
 
+        networkNativeBackendButton = addRenderableWidget(Button.builder(
+                networkNativeBackendLabel(),
+                button -> {
+                    FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.set(
+                            !FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get());
+                    FiximizerConfig.SPEC.save();
+                    NetworkBackendSelector.reselectAsync();
+                    networkNativeBackendButton.setMessage(networkNativeBackendLabel());
+                }
+        ).bounds(contentLeft, panelTop + 189, 340, 20).build());
+
         networkBenchmarkButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.network_benchmark_button"),
                 button -> {
@@ -325,7 +337,7 @@ public final class FiximizerScreen extends Screen {
                     NetworkBackendSelector.reselectAsync();
                     networkBackendButton.setMessage(networkBackendLabel());
                 }
-        ).bounds(contentLeft, panelTop + 189, 340, 20).build());
+        ).bounds(contentLeft, panelTop + 217, 340, 20).build());
 
         gpuTestButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.gpu_test_button"),
@@ -407,6 +419,7 @@ public final class FiximizerScreen extends Screen {
         serverTickProfilerButton.visible = server;
         networkTelemetryButton.visible = network;
         networkBackendButton.visible = network;
+        networkNativeBackendButton.visible = network;
         networkTcpNoDelayButton.visible = network;
         networkBenchmarkButton.visible = network;
         networkBenchmarkButton.active = !NetworkBackendSelector.isRunning();
@@ -500,6 +513,15 @@ public final class FiximizerScreen extends Screen {
         return Component.translatable(
                 "screen.fiximizer.network_telemetry_toggle",
                 Component.translatable(FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component networkNativeBackendLabel() {
+        return Component.translatable(
+                "screen.fiximizer.network_native_backend_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()
                         ? "screen.fiximizer.enabled"
                         : "screen.fiximizer.disabled")
         );
@@ -742,7 +764,7 @@ public final class FiximizerScreen extends Screen {
                 0xFFB9C9DC);
 
         NetworkTelemetrySnapshot snapshot = NetworkTelemetryService.snapshot();
-        int y = panelTop + 217;
+        int y = panelTop + 245;
         drawCompactValue(graphics, "screen.fiximizer.network_connection",
                 y, Component.translatable(snapshot.connected()
                         ? "screen.fiximizer.connected" : "screen.fiximizer.disconnected"));
@@ -771,7 +793,9 @@ public final class FiximizerScreen extends Screen {
         drawCompactValue(graphics, "screen.fiximizer.network_backend",
                 y,
                 NetworkBackendSelector.selected().name(),
-                NetworkBackendSelector.status());
+                NetworkBackendSelector.status(),
+                formatNetworkBenchmarkTime(NetworkBackendSelector.javaMedianNanos()),
+                formatNetworkBenchmarkTime(NetworkBackendSelector.rustMedianNanos()));
         y += 15;
 
         drawCompactValue(graphics, "screen.fiximizer.network_tcp_nodelay",
@@ -779,24 +803,10 @@ public final class FiximizerScreen extends Screen {
                 NetworkSocketTuning.status());
         y += 15;
 
-        drawCompactValue(graphics, "screen.fiximizer.network_native_times",
+        drawCompactValue(graphics, "screen.fiximizer.network_compatibility",
                 y,
-                formatNetworkBenchmarkTime(NetworkBackendSelector.javaMedianNanos()),
-                formatNetworkBenchmarkTime(NetworkBackendSelector.rustMedianNanos()));
-        y += 15;
-
-        drawCompactValue(graphics, "screen.fiximizer.network_mods",
-                y,
-                NetworkCompatibilityDetector.snapshot().detectedSummary());
-        y += 15;
-
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.network_policy",
-                        NetworkCompatibilityDetector.snapshot().policy()),
-                contentLeft,
-                y,
-                contentWidth - 8,
-                0xFF9FB3C8);
+                NetworkCompatibilityDetector.snapshot().detectedSummary(),
+                NetworkCompatibilityDetector.snapshot().policy());
     }
 
     private String formatNetworkBenchmarkTime(long nanos) {
