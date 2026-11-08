@@ -108,5 +108,17 @@
   "screen.fiximizer.create_profiler_no_entities": "No contraption entities ticked in the last %s server ticks.",
   "screen.fiximizer.create_profiler_stats": "Contraption ticks: %s | avg server tick cost: %s ms",
   "screen.fiximizer.create_profiler_timing": "Average entity tick: %s ms | peak: %s ms",
-  "screen.fiximizer.create_profiler_top": "Top entity type this session: %s (%s ms)"
+  "screen.fiximizer.create_profiler_top": "Top entity type this session: %s (%s ms)",
+  "screen.fiximizer.tab_physics": "Physics",
+  "screen.fiximizer.physics_title": "Create and Sable physics profiling",
+  "screen.fiximizer.physics_intro": "Passive timings from recent physics steps. Sable is measured between its pre and post events: Java preparation, native physics, and pose updates are included, not just Rapier.",
+  "screen.fiximizer.profiler_detection_unavailable": "Mod status is unknown. Enable mod detection.",
+  "screen.fiximizer.profiler_mod_missing": "The target mod is not installed.",
+  "screen.fiximizer.sable_profiler_title": "Sable: last 1,000 physics substeps",
+  "screen.fiximizer.sable_profiler_inactive": "The Sable integration is disabled.",
+  "screen.fiximizer.sable_profiler_api_unavailable": "Sable physics events are unavailable or the API is incompatible.",
+  "screen.fiximizer.sable_profiler_waiting": "Waiting for the first Sable physics substep...",
+  "screen.fiximizer.sable_profiler_stats": "Substeps: %s | average time: %s ms",
+  "screen.fiximizer.sable_profiler_window": "Total: %s ms | peak: %s ms | dimensions: %s",
+  "screen.fiximizer.sable_profiler_top": "Most expensive dimension: %s (%s ms)"
 }
