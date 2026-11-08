@@ -29,7 +29,7 @@ jobs:
       - name: Upload mod JAR
         uses: actions/upload-artifact@v7
         with:
-          name: Fiximizer-0.1.0-alpha
+          name: Fiximizer-0.2.0-alpha
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
