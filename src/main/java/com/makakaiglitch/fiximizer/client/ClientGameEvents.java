@@ -8,7 +8,6 @@ import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.commands.Commands;
@@ -104,7 +103,8 @@ public final class ClientGameEvents {
         if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
             GpuTelemetryService.start();
         }
-        if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()) {
+        if (FiximizerConfig.ENABLE_OPENCL_PROBE.get()
+                && OptimizationProfileManager.current().openClAllowed()) {
             OpenClService.probeAsync();
         }
 
