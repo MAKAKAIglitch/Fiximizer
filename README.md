@@ -36,7 +36,7 @@ Fiximizer includes an opt-in VRAM store for temporary cache blocks that a Fiximi
 
 - Enabled only after a successful OpenCL correctness test and during detected memory pressure.
 - Default configured cap: 256 MiB; adjustable from the GPU tab, up to 512 MiB.
-- The live VRAM monitor determines how much space is actually safe to use.
+- A live VRAM monitor is required to calculate a safe spill budget. Stock Minecraft 1.21.1's OSHI 6.4.10 does not expose used-VRAM telemetry, so VRAM spilling stays unavailable unless a compatible live sensor API is present.
 - At least 1.5 GiB or 20% of reported VRAM (whichever is larger) is kept as a graphics reserve.
 - Uses an LRU policy for disposable cached blocks.
 - Provides explicit store, restore, discard and clear operations.
@@ -162,7 +162,9 @@ JVM heap bounds cannot be modified by a running game. Paste the generated line i
 
 - Java Flight Recorder captures CPU execution samples, thread CPU load, garbage collection and sampled allocations.
 - Automatic reports show hot methods, thread names, package namespace candidates and allocation hotspots.
-- OSHI provides optional GPU telemetry; LWJGL checks for an installed OpenCL runtime and GPU devices.
+- OSHI uses the copy already supplied by Minecraft 1.21.1 (6.4.10); Fiximizer does not bundle another OSHI/JNA module.
+- GPU identification and total VRAM are available through the game-provided API. Live utilization, used VRAM, temperature and power are queried only when the runtime OSHI API exposes those optional GPU-stat methods; stock Minecraft 1.21.1 reports them as unavailable.
+- LWJGL checks for an installed OpenCL runtime and GPU devices independently of OSHI.
 - ComputeRouter only considers a Fiximizer-owned workload with a registered tested kernel when CPU/GPU conditions and the selected profile allow it.
 
 OpenCL detection is not itself GPU offload. The OpenCL ICD/runtime is provided by the installed graphics driver. No arbitrary Minecraft, Create or Sable calculation is automatically converted to OpenCL.
