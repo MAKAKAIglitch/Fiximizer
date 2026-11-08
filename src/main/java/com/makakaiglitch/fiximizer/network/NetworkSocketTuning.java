@@ -23,6 +23,10 @@ public final class NetworkSocketTuning {
     }
 
     public static void onLogin(Connection connection) {
+        Connection previous = activeConnection;
+        if (previous != null && previous != connection) {
+            restore();
+        }
         activeConnection = connection;
         apply(connection);
     }
@@ -54,6 +58,7 @@ public final class NetworkSocketTuning {
             return;
         }
         if (NetworkCompatibilityDetector.snapshot().externalStackOptimizer()) {
+            restore();
             status = "External network optimizer detected; socket option left unchanged";
             return;
         }
@@ -70,8 +75,9 @@ public final class NetworkSocketTuning {
             return;
         }
 
-        channel.eventLoop().execute(() -> {
-            if (!channel.isOpen()) return;
+        try {
+            channel.eventLoop().execute(() -> {
+            if (activeConnection != connection || !channel.isOpen()) return;
             if (tunedChannel != null && tunedChannel != channel) {
                 restoreChannel(tunedChannel, previousTcpNoDelay);
                 tunedChannel = null;
@@ -101,7 +107,10 @@ public final class NetworkSocketTuning {
             } catch (RuntimeException exception) {
                 status = "TCP_NODELAY is unavailable on this transport";
             }
-        });
+            });
+        } catch (RuntimeException ignored) {
+            status = "Connection event loop is shutting down";
+        }
     }
 
     public static void restore() {
