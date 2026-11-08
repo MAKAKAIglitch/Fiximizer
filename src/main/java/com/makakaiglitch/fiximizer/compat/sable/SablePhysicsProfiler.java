@@ -30,7 +30,7 @@ public final class SablePhysicsProfiler {
     private static final RollingPhysicsWindow WINDOW =
             new RollingPhysicsWindow(RollingPhysicsWindow.DEFAULT_CAPACITY);
     private static final ThreadLocal<IdentityHashMap<Object, StartSample>> STARTS =
-            ThreadLocal.withInitial(IdentityHashMap::new);
+            new ThreadLocal<>();
     private static final ClassValue<Optional<Method>> LEVEL_GETTERS = new ClassValue<>() {
         @Override
         protected Optional<Method> computeValue(Class<?> type) {
@@ -47,6 +47,7 @@ public final class SablePhysicsProfiler {
             new RollingPhysicsWindow(1).snapshot();
     private static volatile boolean registrationAttempted;
     private static volatile boolean available;
+    private static volatile boolean wasEnabled;
     private static volatile String status = "Not checked";
     private static volatile Method preSystemGetter;
     private static volatile Method preTimeStepGetter;
@@ -124,8 +125,7 @@ public final class SablePhysicsProfiler {
         if (!available) {
             return;
         }
-        if (!ModIntegrationManager.isActive("sable")) {
-            reset();
+        if (!integrationActive()) {
             return;
         }
 
@@ -137,7 +137,12 @@ public final class SablePhysicsProfiler {
 
             double timeStep = ((Number) preTimeStepGetter.invoke(event)).doubleValue();
             String dimension = dimensionOf(physicsSystem);
-            STARTS.get().put(
+            IdentityHashMap<Object, StartSample> starts = STARTS.get();
+            if (starts == null) {
+                starts = new IdentityHashMap<>();
+                STARTS.set(starts);
+            }
+            starts.put(
                     physicsSystem,
                     new StartSample(System.nanoTime(), timeStep, dimension)
             );
@@ -162,7 +167,11 @@ public final class SablePhysicsProfiler {
             }
 
             double postTimeStep = ((Number) postTimeStepGetter.invoke(event)).doubleValue();
-            StartSample start = STARTS.get().remove(physicsSystem);
+            IdentityHashMap<Object, StartSample> starts = STARTS.get();
+            if (starts == null) {
+                return;
+            }
+            StartSample start = starts.remove(physicsSystem);
             if (start == null) {
                 return;
             }
@@ -192,11 +201,30 @@ public final class SablePhysicsProfiler {
         return level.dimension().location().toString();
     }
 
+    private static boolean integrationActive() {
+        if (ModIntegrationManager.isActive("sable")) {
+            wasEnabled = true;
+            return true;
+        }
+
+        if (wasEnabled) {
+            IdentityHashMap<Object, StartSample> starts = STARTS.get();
+            if (starts != null) {
+                starts.clear();
+            }
+            STARTS.remove();
+            WINDOW.reset();
+            wasEnabled = false;
+        }
+        return false;
+    }
+
     private static void disableAfterRuntimeFailure(String message, Throwable exception) {
         available = false;
         status = "Sable telemetry paused after API error";
         STARTS.remove();
         WINDOW.reset();
+        wasEnabled = false;
         logFailure(message, exception);
     }
 
@@ -204,11 +232,6 @@ public final class SablePhysicsProfiler {
         if (FAILURE_LOGGED.compareAndSet(false, true)) {
             Fiximizer.LOGGER.warn(message, exception);
         }
-    }
-
-    public static void reset() {
-        STARTS.get().clear();
-        WINDOW.reset();
     }
 
     public static boolean available() {
