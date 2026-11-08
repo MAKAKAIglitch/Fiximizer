@@ -63,6 +63,7 @@ public final class FiximizerScreen extends Screen {
     private final List<Button> tabButtons = new ArrayList<>();
     private final List<Button> integrationButtons = new ArrayList<>();
     private StringDeduplicator.Snapshot memoryStats = MemoryOptimizer.stringSnapshot();
+    private RuntimeMemoryCapabilities.Snapshot memoryCapabilities;
 
     private Button refreshButton;
     private Button profileButton;
@@ -353,6 +354,9 @@ public final class FiximizerScreen extends Screen {
 
     private void selectTab(Tab tab) {
         selectedTab = tab;
+        if (tab == Tab.MEMORY && memoryCapabilities == null) {
+            memoryCapabilities = RuntimeMemoryCapabilities.current();
+        }
         updateVisibility();
     }
 
@@ -1147,7 +1151,11 @@ public final class FiximizerScreen extends Screen {
                 contentWidth - 8,
                 0xFFB9C9DC);
 
-        RuntimeMemoryCapabilities.Snapshot runtime = RuntimeMemoryCapabilities.current();
+        RuntimeMemoryCapabilities.Snapshot runtime = memoryCapabilities;
+        if (runtime == null) {
+            runtime = RuntimeMemoryCapabilities.current();
+            memoryCapabilities = runtime;
+        }
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.memory.runtime", runtime.javaMajor()),
                 contentLeft, panelTop + 111, 0xFF8FD8E8);
