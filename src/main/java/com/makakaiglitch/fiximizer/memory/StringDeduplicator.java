@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.LongAdder;
  */
 public final class StringDeduplicator {
     private static final int WAYS = 4;
-    private static final int DEFAULT_SET_COUNT = 256;
+    private static final int DEFAULT_SET_COUNT = 16;
     private static final int MAX_CAS_RETRIES = 3;
     private static final int MINIMUM_STRING_LENGTH = 8;
 
