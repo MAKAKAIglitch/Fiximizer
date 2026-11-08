@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="380" viewBox="0 0 1440 380" role="img" aria-labelledby="title desc">
+  <title id="title">Fiximizer</title>
+  <desc id="desc">Adaptive diagnostics, profiling and workload control for modded Minecraft.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#101827"/><stop offset=".55" stop-color="#111b2b"/><stop offset="1" stop-color="#17152f"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#52e5cf"/><stop offset=".52" stop-color="#57b7f7"/><stop offset="1" stop-color="#9c83ff"/></linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b2b3d" stop-opacity=".96"/><stop offset="1" stop-color="#1c1d37" stop-opacity=".96"/></linearGradient>
+    <radialGradient id="glow"><stop offset="0" stop-color="#52e5cf" stop-opacity=".24"/><stop offset="1" stop-color="#52e5cf" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#b8d7ef" stroke-opacity=".06" stroke-width="1"/></pattern>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="34"/></filter>
+  </defs>
+  <rect width="1440" height="380" rx="28" fill="url(#bg)"/><rect width="1440" height="380" rx="28" fill="url(#grid)"/>
+  <circle cx="1110" cy="170" r="260" fill="url(#glow)" filter="url(#soft)"/><circle cx="1360" cy="20" r="200" fill="#8c78ff" opacity=".08" filter="url(#soft)"/>
+  <g opacity=".24" fill="none" stroke="url(#accent)"><path d="M0 310 C180 250 240 360 430 290 S720 245 870 300 S1160 345 1440 230" stroke-width="2"/><path d="M0 330 C190 270 270 370 460 310 S720 270 900 320 S1190 360 1440 260" stroke-width="1"/></g>
+  <g transform="translate(88 77)">
+    <rect width="66" height="66" rx="19" fill="url(#accent)"/><path d="M19 17h28v8H29v8h15v8H29v10h-10z" fill="#0e1b2b"/><path d="M49 17h-8v34h8z" fill="#0e1b2b" opacity=".72"/>
+    <text x="88" y="49" fill="#f3f8ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="62" font-weight="750" letter-spacing="-2">Fiximizer</text>
+    <text x="2" y="111" fill="#91a8be" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="3">DIAGNOSTICS  ·  PROFILING  ·  ADAPTIVE CONTROL</text>
+    <text x="2" y="158" fill="#dce8f5" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="24" font-weight="500">Understand the bottleneck. Measure what matters.</text>
+    <text x="2" y="194" fill="#91a8be" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="19">A diagnostic toolkit for modded Minecraft 1.21.1</text>
+  </g>
+  <g transform="translate(900 61)">
+    <rect x="0" y="0" width="450" height="258" rx="20" fill="url(#panel)" stroke="#6ca7c8" stroke-opacity=".28"/>
+    <circle cx="25" cy="25" r="5" fill="#f17e86"/><circle cx="44" cy="25" r="5" fill="#f4c66c"/><circle cx="63" cy="25" r="5" fill="#64d8ba"/>
+    <text x="25" y="66" fill="#9bb4ca" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="14" font-weight="700" letter-spacing="2">LIVE DIAGNOSTICS</text>
+    <g transform="translate(25 86)">
+      <rect width="180" height="66" rx="10" fill="#24384b"/><text x="15" y="25" fill="#8da7bc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">CLIENT TICK</text><text x="15" y="49" fill="#eff7ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="700">p95</text>
+      <rect x="112" y="23" width="48" height="7" rx="3.5" fill="#38566a"/><rect x="112" y="23" width="32" height="7" rx="3.5" fill="#55d8c4"/>
+      <rect x="195" width="205" height="66" rx="10" fill="#24384b"/><text x="210" y="25" fill="#8da7bc" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">WORKER QUEUE</text><text x="210" y="49" fill="#eff7ff" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="23" font-weight="700">ADAPTIVE</text>
+    </g>
+    <g transform="translate(25 172)"><path d="M0 52H400" stroke="#365267" stroke-width="1"/><path d="M0 36 L34 31 L62 40 L92 18 L124 25 L155 9 L184 19 L218 7 L248 15 L278 3 L311 12 L340 0 L370 8 L400 -3" fill="none" stroke="url(#accent)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="400" cy="-3" r="5" fill="#62e3cf"/><text x="0" y="76" fill="#7893aa" font-family="Inter,Segoe UI,Arial,sans-serif" font-size="11">TIMING WINDOWS  ·  JVM SNAPSHOTS  ·  LOCAL REPORTS</text></g>
+  </g>
+  <path d="M1378 60h20M1388 50v20M1378 300h20M1388 290v20" stroke="#8d83ff" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+</svg>
