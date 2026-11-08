@@ -13,6 +13,9 @@ import com.makakaiglitch.fiximizer.config.FiximizerConfig;
  * normal game path allocates no deduplication table and performs no hashing.
  */
 public final class MemoryOptimizer {
+    private static final StringDeduplicator.Snapshot EMPTY_SNAPSHOT =
+            new StringDeduplicator.Snapshot(0L, 0L, 0L, 0L, 0L, 0, StringDeduplicator.DEFAULT_CAPACITY);
+
     private static volatile StringDeduplicator strings;
 
     private MemoryOptimizer() {
@@ -45,9 +48,7 @@ public final class MemoryOptimizer {
 
     public static StringDeduplicator.Snapshot stringSnapshot() {
         StringDeduplicator current = strings;
-        return current == null
-                ? new StringDeduplicator.Snapshot(0L, 0L, 0L, 0L, 0L, 0, StringDeduplicator.DEFAULT_CAPACITY)
-                : current.snapshot();
+        return current == null ? EMPTY_SNAPSHOT : current.snapshot();
     }
 
     /**
