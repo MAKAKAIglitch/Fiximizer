@@ -8,6 +8,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeMemoryCapabilitiesTest {
     @Test
+    void detectsTheActualRunningJdkAndExposedHotSpotFlag() {
+        RuntimeMemoryCapabilities.Snapshot runtime = RuntimeMemoryCapabilities.current();
+        int expectedMajor = RuntimeMemoryCapabilities.parseJavaMajor(
+                System.getProperty("java.specification.version", ""));
+
+        assertEquals(expectedMajor, runtime.javaMajor());
+        if (expectedMajor >= 25
+                && System.getProperty("java.vm.name", "").toLowerCase().contains("hotspot")) {
+            assertTrue(runtime.compactObjectHeadersSupported(),
+                    "HotSpot JDK 25+ should expose the Compact Object Headers product option");
+        }
+    }
+
+    @Test
     void parsesJavaMajorVersionsUsedByRuntimeProperties() {
         assertEquals(21, RuntimeMemoryCapabilities.parseJavaMajor("21"));
         assertEquals(25, RuntimeMemoryCapabilities.parseJavaMajor("25"));
