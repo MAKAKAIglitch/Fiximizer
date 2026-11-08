@@ -16,6 +16,15 @@ public final class FiximizerConfig {
 
     public static final ModConfigSpec.BooleanValue ADAPTIVE_SCHEDULER_ENABLED;
     public static final ModConfigSpec.IntValue MAX_BACKGROUND_WORKERS;
+    public static final ModConfigSpec.BooleanValue ENABLE_MEMORY_GUARD;
+    public static final ModConfigSpec.IntValue MEMORY_PRESSURE_THRESHOLD;
+    public static final ModConfigSpec.IntValue MEMORY_RECOVERY_THRESHOLD;
+
+    public static final ModConfigSpec.BooleanValue ENABLE_CREATE_INTEGRATION;
+    public static final ModConfigSpec.BooleanValue ENABLE_AERONAUTICS_INTEGRATION;
+    public static final ModConfigSpec.BooleanValue ENABLE_SABLE_INTEGRATION;
+    public static final ModConfigSpec.BooleanValue ENABLE_DH_INTEGRATION;
+    public static final ModConfigSpec.BooleanValue ENABLE_VOXY_INTEGRATION;
 
     public static final ModConfigSpec.BooleanValue ENABLE_GPU_TELEMETRY;
     public static final ModConfigSpec.BooleanValue ENABLE_OPENCL_PROBE;
@@ -41,14 +50,6 @@ public final class FiximizerConfig {
                 .define("showStartupSummary", true);
 
         BUILDER.pop();
-        BUILDER.push("compatibility");
-
-        DETECT_COMPATIBLE_MODS = BUILDER
-                .comment("Detect known optional mods that may receive dedicated integrations in later releases.")
-                .translation("config.fiximizer.compatibility.detect_mods")
-                .define("detectKnownMods", true);
-
-        BUILDER.pop();
         BUILDER.push("profiler");
 
         ENABLE_JFR_PROFILING = BUILDER
@@ -57,7 +58,7 @@ public final class FiximizerConfig {
                 .define("enableJfrProfiling", true);
 
         ENABLE_PROFILE_ANALYSIS = BUILDER
-                .comment("Generate a local hotspot and investigation-priority report after saving a JFR recording.")
+                .comment("Generate a local hotspot and priority report after saving a JFR recording.")
                 .translation("config.fiximizer.profiler.analysis_enabled")
                 .define("enableProfileAnalysis", true);
 
@@ -78,6 +79,54 @@ public final class FiximizerConfig {
                 .comment("Global upper limit for Fiximizer-managed background workers; gameplay profiles may use fewer.")
                 .translation("config.fiximizer.scheduler.max_workers")
                 .defineInRange("maxBackgroundWorkers", 4, 1, 4);
+
+        ENABLE_MEMORY_GUARD = BUILDER
+                .comment("Temporarily switch Fiximizer to Memory Saver when heap or physical memory stays under pressure.")
+                .translation("config.fiximizer.scheduler.memory_guard")
+                .define("automaticMemoryGuard", true);
+
+        MEMORY_PRESSURE_THRESHOLD = BUILDER
+                .comment("Heap usage percentage that starts the automatic memory guard after sustained pressure.")
+                .translation("config.fiximizer.scheduler.memory_pressure")
+                .defineInRange("memoryPressureThresholdPercent", 88, 75, 97);
+
+        MEMORY_RECOVERY_THRESHOLD = BUILDER
+                .comment("Heap usage percentage below which automatic Memory Saver can be released.")
+                .translation("config.fiximizer.scheduler.memory_recovery")
+                .defineInRange("memoryRecoveryThresholdPercent", 70, 45, 80);
+
+        BUILDER.pop();
+        BUILDER.push("integrations");
+
+        DETECT_COMPATIBLE_MODS = BUILDER
+                .comment("Detect supported optional mods and display their installed versions.")
+                .translation("config.fiximizer.compatibility.detect_mods")
+                .define("detectKnownMods", true);
+
+        ENABLE_CREATE_INTEGRATION = BUILDER
+                .comment("Allow Fiximizer's Create integration to activate only when Create is installed.")
+                .translation("config.fiximizer.integrations.create")
+                .define("create", true);
+
+        ENABLE_AERONAUTICS_INTEGRATION = BUILDER
+                .comment("Allow the Aeronautics integration to activate only when the mod is installed.")
+                .translation("config.fiximizer.integrations.aeronautics")
+                .define("aeronautics", true);
+
+        ENABLE_SABLE_INTEGRATION = BUILDER
+                .comment("Allow the Sable integration to activate only when Sable is installed.")
+                .translation("config.fiximizer.integrations.sable")
+                .define("sable", true);
+
+        ENABLE_DH_INTEGRATION = BUILDER
+                .comment("Allow the Distant Horizons integration to activate only when it is installed.")
+                .translation("config.fiximizer.integrations.distanthorizons")
+                .define("distantHorizons", true);
+
+        ENABLE_VOXY_INTEGRATION = BUILDER
+                .comment("Allow the Voxy integration to activate only when Voxy is installed.")
+                .translation("config.fiximizer.integrations.voxy")
+                .define("voxy", true);
 
         BUILDER.pop();
         BUILDER.push("gpu");

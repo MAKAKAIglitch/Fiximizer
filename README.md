@@ -1,72 +1,65 @@
 # Fiximizer
 
-**Intelligent diagnostics, profiling and adaptive task scheduling for Minecraft 1.21.1 / NeoForge.**
-
-Fiximizer is a modular performance toolkit. It measures the runtime, records Java Flight Recorder profiles, detects optional mod and GPU capabilities, and provides a priority scheduler for work owned by Fiximizer integrations.
+**Adaptive diagnostics, targeted mod integration gates, memory pressure control and JVM guidance for Minecraft 1.21.1 / NeoForge.**
 
 ## Current status
 
-**0.3.0-alpha — gameplay profiles and automatic Windows builder**
+**0.4.0-alpha — smart menu, guarded integrations and automatic memory saver**
 
-### Gameplay optimization profiles
+### In-game menu
 
-Change the active profile from the F8 dashboard. The choice is saved in `config/fiximizer-performance.properties`.
-
-| Profile | Worker cap | Queue cap | GPU policy |
-|---|---:|---:|---|
-| Game smoothness | 2 | 48 | Conservative; only large workloads |
-| Low latency | 2 | 32 | Very conservative; avoids small offloads |
-| Balanced | 3 | 128 | Standard adaptive policy |
-| Maximum performance | 4 | 256 | More permissive offload thresholds |
-| Memory saver | 1 | 16 | OpenCL offload disabled |
-
-Profiles also set task-queue ordering and CPU-load thresholds for reducing worker concurrency. `maxBackgroundWorkers` in the NeoForge config remains a global upper limit.
-
-These settings apply to Fiximizer-owned background tasks. They do not modify Minecraft's render thread, other mods' internal workers, operating-system thread priorities, heap size, or garbage collector. "Memory saver" limits Fiximizer's worker and queue footprint; it does not forcibly reduce the JVM heap.
-
-### Included
-
-- F8 diagnostics dashboard (rebindable in Controls).
-- Heap, JVM, processor, CPU and thread metrics.
-- Java Flight Recorder (JFR) recording with start/stop controls.
-- An automatic offline hotspot report beside each JFR file: CPU methods ranked by execution-sample share, per-thread load, hot package namespaces, sampled allocation hotspots, and HIGH / MEDIUM / LOW investigation priorities.
-- JFR captures execution samples, CPU load, thread CPU load, garbage collection and allocation samples.
-- A scoped profiler API for timing Fiximizer-owned sections.
-- A bounded priority queue for Fiximizer-managed background tasks: CRITICAL, HIGH, NORMAL, and BACKGROUND.
-- Adaptive worker count based on the selected gameplay profile and measured system CPU load.
-- Optional GPU telemetry through OSHI and OpenCL device detection through LWJGL.
+- Open the dashboard with F8.
+- Open the same Fiximizer control center from the Config button in NeoForge's mod list. Better ModList uses NeoForge's `IConfigScreenFactory` extension point, so no Mod Menu compatibility dependency is required.
+- Four sections: Overview, Optimization, Integrations, and Java / JVM.
 - Russian and English translations.
-- One-click Windows build script with isolated JDK 21 discovery/installation and SHA-256 verification, adapted from the builder in the Rusify repository.
 
-### Important limitations
+### Five user-selected profiles
 
-- JFR rankings are statistical. They help identify hot Java methods, but sample share is not exact method wall time.
-- Class/package names do not always map one-to-one to mod IDs; use the ranked methods and stack traces to choose an integration target.
-- The built-in scoped profiler measures only code explicitly instrumented by Fiximizer.
-- Priority scheduling applies only to Fiximizer-submitted background tasks. It does not change Minecraft, Create, Sable or other mods' thread priorities.
-- OpenCL detection is implemented, but this version does **not** move Minecraft, Create or Sable calculations to the GPU. A workload must have a dedicated, tested OpenCL kernel and enough independent data to outweigh dispatch and transfer costs.
-- The OpenCL runtime/ICD is supplied by the graphics driver. The Windows build script does not install GPU drivers or OpenCL runtimes.
-- GPU monitoring depends on the driver and operating system exposing utilization/sensor data. Unsupported values are shown as unavailable.
+| Profile | Worker limit | Queue limit | GPU policy |
+|---|---:|---:|---|
+| Game smoothness | 2 | 48 | Conservative |
+| Low latency | 2 | 32 | Very conservative |
+| Balanced | 3 | 128 | Standard adaptive |
+| Maximum performance | 4 | 256 | More permissive |
+| Memory saver | 1 | 16 | Disabled |
 
-## Compute routing design
+Profiles regulate Fiximizer-owned background work only. They do not reorder Minecraft's render thread or other mods' workers.
 
-The CPU/GPU router is profile-aware. A workload can be considered for OpenCL only when:
+### Automatic memory guard
 
-1. A verified OpenCL kernel exists for that exact workload.
-2. The selected profile allows GPU offload.
-3. Work size and data-transfer volume exceed that profile's thresholds.
-4. CPU load is high enough and the GPU has measured headroom.
+- Samples the Java heap and physical-memory availability.
+- Enters temporary Memory Saver after heap usage stays above the configured threshold for several samples, or immediately at a critical heap/physical-memory condition.
+- Uses separate recovery threshold and multiple recovery samples to avoid rapidly switching back and forth.
+- Automatically restores the previously selected profile when memory pressure clears.
+- Does not overwrite the user's saved profile, call `System.gc()`, unload objects owned by other mods, or change JVM heap arguments at runtime.
 
-The OpenCL ICD/runtime is provided by the graphics driver; Fiximizer bundles the matching LWJGL 3.3.3 Java binding for Minecraft 1.21.1.
+The automatic guard reduces Fiximizer's own queue capacity and background worker count and disables its future OpenCL offload policy during the override. It cannot reclaim memory already allocated by Minecraft or third-party mods.
 
-## Requirements
+### Mod-specific integration gates
 
-- Minecraft **1.21.1**
-- NeoForge **21.1.265 or newer in the 21.1 line**
-- Java **21**
-- Optional: a working OpenCL runtime from the GPU driver for OpenCL device detection
+Fiximizer detects the actual loaded NeoForge `ModContainer`, mod ID and installed version for Create, Create Aeronautics, Sable, Distant Horizons and Voxy. Each target has an independent toggle. The shared `runForInstalledMod` gate only invokes an adapter callback when the exact target is loaded and enabled; absent mods are never passed to that callback.
 
-## Build
+**Current scope:** this release establishes the detection, version reporting, independent toggles and conditional adapter entry point. It does not yet ship intrusive Create/Aeronautics/Sable patches. Those will be added one by one after profiling and verifying each target mod/version. An enabled toggle is permission for a future adapter, not a claim that a third-party mod has already been modified.
+
+### JVM argument advisor
+
+- Detects installed physical RAM and loaded mod count.
+- Recommends conservative `-Xms` and `-Xmx` values, rounded to integer MiB.
+- Copies the argument line or saves it to `config/fiximizer-jvm-arguments.txt`.
+- Leaves Java 21's default garbage collector selection unchanged.
+
+JVM heap bounds cannot be modified by a running game. Paste the generated line into Prism Launcher → Edit Instance → Settings → Java → JVM arguments, then restart. Fiximizer does not edit Prism's instance files automatically.
+
+### Profiler and GPU
+
+- Java Flight Recorder captures CPU execution samples, thread CPU load, garbage collection and sampled allocations.
+- Automatic offline reports show hot methods, thread names, package namespace candidates and allocation hotspots.
+- OSHI provides optional GPU telemetry; LWJGL checks for an installed OpenCL runtime and GPU devices.
+- ComputeRouter only considers a tested OpenCL kernel when the active profile allows it, CPU load is high enough and the GPU has measured headroom.
+
+OpenCL detection is not the same as GPU offload. No Minecraft/Create/Sable calculation is moved to the GPU until an exact workload has a separately tested kernel. The OpenCL ICD/runtime is provided by the graphics driver.
+
+### Build
 
 Windows one-click build:
 
@@ -74,7 +67,7 @@ Windows one-click build:
 build.bat
 ```
 
-The script searches for a full JDK 21. If none is found, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum, and installs it locally under `.tools/jdk-21-temurin`. It does not change system Java settings.
+The builder searches for a full JDK 21. If needed, it downloads Eclipse Temurin from the official Adoptium API, verifies the SHA-256 checksum, and installs it locally in `.tools/jdk-21-temurin`. It does not change system Java settings.
 
 More details: [BUILDING.md](BUILDING.md).
 
@@ -83,37 +76,25 @@ Manual build:
 - Windows: `gradlew.bat build`
 - Linux/macOS: `./gradlew build`
 
-The JAR is generated in `build/libs`. GitHub Actions builds the project on Linux and Windows.
+### Why no Rust native module yet?
 
-## Design principles
-
-1. **Measure before optimizing.**
-2. **Never interfere with third-party threads or the Minecraft main thread.**
-3. **Keep integrations optional and independently configurable.**
-4. **No forced garbage collection or arbitrary thread-priority changes.**
-5. **No telemetry uploads.** Profiles and hardware readings remain local.
+The current hotspots are JVM workload and game-mod integration problems, not a demonstrated bottleneck in Fiximizer's own Java code. Rust would add JNI and per-platform native binaries without making third-party Java methods automatically faster. Java remains the runtime; Rust will be considered only for a measured, isolated compute kernel where native code demonstrates a repeatable win.
 
 ## Roadmap
 
 - [x] NeoForge 1.21.1 project foundation
-- [x] Local diagnostics dashboard
-- [x] Java Flight Recorder capture
-- [x] Automatic hotspot and investigation-priority report
-- [x] Fiximizer-scoped profiler API
-- [x] Prioritized adaptive worker scheduler
-- [x] Five gameplay optimization profiles
-- [x] Profile-aware CPU/GPU routing policy
-- [x] Automatic Windows JDK 21 builder
-- [x] GPU telemetry and OpenCL device detection
-- [x] Thread hotspot and package namespace analysis in JFR reports
-- [ ] First real OpenCL kernel for a Fiximizer-owned batch workload
-- [ ] Profiling-guided Create / Aeronautics integration
-- [ ] Profiling-guided Sable integration
-- [ ] Bounded rolling history and JSON report export
-
-## Languages
-
-The in-game runtime is Java because it integrates directly with NeoForge and Minecraft's JVM. Python can be useful for additional offline analysis of JFR-derived reports. Rust is worth considering only for a later, isolated native compute library if profiling proves Java itself is the bottleneck; it is not required for the current design.
+- [x] Five user-selectable gameplay profiles
+- [x] Custom dashboard available via F8 and the mod-list Config button
+- [x] Automatic heap/physical-memory pressure guard with hysteresis
+- [x] JVM argument recommendation and export
+- [x] Loaded-mod/version detection and conditional integration gate
+- [x] Russian and English UI
+- [x] JFR hotspot, thread and package reports
+- [x] OpenCL discovery and GPU telemetry
+- [ ] First validated Create integration patch
+- [ ] First validated Sable integration patch
+- [ ] First real OpenCL kernel for a Fiximizer-owned data-parallel workload
+- [ ] Rolling benchmark comparison and before/after reports
 
 ## License
 

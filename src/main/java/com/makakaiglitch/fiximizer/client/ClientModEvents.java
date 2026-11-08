@@ -1,12 +1,12 @@
 package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
-import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
-import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
+import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
+import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
@@ -35,17 +35,15 @@ public final class ClientModEvents {
             OptimizationProfileManager.load(
                     Minecraft.getInstance().gameDirectory.toPath().resolve("config")
             );
-            Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
-                    OptimizationProfileManager.current().id());
+            MemoryPressureController.reset();
+
+            ModIntegrationManager.refresh();
             DiagnosticsService.sampleNow();
 
-            if (FiximizerConfig.SHOW_STARTUP_SUMMARY.get()) {
-                long detected = CompatibilityDetector.detect().stream()
-                        .filter(IntegrationStatus::detected)
-                        .count();
-                Fiximizer.LOGGER.info("Compatibility scan: {}/{} supported targets detected.",
-                        detected, CompatibilityDetector.targetCount());
-            }
+            Fiximizer.LOGGER.info("Gameplay optimization profile: {}",
+                    OptimizationProfileManager.selected().id());
+            Fiximizer.LOGGER.info("Detected {} enabled installed integration target(s).",
+                    ModIntegrationManager.activeCount());
 
             if (FiximizerConfig.ENABLE_GPU_TELEMETRY.get()) {
                 GpuTelemetryService.start();

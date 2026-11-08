@@ -1,5 +1,7 @@
 package com.makakaiglitch.fiximizer.scheduler;
 
+import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -10,6 +12,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class OptimizationProfileTest {
     @TempDir
     Path configDirectory;
+
+    @AfterEach
+    void clearTemporaryMemoryOverride() {
+        OptimizationProfileManager.setMemoryPressure(false);
+    }
 
     @Test
     void memorySaverLimitsWorkersAndDisablesGpuOffload() {
@@ -51,7 +58,27 @@ class OptimizationProfileTest {
 
         OptimizationProfileManager.load(configDirectory);
 
+        assertEquals(OptimizationProfile.MAX_PERFORMANCE, OptimizationProfileManager.selected());
         assertEquals(OptimizationProfile.MAX_PERFORMANCE, OptimizationProfileManager.current());
+    }
+
+    @Test
+    void memoryPressureTemporarilyOverridesButDoesNotReplaceSelectedProfile() {
+        assertTrue(OptimizationProfileManager.select(
+                OptimizationProfile.MAX_PERFORMANCE,
+                configDirectory
+        ));
+
+        OptimizationProfileManager.setMemoryPressure(true);
+
+        assertEquals(OptimizationProfile.MAX_PERFORMANCE, OptimizationProfileManager.selected());
+        assertEquals(OptimizationProfile.MEMORY_SAVER, OptimizationProfileManager.current());
+        assertTrue(OptimizationProfileManager.memoryPressureOverride());
+
+        OptimizationProfileManager.setMemoryPressure(false);
+
+        assertEquals(OptimizationProfile.MAX_PERFORMANCE, OptimizationProfileManager.current());
+        assertFalse(OptimizationProfileManager.memoryPressureOverride());
     }
 
     @Test
@@ -64,5 +91,15 @@ class OptimizationProfileTest {
                 OptimizationProfile.LOW_LATENCY,
                 OptimizationProfile.fromId("LOW_LATENCY")
         );
+    }
+
+    @Test
+    void jvmAdvisorProducesIntegerMiBArgumentsAndLeavesGcDefaultsAlone() {
+        JvmArgumentAdvisor.Recommendation recommendation = JvmArgumentAdvisor.recommend();
+
+        assertTrue(recommendation.arguments().matches("-Xms\\d+M -Xmx\\d+M"));
+        assertFalse(recommendation.arguments().contains("UseG1GC"));
+        assertFalse(recommendation.arguments().contains("System.gc"));
+        assertTrue(recommendation.maximumHeapBytes() >= 2L * 1024L * 1024L * 1024L);
     }
 }

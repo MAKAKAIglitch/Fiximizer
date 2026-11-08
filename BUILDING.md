@@ -48,7 +48,7 @@ Fiximizer checks for OpenCL GPU devices through LWJGL. The OpenCL ICD/runtime is
 The mod JAR is written to:
 
 ```text
-build/libs/fiximizer-0.3.0-alpha.jar
+build/libs/fiximizer-0.4.0-alpha.jar
 ```
 
 ## Local tools and caches

@@ -12,12 +12,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.Properties;
 
 /**
- * Persists the selected performance preset separately from NeoForge's
- * mod config, so it can be changed directly from the in-game dashboard.
+ * Persists the user-selected profile separately from a temporary automatic
+ * Memory Saver override. Automatic switching never overwrites user preference.
  */
 public final class OptimizationProfileManager {
     private static final String CONFIG_FILE = "fiximizer-performance.properties";
-    private static volatile OptimizationProfile current = OptimizationProfile.SMOOTHNESS;
+    private static volatile OptimizationProfile selected = OptimizationProfile.SMOOTHNESS;
+    private static volatile boolean memoryPressure;
     private static volatile String status = "Default profile";
 
     private OptimizationProfileManager() {
@@ -26,7 +27,7 @@ public final class OptimizationProfileManager {
     public static synchronized void load(Path configDirectory) {
         Path configFile = configDirectory.resolve(CONFIG_FILE);
         if (!Files.isRegularFile(configFile)) {
-            current = OptimizationProfile.SMOOTHNESS;
+            selected = OptimizationProfile.SMOOTHNESS;
             status = "Using default profile";
             return;
         }
@@ -34,11 +35,12 @@ public final class OptimizationProfileManager {
         Properties properties = new Properties();
         try (InputStream input = Files.newInputStream(configFile)) {
             properties.load(input);
-            String id = properties.getProperty("profile", OptimizationProfile.SMOOTHNESS.id());
-            current = OptimizationProfile.fromId(id);
-            status = "Loaded " + current.id();
+            selected = OptimizationProfile.fromId(
+                    properties.getProperty("profile", OptimizationProfile.SMOOTHNESS.id())
+            );
+            status = "Loaded " + selected.id();
         } catch (IOException | RuntimeException exception) {
-            current = OptimizationProfile.SMOOTHNESS;
+            selected = OptimizationProfile.SMOOTHNESS;
             status = "Could not read profile settings: " + safeMessage(exception);
             Fiximizer.LOGGER.warn("Unable to read Fiximizer profile settings; using Smoothness.", exception);
         }
@@ -61,7 +63,7 @@ public final class OptimizationProfileManager {
 
             temporaryFile = Files.createTempFile(configDirectory, "fiximizer-profile-", ".tmp");
             try (OutputStream output = Files.newOutputStream(temporaryFile)) {
-                properties.store(output, "Fiximizer gameplay optimization profile");
+                properties.store(output, "Fiximizer user-selected gameplay profile");
             }
 
             Path target = configDirectory.resolve(CONFIG_FILE);
@@ -73,15 +75,13 @@ public final class OptimizationProfileManager {
                         StandardCopyOption.REPLACE_EXISTING
                 );
             } catch (AtomicMoveNotSupportedException exception) {
-                Files.move(
-                        temporaryFile,
-                        target,
-                        StandardCopyOption.REPLACE_EXISTING
-                );
+                Files.move(temporaryFile, target, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            current = profile;
-            status = "Saved " + profile.id();
+            selected = profile;
+            status = memoryPressure
+                    ? "Saved " + profile.id() + "; Memory Saver remains temporarily active"
+                    : "Saved " + profile.id();
             return true;
         } catch (IOException | RuntimeException exception) {
             status = "Could not save profile: " + safeMessage(exception);
@@ -92,18 +92,39 @@ public final class OptimizationProfileManager {
                 try {
                     Files.deleteIfExists(temporaryFile);
                 } catch (IOException ignored) {
-                    // Best-effort cleanup for a temporary settings file.
+                    // Best-effort cleanup for the temporary settings file.
                 }
             }
         }
     }
 
     public static synchronized boolean cycle(Path configDirectory) {
-        return select(current.next(), configDirectory);
+        return select(selected.next(), configDirectory);
     }
 
+    public static synchronized void setMemoryPressure(boolean active) {
+        if (memoryPressure == active) {
+            return;
+        }
+        memoryPressure = active;
+        if (active) {
+            status = "Automatic Memory Saver is temporarily overriding " + selected.id();
+        } else {
+            status = "Restored selected profile: " + selected.id();
+        }
+    }
+
+    /** Returns the effective profile currently used by the scheduler and GPU policy. */
     public static OptimizationProfile current() {
-        return current;
+        return memoryPressure ? OptimizationProfile.MEMORY_SAVER : selected;
+    }
+
+    public static OptimizationProfile selected() {
+        return selected;
+    }
+
+    public static boolean memoryPressureOverride() {
+        return memoryPressure;
     }
 
     public static String status() {

@@ -2,16 +2,18 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
 import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
+import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
+import com.makakaiglitch.fiximizer.diagnostics.JvmArgumentAdvisor;
 import com.makakaiglitch.fiximizer.gpu.GpuReading;
 import com.makakaiglitch.fiximizer.gpu.GpuTelemetryService;
 import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
-import com.makakaiglitch.fiximizer.profiler.ProfileSectionSnapshot;
-import com.makakaiglitch.fiximizer.profiler.SectionProfiler;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
+import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
+import com.makakaiglitch.fiximizer.scheduler.OptimizationProfile;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
 import net.minecraft.client.Minecraft;
@@ -19,16 +21,41 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.common.ModConfigSpec;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public final class FiximizerScreen extends Screen {
+    private enum Tab {
+        OVERVIEW,
+        PERFORMANCE,
+        INTEGRATIONS,
+        JVM
+    }
+
     private final Screen parent;
+    private Tab selectedTab = Tab.OVERVIEW;
+
+    private final List<Button> tabButtons = new ArrayList<>();
+    private final List<Button> integrationButtons = new ArrayList<>();
+
+    private Button refreshButton;
     private Button profileButton;
+    private Button memoryGuardButton;
     private Button startProfileButton;
     private Button stopProfileButton;
+    private Button copyJvmButton;
+    private Button saveJvmButton;
+    private Button detectModsButton;
+
+    private int panelLeft;
+    private int panelTop;
+    private int contentLeft;
+    private int contentWidth;
 
     public FiximizerScreen(Screen parent) {
         super(Component.translatable("screen.fiximizer.title"));
@@ -37,39 +64,220 @@ public final class FiximizerScreen extends Screen {
 
     @Override
     protected void init() {
-        int centerX = this.width / 2;
-        int buttonY = this.height - 28;
+        panelLeft = Math.max(12, (this.width - 560) / 2);
+        panelTop = Math.max(12, (this.height - 350) / 2);
+        contentLeft = panelLeft + 158;
+        contentWidth = 382;
 
-        profileButton = this.addRenderableWidget(Button.builder(
-                profileButtonLabel(),
-                button -> cycleOptimizationProfile()
-        ).bounds(centerX - 150, 43, 300, 20).build());
+        tabButtons.clear();
+        integrationButtons.clear();
 
-        this.addRenderableWidget(Button.builder(
+        int navX = panelLeft + 14;
+        int navY = panelTop + 65;
+        int navWidth = 128;
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_overview"),
+                button -> selectTab(Tab.OVERVIEW)
+        ).bounds(navX, navY, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_performance"),
+                button -> selectTab(Tab.PERFORMANCE)
+        ).bounds(navX, navY + 28, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_integrations"),
+                button -> selectTab(Tab.INTEGRATIONS)
+        ).bounds(navX, navY + 56, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_jvm"),
+                button -> selectTab(Tab.JVM)
+        ).bounds(navX, navY + 84, navWidth, 22).build()));
+
+        refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
-                button -> DiagnosticsService.sampleNow()
-        ).bounds(centerX - 174, buttonY, 84, 20).build());
+                button -> {
+                    DiagnosticsService.sampleNow();
+                    ModIntegrationManager.refresh();
+                }
+        ).bounds(contentLeft, panelTop + 272, 82, 20).build());
 
-        startProfileButton = this.addRenderableWidget(Button.builder(
+        startProfileButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.profile_start"),
                 button -> FlightRecorderService.start()
-        ).bounds(centerX - 86, buttonY, 84, 20).build());
+        ).bounds(contentLeft + 90, panelTop + 272, 88, 20).build());
 
-        stopProfileButton = this.addRenderableWidget(Button.builder(
+        stopProfileButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.profile_stop"),
                 button -> FlightRecorderService.stopAndSave(Minecraft.getInstance().gameDirectory.toPath())
-        ).bounds(centerX + 2, buttonY, 84, 20).build());
+        ).bounds(contentLeft + 186, panelTop + 272, 96, 20).build());
 
-        this.addRenderableWidget(Button.builder(
+        profileButton = addRenderableWidget(Button.builder(
+                profileButtonLabel(),
+                button -> cycleOptimizationProfile()
+        ).bounds(contentLeft, panelTop + 105, 340, 22).build());
+
+        memoryGuardButton = addRenderableWidget(Button.builder(
+                memoryGuardLabel(),
+                button -> toggleMemoryGuard()
+        ).bounds(contentLeft, panelTop + 138, 340, 22).build());
+
+        detectModsButton = addRenderableWidget(Button.builder(
+                detectModsLabel(),
+                button -> {
+                    toggleConfig(FiximizerConfig.DETECT_COMPATIBLE_MODS);
+                    ModIntegrationManager.refresh();
+                    detectModsButton.setMessage(detectModsLabel());
+                }
+        ).bounds(contentLeft, panelTop + 105, 340, 22).build());
+
+        int integrationY = panelTop + 143;
+        integrationButtons.add(createIntegrationButton(
+                "screen.fiximizer.integration_create",
+                FiximizerConfig.ENABLE_CREATE_INTEGRATION,
+                "create",
+                integrationY
+        ));
+        integrationButtons.add(createIntegrationButton(
+                "screen.fiximizer.integration_aeronautics",
+                FiximizerConfig.ENABLE_AERONAUTICS_INTEGRATION,
+                "aeronautics_bundled",
+                integrationY + 27
+        ));
+        integrationButtons.add(createIntegrationButton(
+                "screen.fiximizer.integration_sable",
+                FiximizerConfig.ENABLE_SABLE_INTEGRATION,
+                "sable",
+                integrationY + 54
+        ));
+        integrationButtons.add(createIntegrationButton(
+                "screen.fiximizer.integration_dh",
+                FiximizerConfig.ENABLE_DH_INTEGRATION,
+                "distanthorizons",
+                integrationY + 81
+        ));
+        integrationButtons.add(createIntegrationButton(
+                "screen.fiximizer.integration_voxy",
+                FiximizerConfig.ENABLE_VOXY_INTEGRATION,
+                "voxy",
+                integrationY + 108
+        ));
+
+        copyJvmButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.jvm_copy"),
+                button -> copyJvmArguments()
+        ).bounds(contentLeft, panelTop + 198, 150, 22).build());
+
+        saveJvmButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.jvm_save"),
+                button -> saveJvmArguments()
+        ).bounds(contentLeft + 160, panelTop + 198, 180, 22).build());
+
+        addRenderableWidget(Button.builder(
                 Component.translatable("gui.done"),
-                button -> this.onClose()
-        ).bounds(centerX + 90, buttonY, 84, 20).build());
+                button -> onClose()
+        ).bounds(panelLeft + 456, panelTop + 312, 88, 20).build());
+
+        updateVisibility();
+    }
+
+    private Button createIntegrationButton(
+            String translationKey,
+            ModConfigSpec.BooleanValue setting,
+            String detectedModId,
+            int y
+    ) {
+        return addRenderableWidget(Button.builder(
+                integrationLabel(translationKey, setting),
+                button -> {
+                    toggleConfig(setting);
+                    ModIntegrationManager.refresh();
+                    button.setMessage(integrationLabel(translationKey, setting));
+                }
+        ).bounds(contentLeft + 222, y, 118, 20).build());
+    }
+
+    private Component integrationLabel(String translationKey, ModConfigSpec.BooleanValue setting) {
+        return Component.translatable(
+                "screen.fiximizer.integration_toggle",
+                Component.translatable(translationKey),
+                Component.translatable(setting.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private void selectTab(Tab tab) {
+        selectedTab = tab;
+        updateVisibility();
+    }
+
+    private void updateVisibility() {
+        for (int i = 0; i < tabButtons.size(); i++) {
+            tabButtons.get(i).active = i != selectedTab.ordinal();
+        }
+
+        boolean overview = selectedTab == Tab.OVERVIEW;
+        boolean performance = selectedTab == Tab.PERFORMANCE;
+        boolean integrations = selectedTab == Tab.INTEGRATIONS;
+        boolean jvm = selectedTab == Tab.JVM;
+
+        refreshButton.visible = overview;
+        startProfileButton.visible = overview;
+        stopProfileButton.visible = overview;
+        profileButton.visible = performance;
+        memoryGuardButton.visible = performance;
+        detectModsButton.visible = integrations;
+        copyJvmButton.visible = jvm;
+        saveJvmButton.visible = jvm;
+
+        for (Button button : integrationButtons) {
+            button.visible = integrations;
+        }
+
+        FlightRecorderService.State recorderState = FlightRecorderService.state();
+        startProfileButton.active = recorderState == FlightRecorderService.State.IDLE
+                || recorderState == FlightRecorderService.State.FAILED;
+        stopProfileButton.active = recorderState == FlightRecorderService.State.RECORDING;
+
+        updateIntegrationButtons();
+    }
+
+    private void updateIntegrationButtons() {
+        List<IntegrationStatus> statuses = ModIntegrationManager.statuses();
+        String[] targetIds = {"create", "aeronautics_bundled", "sable", "distanthorizons", "voxy"};
+
+        for (int i = 0; i < integrationButtons.size(); i++) {
+            String id = targetIds[i];
+            boolean installed = statuses.stream().anyMatch(status ->
+                    status.detected() && (status.detectedModId().equals(id)
+                            || (id.equals("aeronautics_bundled")
+                            && (status.detectedModId().equals("create_aeronautics")
+                            || status.detectedModId().equals("aeronautics")))));
+            integrationButtons.get(i).active = installed;
+        }
+    }
+
+    private void toggleMemoryGuard() {
+        FiximizerConfig.ENABLE_MEMORY_GUARD.set(!FiximizerConfig.ENABLE_MEMORY_GUARD.get());
+        FiximizerConfig.SPEC.save();
+        if (!FiximizerConfig.ENABLE_MEMORY_GUARD.get()) {
+            MemoryPressureController.reset();
+        } else {
+            DiagnosticsService.sampleNow();
+        }
+        memoryGuardButton.setMessage(memoryGuardLabel());
+    }
+
+    private void toggleConfig(ModConfigSpec.BooleanValue configValue) {
+        configValue.set(!configValue.get());
+        FiximizerConfig.SPEC.save();
     }
 
     private void cycleOptimizationProfile() {
-        Minecraft minecraft = Minecraft.getInstance();
-        Path configDirectory = minecraft.gameDirectory.toPath().resolve("config");
-
+        Path configDirectory = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
         if (OptimizationProfileManager.cycle(configDirectory)) {
             profileButton.setMessage(profileButtonLabel());
             DiagnosticsService.sampleNow();
@@ -86,144 +294,335 @@ public final class FiximizerScreen extends Screen {
         }
     }
 
+    private void copyJvmArguments() {
+        JvmArgumentAdvisor.Recommendation recommendation = JvmArgumentAdvisor.recommend();
+        Minecraft.getInstance().keyboardHandler.setClipboard(recommendation.arguments());
+        copyJvmButton.setMessage(Component.translatable("screen.fiximizer.jvm_copied"));
+    }
+
+    private void saveJvmArguments() {
+        try {
+            Path configDirectory = Minecraft.getInstance().gameDirectory.toPath().resolve("config");
+            Path output = JvmArgumentAdvisor.write(configDirectory);
+            saveJvmButton.setMessage(Component.translatable(
+                    "screen.fiximizer.jvm_saved",
+                    output.getFileName().toString()
+            ));
+        } catch (IOException exception) {
+            saveJvmButton.setMessage(Component.translatable("screen.fiximizer.jvm_save_failed"));
+        }
+    }
+
     private Component profileButtonLabel() {
         return Component.translatable(
                 "screen.fiximizer.profile_button",
-                Component.translatable(OptimizationProfileManager.current().translationKey())
+                Component.translatable(OptimizationProfileManager.selected().translationKey())
+        );
+    }
+
+    private Component memoryGuardLabel() {
+        return Component.translatable(
+                "screen.fiximizer.memory_guard_button",
+                Component.translatable(FiximizerConfig.ENABLE_MEMORY_GUARD.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component detectModsLabel() {
+        return Component.translatable(
+                "screen.fiximizer.detect_mods_button",
+                Component.translatable(FiximizerConfig.DETECT_COMPATIBLE_MODS.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
         );
     }
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(graphics, mouseX, mouseY, partialTick);
+        graphics.fill(0, 0, this.width, this.height, 0xE80B101B);
+        graphics.fill(panelLeft, panelTop, panelLeft + 560, panelTop + 350, 0xF0182233);
+        graphics.fill(panelLeft, panelTop, panelLeft + 560, panelTop + 3, 0xFF54B8CE);
+        graphics.fill(panelLeft + 150, panelTop + 48, panelLeft + 151, panelTop + 296, 0xFF34445C);
 
-        FlightRecorderService.State recorderState = FlightRecorderService.state();
-        startProfileButton.active = recorderState == FlightRecorderService.State.IDLE
-                || recorderState == FlightRecorderService.State.FAILED;
-        stopProfileButton.active = recorderState == FlightRecorderService.State.RECORDING;
+        graphics.drawString(this.font, Component.translatable("screen.fiximizer.title"),
+                panelLeft + 18, panelTop + 17, 0xFFFFFFFF);
+        graphics.drawString(this.font, Component.translatable("screen.fiximizer.brand_subtitle"),
+                panelLeft + 18, panelTop + 33, 0xFF9FB3C8);
 
-        int centerX = this.width / 2;
-        graphics.drawCenteredString(this.font, this.title, centerX, 14, 0xFFFFFF);
-        graphics.drawCenteredString(
-                this.font,
-                Component.translatable("screen.fiximizer.subtitle"),
-                centerX,
-                29,
-                0xA0A0A0
-        );
-        graphics.drawCenteredString(
-                this.font,
-                Component.translatable(OptimizationProfileManager.current().descriptionKey()),
-                centerX,
-                67,
-                0xC0C0C0
-        );
+        graphics.drawString(this.font, Component.translatable("screen.fiximizer.sidebar"),
+                panelLeft + 18, panelTop + 51, 0xFF7993B2);
 
-        DiagnosticsSnapshot snapshot = DiagnosticsService.latest();
-        int left = centerX - 190;
-        int y = 86;
-
-        if (!snapshot.hasSample()) {
-            drawLine(graphics, "screen.fiximizer.waiting_for_sample", left, y, 0xE0C060);
-            y += 13;
-        } else {
-            drawLine(graphics, "screen.fiximizer.heap_used", left, y, 0xFFFFFF,
-                    DiagnosticsService.formatBytes(snapshot.usedHeapBytes()),
-                    DiagnosticsService.formatBytes(snapshot.maxHeapBytes()),
-                    String.format(Locale.ROOT, "%.1f", snapshot.maxHeapUsagePercent()));
-            y += 13;
-
-            drawLine(graphics, "screen.fiximizer.heap_committed", left, y, 0xFFFFFF,
-                    DiagnosticsService.formatBytes(snapshot.committedHeapBytes()));
-            y += 13;
-
-            drawLine(graphics, "screen.fiximizer.runtime", left, y, 0xFFFFFF,
-                    snapshot.availableProcessors(), snapshot.loadedModCount());
-            y += 13;
-
-            drawLine(graphics, "screen.fiximizer.cpu", left, y, 0xFFFFFF,
-                    DiagnosticsService.formatPercent(snapshot.systemCpuLoad()),
-                    DiagnosticsService.formatPercent(snapshot.processCpuLoad()));
-            y += 13;
-
-            drawLine(graphics, "screen.fiximizer.threads", left, y, 0xFFFFFF,
-                    snapshot.activeThreadCount());
-            y += 14;
-        }
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.jfr", recorderLabel()),
-                left, y, recorderState == FlightRecorderService.State.RECORDING ? 0x80D080 : 0xC0C0C0);
-        y += 13;
-
-        SchedulerSnapshot scheduler = AdaptiveTaskScheduler.snapshot();
-        drawLine(graphics, "screen.fiximizer.scheduler", left, y, 0xFFFFFF,
-                scheduler.activeTasks(), scheduler.queuedTasks(),
-                scheduler.targetWorkers(), scheduler.maximumWorkers());
-        y += 14;
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.gpu", gpuLabel()),
-                left, y, 0xFFFFFF);
-        y += 13;
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.opencl", openClLabel()),
-                left, y, 0xFFFFFF);
-        y += 14;
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.hot_sections"),
-                left, y, 0x80C8FF);
-        y += 12;
-
-        List<ProfileSectionSnapshot> sections = SectionProfiler.topSections(3);
-        if (sections.isEmpty()) {
-            drawLine(graphics, "screen.fiximizer.no_sections", left, y, 0xA0A0A0);
-            y += 12;
-        } else {
-            for (ProfileSectionSnapshot section : sections) {
-                drawLine(graphics, "screen.fiximizer.section", left, y, 0xFFFFFF,
-                        section.name(),
-                        String.format(Locale.ROOT, "%.1f", section.totalMillis()),
-                        section.calls());
-                y += 12;
-            }
-        }
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.compatibility_header"),
-                left, y, 0x80C8FF);
-        y += 12;
-
-        if (!FiximizerConfig.DETECT_COMPATIBLE_MODS.get()) {
-            drawLine(graphics, "screen.fiximizer.compatibility_disabled", left, y, 0xA0A0A0);
-        } else {
-            List<IntegrationStatus> targets = CompatibilityDetector.detect();
-            for (IntegrationStatus target : targets) {
-                Component status = Component.translatable(
-                        target.detected()
-                                ? "screen.fiximizer.detected"
-                                : "screen.fiximizer.not_detected"
-                );
-                int color = target.detected() ? 0x80D080 : 0xA0A0A0;
-                graphics.drawString(this.font,
-                        Component.literal(target.displayName() + ": ").append(status),
-                        left, y, color);
-                y += 12;
-            }
-        }
+        drawCurrentTab(graphics);
 
         super.render(graphics, mouseX, mouseY, partialTick);
     }
 
-    private String recorderLabel() {
-        return switch (FlightRecorderService.state()) {
-            case IDLE -> FlightRecorderService.message();
-            case RECORDING -> FlightRecorderService.message() + " (" + FlightRecorderService.elapsedSeconds() + "s)";
-            case SAVING -> FlightRecorderService.message();
-            case FAILED -> FlightRecorderService.message();
-        };
+    private void drawCurrentTab(GuiGraphics graphics) {
+        switch (selectedTab) {
+            case OVERVIEW -> drawOverview(graphics);
+            case PERFORMANCE -> drawPerformance(graphics);
+            case INTEGRATIONS -> drawIntegrations(graphics);
+            case JVM -> drawJvm(graphics);
+        }
+    }
+
+    private void drawOverview(GuiGraphics graphics) {
+        DiagnosticsSnapshot snapshot = DiagnosticsService.latest();
+        int y = panelTop + 58;
+
+        drawSectionTitle(graphics, "screen.fiximizer.overview_title", y);
+        y += 25;
+
+        drawValue(graphics, "screen.fiximizer.heap",
+                DiagnosticsService.formatBytes(snapshot.usedHeapBytes()),
+                DiagnosticsService.formatBytes(snapshot.maxHeapBytes()),
+                String.format(Locale.ROOT, "%.1f", snapshot.maxHeapUsagePercent()),
+                y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.cpu",
+                DiagnosticsService.formatPercent(snapshot.systemCpuLoad()),
+                DiagnosticsService.formatPercent(snapshot.processCpuLoad()),
+                y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.threads",
+                snapshot.activeThreadCount(),
+                snapshot.loadedModCount(),
+                y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.profile_effective",
+                Component.translatable(OptimizationProfileManager.current().translationKey()),
+                y);
+        y += 21;
+
+        if (MemoryPressureController.active()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.memory_override",
+                            String.format(Locale.ROOT, "%.1f", MemoryPressureController.heapUsagePercent())),
+                    contentLeft,
+                    y,
+                    contentWidth - 8,
+                    0xFFFFB85C);
+            y += 30;
+        } else {
+            drawValue(graphics, "screen.fiximizer.memory_guard_status",
+                    Component.translatable("screen.fiximizer.normal"),
+                    y);
+            y += 21;
+        }
+
+        drawValue(graphics, "screen.fiximizer.gpu", gpuLabel(), y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.opencl", openClLabel(), y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.jfr", recorderLabel(), y);
+        y += 21;
+
+        drawValue(graphics, "screen.fiximizer.integrations",
+                ModIntegrationManager.activeCount(),
+                CompatibilityDetector.targetCount(),
+                y);
+        y += 18;
+
+        SchedulerSnapshot scheduler = AdaptiveTaskScheduler.snapshot();
+        drawValue(graphics, "screen.fiximizer.scheduler",
+                scheduler.activeTasks(),
+                scheduler.queuedTasks(),
+                scheduler.targetWorkers(),
+                scheduler.maximumWorkers(),
+                y);
+    }
+
+    private void drawPerformance(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.performance_title", panelTop + 60);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.performance_intro"),
+                contentLeft,
+                panelTop + 82,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.selected_profile",
+                        Component.translatable(OptimizationProfileManager.selected().translationKey())),
+                contentLeft,
+                panelTop + 160,
+                contentWidth - 8,
+                0xFFFFFFFF);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.effective_profile",
+                        Component.translatable(OptimizationProfileManager.current().translationKey())),
+                contentLeft,
+                panelTop + 179,
+                contentWidth - 8,
+                MemoryPressureController.active() ? 0xFFFFB85C : 0xFF9BD9B0);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory_guard_help",
+                        FiximizerConfig.MEMORY_PRESSURE_THRESHOLD.get(),
+                        FiximizerConfig.MEMORY_RECOVERY_THRESHOLD.get()),
+                contentLeft,
+                panelTop + 219,
+                contentWidth - 8,
+                0xFF9FB3C8);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.memory_guard_reason",
+                        MemoryPressureController.reason()),
+                contentLeft,
+                panelTop + 248,
+                contentWidth - 8,
+                0xFF9FB3C8);
+    }
+
+    private void drawIntegrations(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.integrations_title", panelTop + 60);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.integrations_intro"),
+                contentLeft,
+                panelTop + 82,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        int y = panelTop + 136;
+        List<IntegrationStatus> statuses = ModIntegrationManager.statuses();
+
+        if (statuses.isEmpty()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.integrations_detection_disabled"),
+                    contentLeft,
+                    y,
+                    contentWidth - 8,
+                    0xFFFFB85C);
+            return;
+        }
+
+        for (IntegrationStatus status : statuses) {
+            Component state;
+            int color;
+            if (!status.detected()) {
+                state = Component.translatable("screen.fiximizer.not_installed");
+                color = 0xFF8998AA;
+            } else if (status.active()) {
+                state = Component.translatable("screen.fiximizer.installed_enabled",
+                        status.detectedModId(), status.version());
+                color = 0xFF9BD9B0;
+            } else {
+                state = Component.translatable("screen.fiximizer.installed_disabled",
+                        status.detectedModId(), status.version());
+                color = 0xFFFFB85C;
+            }
+
+            graphics.fill(contentLeft, y - 3, contentLeft + 340, y + 20, 0xFF202E40);
+            graphics.fill(contentLeft, y - 3, contentLeft + 3, y + 20,
+                    status.active() ? 0xFF68CB91 : status.detected() ? 0xFFE5AD54 : 0xFF536176);
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.integration_status",
+                            status.displayName(), state),
+                    contentLeft + 10,
+                    y + 3,
+                    205,
+                    color);
+            y += 27;
+        }
+    }
+
+    private void drawJvm(GuiGraphics graphics) {
+        JvmArgumentAdvisor.Recommendation recommendation = JvmArgumentAdvisor.recommend();
+        drawSectionTitle(graphics, "screen.fiximizer.jvm_title", panelTop + 60);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.jvm_intro"),
+                contentLeft,
+                panelTop + 82,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        drawValue(graphics, "screen.fiximizer.jvm_ram",
+                DiagnosticsService.formatBytes(recommendation.physicalMemoryBytes()),
+                panelTop + 126);
+        drawValue(graphics, "screen.fiximizer.jvm_mods",
+                recommendation.loadedModCount(),
+                panelTop + 148);
+
+        graphics.fill(contentLeft, panelTop + 174, contentLeft + 340, panelTop + 191, 0xFF101A28);
+        drawWrapped(graphics, Component.literal(recommendation.arguments()),
+                contentLeft + 8, panelTop + 178, 324, 0xFF8FD8E8);
+
+        drawWrapped(graphics, Component.literal(recommendation.note()),
+                contentLeft,
+                panelTop + 229,
+                contentWidth - 8,
+                0xFF9FB3C8);
+
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.jvm_restart_note"),
+                contentLeft,
+                panelTop + 259,
+                contentWidth - 8,
+                0xFFFFC078);
+    }
+
+    private void drawSectionTitle(GuiGraphics graphics, String key, int y) {
+        graphics.drawString(this.font, Component.translatable(key), contentLeft, y, 0xFF8FD8E8);
+    }
+
+    private void drawValue(GuiGraphics graphics, String key, Object first, int y) {
+        drawWrapped(graphics, Component.translatable(key, first), contentLeft, y,
+                contentWidth - 8, 0xFFFFFFFF);
+    }
+
+    private void drawValue(GuiGraphics graphics, String key, Object first, Object second, int y) {
+        drawWrapped(graphics, Component.translatable(key, first, second), contentLeft, y,
+                contentWidth - 8, 0xFFFFFFFF);
+    }
+
+    private void drawValue(
+            GuiGraphics graphics,
+            String key,
+            Object first,
+            Object second,
+            Object third,
+            int y
+    ) {
+        drawWrapped(graphics, Component.translatable(key, first, second, third), contentLeft, y,
+                contentWidth - 8, 0xFFFFFFFF);
+    }
+
+    private void drawValue(
+            GuiGraphics graphics,
+            String key,
+            Object first,
+            Object second,
+            Object third,
+            Object fourth,
+            int y
+    ) {
+        drawWrapped(graphics, Component.translatable(key, first, second, third, fourth),
+                contentLeft, y, contentWidth - 8, 0xFFFFFFFF);
+    }
+
+    private void drawWrapped(
+            GuiGraphics graphics,
+            Component component,
+            int x,
+            int y,
+            int maxWidth,
+            int color
+    ) {
+        List<net.minecraft.util.FormattedCharSequence> lines = this.font.split(component, maxWidth);
+        int lineY = y;
+        for (net.minecraft.util.FormattedCharSequence line : lines) {
+            graphics.drawString(this.font, line, x, lineY, color);
+            lineY += 10;
+        }
     }
 
     private String gpuLabel() {
@@ -241,10 +640,10 @@ public final class FiximizerScreen extends Screen {
 
     private String openClLabel() {
         if (!OptimizationProfileManager.current().openClAllowed()) {
-            return "disabled by selected profile";
+            return "disabled by effective profile";
         }
         if (!FiximizerConfig.ENABLE_OPENCL_PROBE.get()) {
-            return "disabled";
+            return "disabled in config";
         }
         if (!OpenClService.checked()) {
             return "checking...";
@@ -252,20 +651,17 @@ public final class FiximizerScreen extends Screen {
         if (OpenClService.devices().isEmpty()) {
             return OpenClService.status();
         }
-
-        return OpenClService.devices().get(0).name()
+        return OpenClService.devices().getFirst().name()
                 + " (" + OpenClService.devices().size() + " GPU device(s))";
     }
 
-    private void drawLine(
-            GuiGraphics graphics,
-            String translationKey,
-            int x,
-            int y,
-            int color,
-            Object... arguments
-    ) {
-        graphics.drawString(this.font, Component.translatable(translationKey, arguments), x, y, color);
+    private String recorderLabel() {
+        return switch (FlightRecorderService.state()) {
+            case IDLE -> FlightRecorderService.message();
+            case RECORDING -> FlightRecorderService.message() + " (" + FlightRecorderService.elapsedSeconds() + "s)";
+            case SAVING -> FlightRecorderService.message();
+            case FAILED -> FlightRecorderService.message();
+        };
     }
 
     @Override

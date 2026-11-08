@@ -1,23 +1,24 @@
 package com.makakaiglitch.fiximizer.compat;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 public final class CompatibilityDetector {
     private static final List<Target> TARGETS = List.of(
-            new Target("Create", List.of("create")),
-            // The official NeoForge bundled distribution declares aeronautics_bundled.
-            // Aliases keep detection tolerant of repackaged distributions.
+            new Target("Create", List.of("create"), FiximizerConfig.ENABLE_CREATE_INTEGRATION::get),
             new Target("Create Aeronautics", List.of(
                     "aeronautics_bundled",
                     "create_aeronautics",
                     "aeronautics"
-            )),
-            new Target("Sable", List.of("sable")),
-            new Target("Distant Horizons", List.of("distanthorizons")),
-            new Target("Voxy", List.of("voxy"))
+            ), FiximizerConfig.ENABLE_AERONAUTICS_INTEGRATION::get),
+            new Target("Sable", List.of("sable"), FiximizerConfig.ENABLE_SABLE_INTEGRATION::get),
+            new Target("Distant Horizons", List.of("distanthorizons"), FiximizerConfig.ENABLE_DH_INTEGRATION::get),
+            new Target("Voxy", List.of("voxy"), FiximizerConfig.ENABLE_VOXY_INTEGRATION::get)
     );
 
     private CompatibilityDetector() {
@@ -34,16 +35,57 @@ public final class CompatibilityDetector {
 
         ModList modList = ModList.get();
         return TARGETS.stream()
-                .map(target -> new IntegrationStatus(
-                        target.displayName(),
-                        target.modIds().stream()
-                                .filter(modList::isLoaded)
-                                .findFirst()
-                                .orElse(null)
-                ))
+                .map(target -> detectTarget(modList, target))
                 .toList();
     }
 
-    private record Target(String displayName, List<String> modIds) {
+    public static boolean isInstalled(String modId) {
+        return modId != null && ModList.get().isLoaded(modId);
+    }
+
+    public static boolean runOnlyWhenInstalled(String modId, java.util.function.Consumer<ModContainer> action) {
+        Optional<? extends ModContainer> container = ModList.get().getModContainerById(modId);
+        if (container.isEmpty()) {
+            return false;
+        }
+
+        action.accept(container.get());
+        return true;
+    }
+
+    public static boolean integrationEnabled(String detectedModId) {
+        if (detectedModId == null) {
+            return false;
+        }
+
+        return TARGETS.stream()
+                .filter(target -> target.modIds().contains(detectedModId))
+                .findFirst()
+                .map(target -> target.enabled().get())
+                .orElse(false);
+    }
+
+    private static IntegrationStatus detectTarget(ModList modList, Target target) {
+        for (String modId : target.modIds()) {
+            Optional<? extends ModContainer> container = modList.getModContainerById(modId);
+            if (container.isPresent()) {
+                String version = container.get().getModInfo().getVersion().toString();
+                return new IntegrationStatus(
+                        target.displayName(),
+                        modId,
+                        version,
+                        target.enabled().get()
+                );
+            }
+        }
+
+        return new IntegrationStatus(target.displayName(), null, null, target.enabled().get());
+    }
+
+    private record Target(
+            String displayName,
+            List<String> modIds,
+            Supplier<Boolean> enabled
+    ) {
     }
 }

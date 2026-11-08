@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.diagnostics;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
+import com.makakaiglitch.fiximizer.scheduler.MemoryPressureController;
 import net.neoforged.fml.ModList;
 
 import java.lang.management.ManagementFactory;
@@ -16,7 +17,8 @@ public final class DiagnosticsService {
     }
 
     public static void tick() {
-        if (!FiximizerConfig.ENABLE_DIAGNOSTICS.get()) {
+        if (!FiximizerConfig.ENABLE_DIAGNOSTICS.get()
+                && !FiximizerConfig.ENABLE_MEMORY_GUARD.get()) {
             return;
         }
 
@@ -40,7 +42,6 @@ public final class DiagnosticsService {
         java.lang.management.OperatingSystemMXBean baseBean =
                 ManagementFactory.getOperatingSystemMXBean();
 
-        // The com.sun management extension is included in the Java 21 runtime used by Minecraft.
         if (baseBean instanceof com.sun.management.OperatingSystemMXBean extendedBean) {
             systemCpuLoad = extendedBean.getCpuLoad();
             processCpuLoad = extendedBean.getProcessCpuLoad();
@@ -60,6 +61,7 @@ public final class DiagnosticsService {
                 processCpuLoad
         );
 
+        MemoryPressureController.sample(used, runtime.maxMemory());
         AdaptiveTaskScheduler.adaptToCpuLoad(systemCpuLoad);
     }
 
