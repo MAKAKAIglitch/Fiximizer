@@ -125,11 +125,13 @@ Prioritize one measured bottleneck at a time. Candidate areas include:
 
 ##### Deduplicate immutable data
 
-- Prototype content-based canonicalization for high-frequency immutable values such as strings, resource identifiers, and other proven flyweight candidates.
+- [x] Add an opt-in bounded weak-reference String canonicalization API for explicitly submitted immutable integration metadata. The initial adapter is intentionally low-volume; this is not yet a pack-wide RAM optimization.
+- [ ] Expand canonicalization to resource identifiers and other high-frequency immutable values only after a real workload profile proves enough duplicate data to offset lookup and table costs.
 - Investigate NBT data at the tag/value level. Share only values and structures that are demonstrably immutable; do not share mutable compounds, lists, or backing arrays without copy-on-write or another explicit ownership model.
 - Investigate duplicate baked model data, vertex arrays, BakedQuad data, and VoxelShape-related structures. Share them only where the relevant API and every participating mod treat the data as immutable.
 - Use a hash as a lookup accelerator, then verify full content equality before reusing an object. A hash match alone is never sufficient.
-- Compare custom string canonicalization with JVM-provided G1 String Deduplication. Prefer the built-in JVM mechanism when it already addresses the measured case; expose a JVM Advisor recommendation rather than duplicating its work blindly.
+- [x] Add an opt-in JVM Advisor recommendation for G1 String Deduplication, guarded by detection of the active G1 collector and an explicit restart warning.
+- [ ] Benchmark JVM-provided G1 String Deduplication against custom adapters. Prefer the built-in JVM mechanism when it already addresses the measured case; do not duplicate its work blindly.
 
 ##### Store data more compactly
 
