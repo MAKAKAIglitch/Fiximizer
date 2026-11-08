@@ -14,8 +14,9 @@ class RuntimeMemoryCapabilitiesTest {
                 System.getProperty("java.specification.version", ""));
 
         assertEquals(expectedMajor, runtime.javaMajor());
+        String vmName = System.getProperty("java.vm.name", "").toLowerCase();
         if (expectedMajor >= 25
-                && System.getProperty("java.vm.name", "").toLowerCase().contains("hotspot")) {
+                && (vmName.contains("hotspot") || vmName.contains("openjdk"))) {
             assertTrue(runtime.compactObjectHeadersSupported(),
                     "HotSpot JDK 25+ should expose the Compact Object Headers product option");
         }
