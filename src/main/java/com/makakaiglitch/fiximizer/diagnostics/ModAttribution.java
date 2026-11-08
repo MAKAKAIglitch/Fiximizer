@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.lang.management.ThreadInfo;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,7 +31,7 @@ import net.neoforged.neoforgespi.language.IModInfo;
 public final class ModAttribution {
     private static final Pattern TRANSFORMER = Pattern.compile(
             "(?:TRANSFORMER|LAYER SERVICE)/([A-Za-z0-9_.-]+)@[^/]+/");
-    private static final int MAX_INDEXED_CLASSES = 400_000;
+    private static final int MAX_INDEXED_CLASSES = 250_000;
     private static volatile Index cachedIndex;
 
     private ModAttribution() {
@@ -351,7 +350,7 @@ public final class ModAttribution {
         }
 
         private int score() {
-            return topTriggerFrames * 8 + triggerFrames * 3 + otherThreadFrames;
+            return topTriggerFrames * 100 + triggerFrames * 10 + Math.min(otherThreadFrames, 50);
         }
 
         private Evidence freeze() {

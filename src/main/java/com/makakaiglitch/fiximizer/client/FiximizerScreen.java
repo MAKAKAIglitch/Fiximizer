@@ -1208,7 +1208,8 @@ public final class FiximizerScreen extends Screen {
             case SAVING -> FlightRecorderService.message();
             case FAILED -> FlightRecorderService.message();
         };
-        return manualStatus + " | ring: " + FlightRecorderService.rollingStatus();
+        return manualStatus + " | ring " + Component.translatable(FlightRecorderService.rollingActive()
+                ? "screen.fiximizer.enabled" : "screen.fiximizer.disabled").getString();
     }
 
     @Override

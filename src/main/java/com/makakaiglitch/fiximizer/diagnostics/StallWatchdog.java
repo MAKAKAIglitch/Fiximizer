@@ -244,6 +244,10 @@ public final class StallWatchdog {
         long[] ids = selectedIds.stream().mapToLong(Long::longValue).toArray();
         ThreadInfo[] threadInfos = THREADS.getThreadInfo(
                 ids, FiximizerConfig.STALL_STACK_DEPTH.get());
+        int capturedThreadCount = 0;
+        for (ThreadInfo info : threadInfos) {
+            if (info != null) capturedThreadCount++;
+        }
 
         long[] deadlockedIds = null;
         ThreadInfo[] deadlockedInfos = new ThreadInfo[0];
@@ -295,6 +299,7 @@ public final class StallWatchdog {
                 processCpuLoad,
                 List.copyOf(gcReadings),
                 threadInfos,
+                capturedThreadCount,
                 deadlockedIds == null ? new long[0] : deadlockedIds,
                 deadlockedInfos,
                 deadlockStatus,
@@ -426,7 +431,7 @@ public final class StallWatchdog {
             }
         }
         report.append("\nCaptured threads: ")
-                .append(snapshot.threadInfos.length).append("/")
+                .append(snapshot.capturedThreadCount).append("/")
                 .append(snapshot.liveThreadCount).append(" live thread(s)");
         if (snapshot.threadLimitReached) {
             report.append(" (limit ").append(MAX_CAPTURED_THREADS).append(")");
@@ -549,6 +554,7 @@ public final class StallWatchdog {
             double processCpuLoad,
             List<GcReading> gcReadings,
             ThreadInfo[] threadInfos,
+            int capturedThreadCount,
             long[] deadlockedThreadIds,
             ThreadInfo[] deadlockedInfos,
             String deadlockStatus,

@@ -45,6 +45,7 @@ public final class FlightRecorderService {
 
     private static Recording rollingRecording;
     private static volatile String rollingStatus = "Not started";
+    private static volatile boolean rollingActive;
     private static long lastRollingStartAttemptNanos;
     private static long lastRollingDumpNanos;
 
@@ -90,12 +91,14 @@ public final class FlightRecorderService {
             next.start();
 
             rollingRecording = next;
+            rollingActive = true;
             lastRollingDumpNanos = 0L;
             rollingStatus = "Active (up to " + windowSeconds + "s / " + maxSizeMiB + " MiB)";
             Fiximizer.LOGGER.info("JFR rolling stall buffer started (maxAge={}s, maxSize={}MiB).",
                     windowSeconds, maxSizeMiB);
         } catch (IOException | ParseException | RuntimeException | LinkageError exception) {
             rollingRecording = null;
+            rollingActive = false;
             rollingStatus = "Unavailable: " + safeMessage(exception);
             Fiximizer.LOGGER.warn(
                     "Could not start the rolling JFR buffer; text and thread diagnostics remain available.",
@@ -189,6 +192,7 @@ public final class FlightRecorderService {
     private static synchronized void closeRollingBuffer() {
         Recording recording = rollingRecording;
         rollingRecording = null;
+        rollingActive = false;
         if (recording == null) {
             return;
         }
@@ -288,6 +292,10 @@ public final class FlightRecorderService {
 
     public static String rollingStatus() {
         return rollingStatus;
+    }
+
+    public static boolean rollingActive() {
+        return rollingActive;
     }
 
     public static String lastSavedFile() {
