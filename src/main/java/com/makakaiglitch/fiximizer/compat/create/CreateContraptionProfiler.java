@@ -5,9 +5,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.IdentityHashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
@@ -25,7 +23,7 @@ public final class CreateContraptionProfiler {
     private static final RollingTickWindow WINDOW = new RollingTickWindow(WINDOW_TICKS);
     private static final ThreadLocal<IdentityHashMap<Entity, Long>> START_TIMES =
             ThreadLocal.withInitial(IdentityHashMap::new);
-    private static final Map<String, TypeCounter> TYPE_COUNTERS = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, TypeCounter> TYPE_COUNTERS = new ConcurrentHashMap<>();
 
     private static final ClassValue<Boolean> CREATE_CONTRAPTION_CLASS = new ClassValue<>() {
         @Override
@@ -80,6 +78,8 @@ public final class CreateContraptionProfiler {
     public static void endServerTick() {
         START_TIMES.get().clear();
         if (!ModIntegrationManager.isActive("create")) {
+            WINDOW.reset();
+            TYPE_COUNTERS.clear();
             latest = Snapshot.empty();
             return;
         }
@@ -95,7 +95,7 @@ public final class CreateContraptionProfiler {
                 window.averageMillisPerEntityTick(),
                 window.peakEntityTickMillis(),
                 top.name(),
-                top.totalMillis()
+                top.totalNanos() / 1_000_000.0
         );
     }
 
@@ -114,8 +114,7 @@ public final class CreateContraptionProfiler {
         TypeCounter counter = TYPE_COUNTERS.get(typeName);
         if (counter == null && TYPE_COUNTERS.size() < MAX_ENTITY_TYPES) {
             TypeCounter candidate = new TypeCounter();
-            TypeCounter existing = ((ConcurrentHashMap<String, TypeCounter>) TYPE_COUNTERS)
-                    .putIfAbsent(typeName, candidate);
+            TypeCounter existing = TYPE_COUNTERS.putIfAbsent(typeName, candidate);
             counter = existing == null ? candidate : existing;
         }
         if (counter != null) {
@@ -127,8 +126,7 @@ public final class CreateContraptionProfiler {
         return TYPE_COUNTERS.entrySet().stream()
                 .map(entry -> new TypeEntry(entry.getKey(), entry.getValue().totalNanos.sum()))
                 .max(java.util.Comparator.comparingLong(TypeEntry::totalNanos))
-                .map(entry -> new TypeEntry(entry.name(), entry.totalNanos() / 1_000_000.0))
-                .orElse(new TypeEntry("n/a", 0.0));
+                .orElse(new TypeEntry("n/a", 0L));
     }
 
     public record Snapshot(
@@ -149,21 +147,14 @@ public final class CreateContraptionProfiler {
         }
     }
 
-    private record TypeEntry(String name, double totalMillis) {
-        private long totalNanos() {
-            return (long) (totalMillis * 1_000_000.0);
-        }
+    private record TypeEntry(String name, long totalNanos) {
     }
 
     private static final class TypeCounter {
         private final LongAdder totalNanos = new LongAdder();
-        private final LongAdder calls = new LongAdder();
-        private final AtomicLong maximumNanos = new AtomicLong();
 
         private void record(long elapsedNanos) {
             totalNanos.add(elapsedNanos);
-            calls.increment();
-            maximumNanos.accumulateAndGet(elapsedNanos, Math::max);
         }
     }
 }
