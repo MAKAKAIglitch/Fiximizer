@@ -15,11 +15,18 @@ import java.util.stream.Collectors;
 public final class ModIntegrationManager {
     private static volatile List<IntegrationStatus> statuses = List.of();
     private static volatile Set<String> activeModIds = Set.of();
+    private static volatile boolean initialized;
 
     private ModIntegrationManager() {
     }
 
+    /**
+     * Called after the client reaches a stable title screen/world, or directly
+     * when the user explicitly requests a refresh from the dashboard.
+     */
     public static synchronized void refresh() {
+        initialized = false;
+
         List<IntegrationStatus> detected = CompatibilityDetector.detect();
         Set<String> active = detected.stream()
                 .filter(IntegrationStatus::active)
@@ -28,6 +35,7 @@ public final class ModIntegrationManager {
 
         statuses = detected;
         activeModIds = active;
+        initialized = true;
 
         for (IntegrationStatus status : detected) {
             if (status.active()) {
@@ -38,6 +46,10 @@ public final class ModIntegrationManager {
                 );
             }
         }
+    }
+
+    public static boolean isInitialized() {
+        return initialized;
     }
 
     /**
