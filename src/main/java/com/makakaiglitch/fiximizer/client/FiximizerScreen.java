@@ -3,6 +3,8 @@ package com.makakaiglitch.fiximizer.client;
 import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
 import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
 import com.makakaiglitch.fiximizer.compat.create.CreateContraptionProfiler;
+import com.makakaiglitch.fiximizer.compat.sable.RollingPhysicsWindow;
+import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
@@ -39,6 +41,7 @@ public final class FiximizerScreen extends Screen {
         OVERVIEW,
         PERFORMANCE,
         INTEGRATIONS,
+        PHYSICS,
         JVM,
         GPU
     }
@@ -101,14 +104,19 @@ public final class FiximizerScreen extends Screen {
         ).bounds(navX, navY + 56, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_physics"),
+                button -> selectTab(Tab.PHYSICS)
+        ).bounds(navX, navY + 84, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_jvm"),
                 button -> selectTab(Tab.JVM)
-        ).bounds(navX, navY + 84, navWidth, 22).build()));
+        ).bounds(navX, navY + 112, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_gpu"),
                 button -> selectTab(Tab.GPU)
-        ).bounds(navX, navY + 112, navWidth, 22).build()));
+        ).bounds(navX, navY + 140, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -268,6 +276,7 @@ public final class FiximizerScreen extends Screen {
         boolean overview = selectedTab == Tab.OVERVIEW;
         boolean performance = selectedTab == Tab.PERFORMANCE;
         boolean integrations = selectedTab == Tab.INTEGRATIONS;
+        boolean physics = selectedTab == Tab.PHYSICS;
         boolean jvm = selectedTab == Tab.JVM;
         boolean gpu = selectedTab == Tab.GPU;
 
@@ -432,6 +441,7 @@ public final class FiximizerScreen extends Screen {
             case OVERVIEW -> drawOverview(graphics);
             case PERFORMANCE -> drawPerformance(graphics);
             case INTEGRATIONS -> drawIntegrations(graphics);
+            case PHYSICS -> drawPhysics(graphics);
             case JVM -> drawJvm(graphics);
             case GPU -> drawGpu(graphics);
         }
@@ -603,21 +613,52 @@ public final class FiximizerScreen extends Screen {
             y += 27;
         }
 
-        IntegrationStatus createStatus = statuses.stream()
-                .filter(status -> "create".equals(status.detectedModId())
-                        || "Create".equals(status.displayName()))
-                .findFirst()
-                .orElse(null);
-        if (createStatus != null && createStatus.detected()) {
-            drawCreateProfiler(graphics, createStatus);
-        }
     }
 
-    private void drawCreateProfiler(GuiGraphics graphics, IntegrationStatus status) {
-        int y = panelTop + 281;
-        drawSectionTitle(graphics, "screen.fiximizer.create_profiler_title", y);
-        y += 16;
+    private void drawPhysics(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.physics_title", panelTop + 58);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.physics_intro"),
+                contentLeft,
+                panelTop + 80,
+                contentWidth - 8,
+                0xFFB9C9DC);
 
+        List<IntegrationStatus> statuses = ModIntegrationManager.statuses();
+        IntegrationStatus createStatus = findIntegrationStatus(statuses, "create");
+        IntegrationStatus sableStatus = findIntegrationStatus(statuses, "sable");
+
+        int y = panelTop + 126;
+        drawSectionTitle(graphics, "screen.fiximizer.create_profiler_title", y);
+        y += 18;
+        drawCreateProfiler(graphics, createStatus, y);
+
+        y = panelTop + 217;
+        drawSectionTitle(graphics, "screen.fiximizer.sable_profiler_title", y);
+        y += 18;
+        drawSableProfiler(graphics, sableStatus, y);
+    }
+
+    private IntegrationStatus findIntegrationStatus(List<IntegrationStatus> statuses, String modId) {
+        return statuses.stream()
+                .filter(status -> modId.equals(status.detectedModId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void drawCreateProfiler(GuiGraphics graphics, IntegrationStatus status, int y) {
+        if (status == null) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.profiler_detection_unavailable"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+        if (!status.detected()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.profiler_mod_missing"),
+                    contentLeft, y, 0xFF8998AA);
+            return;
+        }
         if (!status.active()) {
             graphics.drawString(this.font,
                     Component.translatable("screen.fiximizer.create_profiler_inactive"),
@@ -632,7 +673,6 @@ public final class FiximizerScreen extends Screen {
                     contentLeft, y, 0xFF9FB3C8);
             return;
         }
-
         if (snapshot.contraptionEntityTicks() == 0L) {
             graphics.drawString(this.font,
                     Component.translatable("screen.fiximizer.create_profiler_no_entities",
@@ -646,19 +686,71 @@ public final class FiximizerScreen extends Screen {
                         snapshot.contraptionEntityTicks(),
                         String.format(Locale.ROOT, "%.3f", snapshot.averageMillisPerServerTick())),
                 contentLeft, y, 0xFFFFFFFF);
-        y += 13;
-
+        y += 15;
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.create_profiler_timing",
                         String.format(Locale.ROOT, "%.3f", snapshot.averageMillisPerEntityTick()),
                         String.format(Locale.ROOT, "%.3f", snapshot.peakEntityTickMillis())),
                 contentLeft, y, 0xFFB9C9DC);
-        y += 13;
-
+        y += 15;
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.create_profiler_top",
                         snapshot.topEntityType(),
                         String.format(Locale.ROOT, "%.1f", snapshot.topEntityTotalMillis())),
+                contentLeft, y, 0xFF9BD9B0);
+    }
+
+    private void drawSableProfiler(GuiGraphics graphics, IntegrationStatus status, int y) {
+        if (status == null) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.profiler_detection_unavailable"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+        if (!status.detected()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.profiler_mod_missing"),
+                    contentLeft, y, 0xFF8998AA);
+            return;
+        }
+        if (!status.active()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.sable_profiler_inactive"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+        if (!SablePhysicsProfiler.available()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.sable_profiler_api_unavailable"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+
+        RollingPhysicsWindow.Snapshot snapshot = SablePhysicsProfiler.latest();
+        if (!snapshot.hasSamples()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.sable_profiler_waiting"),
+                    contentLeft, y, 0xFF9FB3C8);
+            return;
+        }
+
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.sable_profiler_stats",
+                        snapshot.physicsSteps(),
+                        String.format(Locale.ROOT, "%.3f", snapshot.averageSubstepMillis())),
+                contentLeft, y, 0xFFFFFFFF);
+        y += 15;
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.sable_profiler_window",
+                        String.format(Locale.ROOT, "%.1f", snapshot.totalWindowMillis()),
+                        String.format(Locale.ROOT, "%.3f", snapshot.peakSubstepMillis()),
+                        snapshot.dimensionCount()),
+                contentLeft, y, 0xFFB9C9DC);
+        y += 15;
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.sable_profiler_top",
+                        snapshot.topDimension(),
+                        String.format(Locale.ROOT, "%.1f", snapshot.topDimensionMillis())),
                 contentLeft, y, 0xFF9BD9B0);
     }
 
