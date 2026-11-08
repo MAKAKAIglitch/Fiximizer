@@ -13,6 +13,7 @@ public final class NetworkBackendSelector {
 
     private static final AtomicBoolean STARTED = new AtomicBoolean();
     private static final AtomicBoolean RUNNING = new AtomicBoolean();
+    private static final AtomicBoolean RESELECT_PENDING = new AtomicBoolean();
     private static volatile Backend selected = Backend.JAVA;
     private static volatile RustNetworkBackend rustBackend;
     private static volatile String status = "Java backend (not benchmarked)";
@@ -70,8 +71,19 @@ public final class NetworkBackendSelector {
         }
 
         if (requested == 2) {
+            long[] probeInput = {9L, 1L, 5L, 3L, 7L};
+            long[] javaOutput = new long[3];
+            long[] rustOutput = new long[3];
+            boolean javaValid = NetworkStatistics.summarizeJava(probeInput, javaOutput);
+            boolean rustValid = rustBackend.summarize(probeInput, rustOutput);
+            if (!javaValid || !rustValid || !Arrays.equals(javaOutput, rustOutput)) {
+                selected = Backend.JAVA;
+                status = "Rust validation failed; using Java fallback";
+                rustBackend = null;
+                return;
+            }
             selected = Backend.RUST;
-            status = "Rust backend selected manually";
+            status = "Rust backend selected manually and validated";
             return;
         }
         benchmarkAndSelect();
