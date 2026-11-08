@@ -11,9 +11,11 @@ import java.lang.management.ManagementFactory;
  */
 public final class MemoryPressureController {
     private static final double CRITICAL_HEAP_USAGE = 0.96;
-    private static final double CRITICAL_PHYSICAL_FREE = 0.035;
+    private static final double CRITICAL_PHYSICAL_FREE = 0.02;
+    private static final double LOW_PHYSICAL_FREE = 0.035;
     private static final double RECOVERY_PHYSICAL_FREE = 0.12;
     private static final long MIN_PHYSICAL_FREE_BYTES = 768L * 1024L * 1024L;
+    private static final long CRITICAL_PHYSICAL_FREE_BYTES = 384L * 1024L * 1024L;
 
     private static int highPressureSamples;
     private static int recoverySamples;
@@ -55,25 +57,30 @@ public final class MemoryPressureController {
 
         boolean lowPhysicalMemory = freePhysicalBytes >= 0L
                 && (freePhysicalBytes < MIN_PHYSICAL_FREE_BYTES
-                || (physicalFreePercent >= 0.0 && physicalFreePercent <= CRITICAL_PHYSICAL_FREE * 100.0));
+                || (physicalFreePercent >= 0.0 && physicalFreePercent <= LOW_PHYSICAL_FREE * 100.0));
+
+        boolean criticalPhysicalMemory = freePhysicalBytes >= 0L
+                && (freePhysicalBytes < CRITICAL_PHYSICAL_FREE_BYTES
+                || (physicalFreePercent >= 0.0
+                && physicalFreePercent <= CRITICAL_PHYSICAL_FREE * 100.0));
 
         boolean critical = heapUsagePercent >= CRITICAL_HEAP_USAGE * 100.0
-                || (lowPhysicalMemory && heapUsagePercent >= highThreshold - 8.0);
+                || criticalPhysicalMemory;
 
-        boolean high = heapUsagePercent >= highThreshold
-                || (lowPhysicalMemory && heapUsagePercent >= highThreshold - 5.0);
+        // System-wide RAM pressure is a valid trigger even when allocations came from native/off-heap memory.
+        boolean high = heapUsagePercent >= highThreshold || lowPhysicalMemory;
 
         if (!memoryPressure) {
             recoverySamples = 0;
             if (critical) {
-                activate(lowPhysicalMemory
-                        ? "Critical free system memory and high Java heap usage"
+                activate(criticalPhysicalMemory
+                        ? "Critically low available physical memory"
                         : "Java heap usage reached the critical threshold");
             } else if (high) {
                 highPressureSamples++;
                 if (highPressureSamples >= 3) {
-                    activate(lowPhysicalMemory
-                            ? "Low free system memory for several samples"
+                    activate(lowPhysicalMemory && heapUsagePercent < highThreshold
+                            ? "Available physical memory stayed critically low for several samples"
                             : "Java heap remained above the memory threshold");
                 }
             } else {
