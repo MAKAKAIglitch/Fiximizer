@@ -20,6 +20,8 @@
 
 - Open the dashboard with F8.
 - Open the same Fiximizer control center from the Config button in NeoForge's mod list.
+- Open it with the client commands `/fiximizer`, `/fiximizer open` or `/fiximizer menu`.
+- Optional startup diagnostics are deferred until the title screen or a loaded world has been ticking for 40 client ticks (about 2 seconds). Config registration, the F8 key and the mod-list Config button remain available during normal startup.
 - Eight sections: Overview, Optimization, Integrations, Physics, Java / JVM, GPU / VRAM, Frames, and Server.
 - Russian and English translations.
 
