@@ -32,6 +32,8 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_MEMORY_GUARD;
     public static final ModConfigSpec.IntValue MEMORY_PRESSURE_THRESHOLD;
     public static final ModConfigSpec.IntValue MEMORY_RECOVERY_THRESHOLD;
+    public static final ModConfigSpec.BooleanValue ENABLE_STRING_CANONICALIZATION;
+    public static final ModConfigSpec.BooleanValue RECOMMEND_G1_STRING_DEDUP;
 
     public static final ModConfigSpec.BooleanValue ENABLE_CREATE_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_AERONAUTICS_INTEGRATION;
@@ -178,6 +180,19 @@ public final class FiximizerConfig {
                 .comment("Heap usage percentage below which automatic Memory Saver can be released.")
                 .translation("config.fiximizer.scheduler.memory_recovery")
                 .defineInRange("memoryRecoveryThresholdPercent", 70, 45, 80);
+
+        BUILDER.pop();
+        BUILDER.push("memory");
+
+        ENABLE_STRING_CANONICALIZATION = BUILDER
+                .comment("Enable bounded, weak string canonicalization for explicitly submitted immutable integration metadata. No heap scanning or per-tick work.")
+                .translation("config.fiximizer.memory.string_dedup")
+                .define("stringCanonicalization", true);
+
+        RECOMMEND_G1_STRING_DEDUP = BUILDER
+                .comment("Add optional G1 String Deduplication to JVM argument recommendations. Requires G1 and a restart; it may add garbage-collection CPU work.")
+                .translation("config.fiximizer.memory.g1_string_dedup")
+                .define("recommendG1StringDeduplication", false);
 
         BUILDER.pop();
         BUILDER.push("integrations");
