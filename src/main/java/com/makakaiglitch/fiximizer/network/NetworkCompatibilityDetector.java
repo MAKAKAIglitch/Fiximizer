@@ -25,8 +25,13 @@ public final class NetworkCompatibilityDetector {
             found.add("Krypton");
             externalStackOptimizer = true;
         }
+        if (mods.isLoaded("krypton_foxified")) {
+            found.add("Krypton Foxified");
+            externalStackOptimizer = true;
+        }
         if (mods.isLoaded("connectivity")) found.add("Connectivity");
-        if (mods.isLoaded("packetfixer")) found.add("Packet Fixer");
+        if (mods.isLoaded("packetfixer") || mods.isLoaded("packet_fixer")) found.add("Packet Fixer");
+        if (mods.isLoaded("connectionpacketfixer")) found.add("Connection Packet Fixer");
         if (mods.isLoaded("viaforge")) found.add("ViaForge");
         if (mods.isLoaded("viaversion")) found.add("ViaVersion");
 
