@@ -27,6 +27,7 @@ import com.makakaiglitch.fiximizer.scheduler.OptimizationProfile;
 import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerTelemetry;
+import com.makakaiglitch.fiximizer.util.TextSanitizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -523,99 +524,118 @@ public final class FiximizerScreen extends Screen {
 
     private void drawOverview(GuiGraphics graphics) {
         DiagnosticsSnapshot snapshot = DiagnosticsService.latest();
-        int y = panelTop + 56;
+        drawSectionTitle(graphics, "screen.fiximizer.overview_title", panelTop + 58);
 
-        drawSectionTitle(graphics, "screen.fiximizer.overview_title", y);
-        y += 24;
-
-        drawValue(graphics, "screen.fiximizer.heap",
+        // The overview has a fixed action bar below it. Keep every status on a
+        // single clipped line so long device names, paths, or driver messages
+        // can never collide with the buttons.
+        int y = panelTop + 80;
+        drawCompactValue(graphics, "screen.fiximizer.heap", y,
                 DiagnosticsService.formatBytes(snapshot.usedHeapBytes()),
                 DiagnosticsService.formatBytes(snapshot.maxHeapBytes()),
-                String.format(Locale.ROOT, "%.1f", snapshot.maxHeapUsagePercent()),
-                y);
-        y += 18;
+                String.format(Locale.ROOT, "%.1f", snapshot.maxHeapUsagePercent()));
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.cpu",
+        drawCompactValue(graphics, "screen.fiximizer.cpu", y,
                 DiagnosticsService.formatPercent(snapshot.systemCpuLoad()),
-                DiagnosticsService.formatPercent(snapshot.processCpuLoad()),
-                y);
-        y += 21;
+                DiagnosticsService.formatPercent(snapshot.processCpuLoad()));
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.threads",
-                snapshot.activeThreadCount(),
-                snapshot.loadedModCount(),
-                y);
-        y += 21;
+        drawCompactValue(graphics, "screen.fiximizer.threads", y,
+                snapshot.activeThreadCount(), snapshot.loadedModCount());
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.profile_effective",
-                Component.translatable(OptimizationProfileManager.current().translationKey()),
-                y);
-        y += 21;
+        drawCompactValue(graphics, "screen.fiximizer.profile_effective", y,
+                Component.translatable(OptimizationProfileManager.current().translationKey()));
+        y += 15;
 
         if (MemoryPressureController.active()) {
-            drawWrapped(graphics,
+            drawCompactLine(graphics,
                     Component.translatable("screen.fiximizer.memory_override",
                             String.format(Locale.ROOT, "%.1f", MemoryPressureController.heapUsagePercent())),
-                    contentLeft,
-                    y,
-                    contentWidth - 8,
-                    0xFFFFB85C);
-            y += 24;
+                    contentLeft, y, contentWidth - 8, 0xFFFFB85C);
         } else {
-            drawValue(graphics, "screen.fiximizer.memory_guard_status",
-                    Component.translatable("screen.fiximizer.normal"),
-                    y);
-            y += 18;
+            drawCompactValue(graphics, "screen.fiximizer.memory_guard_status", y,
+                    Component.translatable("screen.fiximizer.normal"));
         }
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.gpu", gpuLabel(), y);
-        y += 21;
+        drawCompactValue(graphics, "screen.fiximizer.gpu", y, gpuLabel());
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.opencl", openClLabel(), y);
-        y += 21;
+        drawCompactValue(graphics, "screen.fiximizer.opencl", y, openClLabel());
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.jfr", recorderLabel(), y);
-        y += 21;
+        drawCompactValue(graphics, "screen.fiximizer.jfr", y, recorderLabel());
+        y += 15;
 
-        drawValue(graphics, "screen.fiximizer.integrations",
-                ModIntegrationManager.activeCount(),
-                CompatibilityDetector.targetCount(),
-                y);
-        y += 16;
+        drawCompactValue(graphics, "screen.fiximizer.integrations", y,
+                ModIntegrationManager.activeCount(), CompatibilityDetector.targetCount());
+        y += 15;
 
         SchedulerSnapshot scheduler = AdaptiveTaskScheduler.snapshot();
-        drawValue(graphics, "screen.fiximizer.scheduler",
-                scheduler.activeTasks(),
-                scheduler.queuedTasks(),
-                scheduler.targetWorkers(),
-                scheduler.maximumWorkers(),
-                y);
-        y += 17;
+        drawCompactValue(graphics, "screen.fiximizer.scheduler", y,
+                scheduler.activeTasks(), scheduler.queuedTasks(),
+                scheduler.targetWorkers(), scheduler.maximumWorkers());
+        y += 15;
+
         SchedulerTelemetry.Snapshot schedulerTelemetry = scheduler.telemetry();
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.scheduler_latency",
-                        String.format(Locale.ROOT, "%.1f", schedulerTelemetry.queueWaitP95Millis()),
-                        String.format(Locale.ROOT, "%.1f", schedulerTelemetry.executionP95Millis()),
-                        schedulerTelemetry.failedTasks(),
-                        schedulerTelemetry.rejectedTasks()),
-                contentLeft,
-                y,
-                contentWidth - 8,
-                0xFF9FB3C8);
-        y += 18;
+        drawCompactValue(graphics, "screen.fiximizer.scheduler_latency", y,
+                String.format(Locale.ROOT, "%.1f", schedulerTelemetry.queueWaitP95Millis()),
+                String.format(Locale.ROOT, "%.1f", schedulerTelemetry.executionP95Millis()),
+                schedulerTelemetry.failedTasks(), schedulerTelemetry.rejectedTasks());
+        y += 15;
+
         String lastDump = StallWatchdog.lastReportFile();
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.watchdog_status",
-                        Component.translatable(StallWatchdog.enabled()
-                                ? "screen.fiximizer.enabled" : "screen.fiximizer.disabled"),
-                        FiximizerConfig.STALL_THRESHOLD_MS.get(),
-                        Component.literal(lastDump.isBlank()
-                                ? Component.translatable("screen.fiximizer.watchdog_no_report").getString()
-                                : lastDump)),
+        drawCompactValue(graphics, "screen.fiximizer.watchdog_status", y,
+                Component.translatable(StallWatchdog.enabled()
+                        ? "screen.fiximizer.enabled" : "screen.fiximizer.disabled"),
+                FiximizerConfig.STALL_THRESHOLD_MS.get(),
+                Component.literal(lastDump.isBlank()
+                        ? Component.translatable("screen.fiximizer.watchdog_no_report").getString()
+                        : lastDump));
+    }
+
+    private void drawCompactValue(
+            GuiGraphics graphics,
+            String translationKey,
+            int y,
+            Object... arguments
+    ) {
+        drawCompactLine(
+                graphics,
+                Component.translatable(translationKey, arguments),
                 contentLeft,
                 y,
                 contentWidth - 8,
-                0xFF9FB3C8);
+                0xFFFFFFFF
+        );
+    }
+
+    private void drawCompactLine(
+            GuiGraphics graphics,
+            Component component,
+            int x,
+            int y,
+            int maxWidth,
+            int color
+    ) {
+        String text = TextSanitizer.sanitize(component.getString());
+        if (text.isEmpty()) {
+            text = "—";
+        }
+
+        boolean truncated = this.font.width(text) > maxWidth;
+        if (truncated) {
+            while (!text.isEmpty() && this.font.width(text + "…") > maxWidth) {
+                int lastCodePoint = text.codePointBefore(text.length());
+                text = text.substring(0, text.length() - Character.charCount(lastCodePoint))
+                        .stripTrailing();
+            }
+            text += "…";
+        }
+
+        graphics.drawString(this.font, Component.literal(text), x, y, color);
     }
 
     private void drawServer(GuiGraphics graphics) {

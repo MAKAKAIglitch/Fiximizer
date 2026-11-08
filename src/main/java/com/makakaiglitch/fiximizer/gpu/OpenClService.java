@@ -21,7 +21,6 @@ import static org.lwjgl.opencl.CL10.CL_DEVICE_VERSION;
 import static org.lwjgl.opencl.CL10.CL_PLATFORM_NAME;
 import static org.lwjgl.opencl.CL10.CL_SUCCESS;
 import static org.lwjgl.system.MemoryStack.stackPush;
-import static org.lwjgl.system.MemoryUtil.memUTF8;
 
 public final class OpenClService {
     private static final AtomicBoolean STARTED = new AtomicBoolean();
@@ -156,14 +155,36 @@ public final class OpenClService {
 
     private static String readPlatformString(MemoryStack stack, long platform, int parameter) {
         ByteBuffer buffer = stack.malloc(512);
-        int result = CL10.clGetPlatformInfo(platform, parameter, buffer, null);
-        return result == CL_SUCCESS ? memUTF8(buffer) : "Unknown OpenCL platform";
+        PointerBuffer writtenBytes = stack.mallocPointer(1);
+        int result = CL10.clGetPlatformInfo(platform, parameter, buffer, writtenBytes);
+        if (result != CL_SUCCESS) {
+            return "Unknown OpenCL platform";
+        }
+
+        long byteLength = writtenBytes.get(0);
+        if (byteLength <= 0L || byteLength > buffer.capacity()) {
+            return "Unknown OpenCL platform";
+        }
+
+        String value = OpenClText.decode(buffer, (int) byteLength);
+        return value.isBlank() ? "Unknown OpenCL platform" : value;
     }
 
     private static String readDeviceString(MemoryStack stack, long device, int parameter) {
         ByteBuffer buffer = stack.malloc(512);
-        int result = CL10.clGetDeviceInfo(device, parameter, buffer, null);
-        return result == CL_SUCCESS ? memUTF8(buffer) : "Unknown OpenCL device";
+        PointerBuffer writtenBytes = stack.mallocPointer(1);
+        int result = CL10.clGetDeviceInfo(device, parameter, buffer, writtenBytes);
+        if (result != CL_SUCCESS) {
+            return "Unknown OpenCL device";
+        }
+
+        long byteLength = writtenBytes.get(0);
+        if (byteLength <= 0L || byteLength > buffer.capacity()) {
+            return "Unknown OpenCL device";
+        }
+
+        String value = OpenClText.decode(buffer, (int) byteLength);
+        return value.isBlank() ? "Unknown OpenCL device" : value;
     }
 
     private static void setUnavailable(String reason) {
