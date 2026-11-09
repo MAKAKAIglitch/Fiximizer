@@ -257,9 +257,13 @@ public final class FiximizerScreen extends Screen {
         benchmarkBaselineButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.benchmark.set_baseline"),
                 button -> {
-                    BenchmarkEngine.saveLatestAsBaseline(Minecraft.getInstance().gameDirectory.toPath());
-                    benchmarkBaselineButton.setMessage(Component.translatable(
-                            "screen.fiximizer.benchmark.baseline_saving"));
+                    if (BenchmarkEngine.saveLatestAsBaseline(Minecraft.getInstance().gameDirectory.toPath())) {
+                        benchmarkBaselineButton.setMessage(Component.translatable(
+                                "screen.fiximizer.benchmark.baseline_saving"));
+                    } else {
+                        benchmarkBaselineButton.setMessage(Component.translatable(
+                                "screen.fiximizer.benchmark.baseline_unavailable"));
+                    }
                 }
         ).bounds(contentLeft + 175, panelTop + 142, 165, 20).build());
 
@@ -689,7 +693,8 @@ public final class FiximizerScreen extends Screen {
                 || benchmarkSnapshot.state() == BenchmarkEngine.State.RECORDING
                 || benchmarkSnapshot.state() == BenchmarkEngine.State.SAVING;
         benchmarkScenarioButton.active = !benchmarkActive && !benchmarkSnapshot.baselineSaveRunning();
-        benchmarkRunButton.active = benchmarkSnapshot.state() != BenchmarkEngine.State.SAVING;
+        benchmarkRunButton.active = benchmarkSnapshot.state() != BenchmarkEngine.State.SAVING
+                && !benchmarkSnapshot.baselineSaveRunning();
         benchmarkRunButton.setMessage(benchmarkRunLabel());
         BenchmarkRun latestBenchmark = BenchmarkEngine.latestRun();
         benchmarkBaselineButton.active = latestBenchmark != null && latestBenchmark.valid()
@@ -1209,23 +1214,21 @@ public final class FiximizerScreen extends Screen {
                 0xFFB9C9DC);
 
         BenchmarkEngine.Snapshot status = BenchmarkEngine.snapshot();
-        drawCompactValue(graphics, "screen.fiximizer.benchmark.scenario", panelTop + 111,
-                Component.translatable(selectedBenchmarkScenario.translationKey()));
-        drawCompactValue(graphics, "screen.fiximizer.benchmark.state", panelTop + 126,
+        drawCompactValue(graphics, "screen.fiximizer.benchmark.state", panelTop + 198,
                 Component.translatable("screen.fiximizer.benchmark.state."
                         + status.state().name().toLowerCase(Locale.ROOT)));
         if (status.state() == BenchmarkEngine.State.WARMING_UP
                 || status.state() == BenchmarkEngine.State.RECORDING) {
-            drawCompactValue(graphics, "screen.fiximizer.benchmark.remaining", panelTop + 141,
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.remaining", panelTop + 213,
                     status.remainingSeconds());
-            drawCompactValue(graphics, "screen.fiximizer.benchmark.live_samples", panelTop + 156,
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.live_samples", panelTop + 228,
                     status.renderSamples(), status.clientTickSamples(), status.serverTickSamples());
         } else {
-            drawCompactValue(graphics, "screen.fiximizer.benchmark.result_path",
-                    panelTop + 185,
-                    status.savedFile().isBlank()
-                            ? Component.translatable("screen.fiximizer.benchmark.no_saved_result")
-                            : Component.literal(Path.of(status.savedFile()).getFileName().toString()));
+            String savedName = status.savedFile().isBlank()
+                    ? Component.translatable("screen.fiximizer.benchmark.no_saved_result").getString()
+                    : Path.of(status.savedFile()).getFileName().toString();
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.result_path", panelTop + 213,
+                    savedName);
         }
 
         BenchmarkRun run = BenchmarkEngine.latestRun();
@@ -1233,27 +1236,27 @@ public final class FiximizerScreen extends Screen {
             drawWrapped(graphics,
                     Component.translatable("screen.fiximizer.benchmark.no_result"),
                     contentLeft,
-                    panelTop + 218,
+                    panelTop + 243,
                     contentWidth - 8,
                     0xFF9FB3C8);
             return;
         }
 
-        BenchmarkSampleWindow.Statistics render = run.renderCall();
-        BenchmarkSampleWindow.Statistics clientTick = run.clientTick();
-        BenchmarkSampleWindow.Statistics serverTick = run.integratedServerTick();
-        drawCompactValue(graphics, "screen.fiximizer.benchmark.render_result", panelTop + 205,
+        var render = run.renderCall();
+        var clientTick = run.clientTick();
+        var serverTick = run.integratedServerTick();
+        drawCompactValue(graphics, "screen.fiximizer.benchmark.render_result", panelTop + 243,
                 render.sampleCount(),
                 String.format(Locale.ROOT, "%.2f", render.p50Millis()),
                 String.format(Locale.ROOT, "%.2f", render.p95Millis()),
                 String.format(Locale.ROOT, "%.2f", render.p99Millis()));
-        drawCompactValue(graphics, "screen.fiximizer.benchmark.client_result", panelTop + 220,
+        drawCompactValue(graphics, "screen.fiximizer.benchmark.client_result", panelTop + 258,
                 clientTick.sampleCount(),
                 String.format(Locale.ROOT, "%.2f", clientTick.p50Millis()),
                 String.format(Locale.ROOT, "%.2f", clientTick.p95Millis()),
                 String.format(Locale.ROOT, "%.2f", clientTick.p99Millis()));
         if (serverTick.hasSamples()) {
-            drawCompactValue(graphics, "screen.fiximizer.benchmark.server_result", panelTop + 235,
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.server_result", panelTop + 273,
                     serverTick.sampleCount(),
                     String.format(Locale.ROOT, "%.2f", serverTick.p50Millis()),
                     String.format(Locale.ROOT, "%.2f", serverTick.p95Millis()),
@@ -1263,19 +1266,14 @@ public final class FiximizerScreen extends Screen {
         BenchmarkComparison comparison = BenchmarkEngine.latestComparison();
         if (comparison != null && comparison.compatible() && comparison.renderCall() != null) {
             BenchmarkComparison.MetricDelta delta = comparison.renderCall();
-            drawCompactValue(graphics, "screen.fiximizer.benchmark.comparison", panelTop + 253,
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.comparison", panelTop + 288,
                     delta.p95ChangeMillis() > 0 ? "+" : "",
                     String.format(Locale.ROOT, "%.2f", delta.p95ChangeMillis()),
                     delta.p95PercentAvailable()
                             ? String.format(Locale.ROOT, "%.1f%%", delta.p95ChangePercent())
                             : "n/a");
         } else if (!run.valid()) {
-            drawWrapped(graphics,
-                    Component.translatable("screen.fiximizer.benchmark.incomplete"),
-                    contentLeft,
-                    panelTop + 253,
-                    contentWidth - 8,
-                    0xFFFFC078);
+            drawCompactValue(graphics, "screen.fiximizer.benchmark.incomplete", panelTop + 288);
         }
     }
 
@@ -1285,12 +1283,26 @@ public final class FiximizerScreen extends Screen {
             BenchmarkEngine.cancel();
         } else {
             Minecraft minecraft = Minecraft.getInstance();
-            BenchmarkEnvironment environment = BenchmarkEnvironment.capture(minecraft);
-            BenchmarkEngine.start(
-                    minecraft.gameDirectory.toPath(),
-                    selectedBenchmarkScenario,
-                    environment
-            );
+            try {
+                BenchmarkEnvironment environment = BenchmarkEnvironment.capture(minecraft);
+                if (!BenchmarkEngine.start(
+                        minecraft.gameDirectory.toPath(),
+                        selectedBenchmarkScenario,
+                        environment
+                ) && minecraft.player != null) {
+                    minecraft.player.sendSystemMessage(Component.translatable(
+                            "screen.fiximizer.benchmark.start_failed",
+                            "engine is busy or the selected scenario is invalid"
+                    ));
+                }
+            } catch (RuntimeException exception) {
+                if (minecraft.player != null) {
+                    minecraft.player.sendSystemMessage(Component.translatable(
+                            "screen.fiximizer.benchmark.start_failed",
+                            exception.getClass().getSimpleName()
+                    ));
+                }
+            }
         }
         benchmarkRunButton.setMessage(benchmarkRunLabel());
     }

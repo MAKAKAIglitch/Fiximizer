@@ -166,20 +166,26 @@ public final class BenchmarkEngine {
 
         baselineSaveRunning = true;
         message = "Saving this run as the scenario baseline...";
-        CompletableFuture<Path> future = AdaptiveTaskScheduler.submit(
-                "benchmark-save-baseline",
-                TaskPriority.NORMAL,
-                () -> BenchmarkRepository.saveBaseline(gameDirectory, run)
-        );
-        future.whenComplete((path, error) -> {
+        try {
+            CompletableFuture<Path> future = AdaptiveTaskScheduler.submit(
+                    "benchmark-save-baseline",
+                    TaskPriority.NORMAL,
+                    () -> BenchmarkRepository.saveBaseline(gameDirectory, run)
+            );
+            future.whenComplete((path, error) -> {
+                baselineSaveRunning = false;
+                if (error == null) {
+                    message = "Baseline saved: " + path.getFileName();
+                } else {
+                    message = "Baseline save failed: " + safeMessage(error);
+                }
+            });
+            return true;
+        } catch (RuntimeException exception) {
             baselineSaveRunning = false;
-            if (error == null) {
-                message = "Baseline saved: " + path.getFileName();
-            } else {
-                message = "Baseline save failed: " + safeMessage(error);
-            }
-        });
-        return true;
+            message = "Baseline save could not be queued: " + safeMessage(exception);
+            return false;
+        }
     }
 
     private static void complete(Session session) {
@@ -196,33 +202,39 @@ public final class BenchmarkEngine {
                     ? "Measurements complete. Saving the result..."
                     : "Measurements complete, but sample coverage is insufficient: " + run.validationMessage();
 
-            CompletableFuture<SaveResult> future = AdaptiveTaskScheduler.submit(
-                    "benchmark-save-run",
-                    TaskPriority.NORMAL,
-                    () -> {
-                        Path saved = BenchmarkRepository.saveRun(session.gameDirectory, run);
-                        BenchmarkComparison comparison = BenchmarkRepository
-                                .loadBaseline(session.gameDirectory, run)
-                                .map(baseline -> BenchmarkComparison.compare(baseline, run))
-                                .orElse(null);
-                        return new SaveResult(saved, comparison);
+            try {
+                CompletableFuture<SaveResult> future = AdaptiveTaskScheduler.submit(
+                        "benchmark-save-run",
+                        TaskPriority.NORMAL,
+                        () -> {
+                            Path saved = BenchmarkRepository.saveRun(session.gameDirectory, run);
+                            BenchmarkComparison comparison = BenchmarkRepository
+                                    .loadBaseline(session.gameDirectory, run)
+                                    .map(baseline -> BenchmarkComparison.compare(baseline, run))
+                                    .orElse(null);
+                            return new SaveResult(saved, comparison);
+                        }
+                );
+                future.whenComplete((result, error) -> {
+                    if (error == null) {
+                        latestComparison = result.comparison;
+                        lastSavedFile = result.path.toString();
+                        state = State.COMPLETE;
+                        message = run.valid()
+                                ? (result.comparison == null
+                                    ? "Benchmark saved. Set it as a baseline or run a candidate later."
+                                    : "Benchmark saved and compared with the matching baseline.")
+                                : "An incomplete benchmark was saved for inspection, but cannot be used as a baseline.";
+                    } else {
+                        state = State.FAILED;
+                        message = "Benchmark measurements completed, but saving failed: " + safeMessage(error);
                     }
-            );
-            future.whenComplete((result, error) -> {
-                if (error == null) {
-                    latestComparison = result.comparison;
-                    lastSavedFile = result.path.toString();
-                    state = State.COMPLETE;
-                    message = run.valid()
-                            ? (result.comparison == null
-                                ? "Benchmark saved. Set it as a baseline or run a candidate later."
-                                : "Benchmark saved and compared with the matching baseline.")
-                            : "An incomplete benchmark was saved for inspection, but cannot be used as a baseline.";
-                } else {
-                    state = State.FAILED;
-                    message = "Benchmark measurements completed, but saving failed: " + safeMessage(error);
-                }
-            });
+                });
+            } catch (RuntimeException exception) {
+                state = State.FAILED;
+                message = "Benchmark measurements completed, but the save task could not be queued: "
+                        + safeMessage(exception);
+            }
         }
     }
 
