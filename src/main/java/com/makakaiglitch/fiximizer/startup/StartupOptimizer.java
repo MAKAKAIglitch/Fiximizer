@@ -24,9 +24,9 @@ import java.nio.file.Path;
  */
 public final class StartupOptimizer {
     private static final int REQUIRED_STABLE_CLIENT_TICKS = 40;
+    private static final StableClientStartupGate STARTUP_GATE =
+            new StableClientStartupGate(REQUIRED_STABLE_CLIENT_TICKS);
 
-    private static int stableClientTicks;
-    private static boolean completed;
     private static boolean compatibilityScanSucceeded;
 
     private StartupOptimizer() {
@@ -36,29 +36,19 @@ public final class StartupOptimizer {
      * Called from ClientTickEvent.Post on the client thread.
      */
     public static void onClientTick(Minecraft minecraft) {
-        if (completed) {
-            return;
-        }
-
         boolean titleScreenVisible = minecraft.screen instanceof TitleScreen;
         if (titleScreenVisible) {
             StartupProfiler.mark(StartupTimeline.Stage.FIRST_TITLE_SCREEN_TICK);
         }
 
         boolean clientReady = minecraft.level != null || titleScreenVisible;
-        if (!clientReady) {
-            stableClientTicks = 0;
+        if (!STARTUP_GATE.onClientTick(clientReady)) {
             return;
         }
 
-        stableClientTicks++;
-        if (stableClientTicks < REQUIRED_STABLE_CLIENT_TICKS) {
-            return;
-        }
-
-        // Set this before invoking optional services so a faulty integration
-        // cannot make startup initialization run repeatedly every client tick.
-        completed = true;
+        // The gate latches before optional services run so a faulty integration
+        // cannot make startup initialization repeat on later client ticks.
+        int stableClientTicks = STARTUP_GATE.stableTicks();
         StartupProfiler.mark(StartupTimeline.Stage.STABLE_CLIENT_READY);
 
         StartupProfiler.mark(StartupTimeline.Stage.OPTIONAL_MOD_SCAN_STARTED);
@@ -102,7 +92,7 @@ public final class StartupOptimizer {
     }
 
     public static boolean completed() {
-        return completed;
+        return STARTUP_GATE.completed();
     }
 
     public static boolean compatibilityScanSucceeded() {
