@@ -8,6 +8,7 @@ import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticBundleService;
+import com.makakaiglitch.fiximizer.diagnostics.RuntimeHealthService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
@@ -94,6 +95,7 @@ public final class FiximizerScreen extends Screen {
     private Button serverTickProfilerButton;
     private Button copyStartupReportButton;
     private Button dumpDiagnosticsButton;
+    private Button healthCopyButton;
     private Button bundleExportButton;
     private boolean bundleExportRunning;
     private Button networkTelemetryButton;
@@ -213,10 +215,15 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft + 284, panelTop + 272, 86, 20).build());
 
+        healthCopyButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.health_copy"),
+                button -> copyRuntimeHealthReport()
+        ).bounds(contentLeft, panelTop + 296, 164, 20).build());
+
         bundleExportButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.bundle_export"),
                 button -> previewDiagnosticBundle()
-        ).bounds(contentLeft, panelTop + 296, 340, 20).build());
+        ).bounds(contentLeft + 172, panelTop + 296, 210, 20).build());
 
         profileButton = addRenderableWidget(Button.builder(
                 profileButtonLabel(),
@@ -429,6 +436,52 @@ public final class FiximizerScreen extends Screen {
         updateVisibility();
     }
 
+    private void copyRuntimeHealthReport() {
+        Minecraft minecraft = Minecraft.getInstance();
+        RuntimeHealthService.Snapshot snapshot = RuntimeHealthService.refresh();
+        StringBuilder report = new StringBuilder(4096);
+        report.append(Component.translatable("screen.fiximizer.health.report_title").getString()).append('\n');
+        report.append(Component.translatable("screen.fiximizer.health.report_summary",
+                snapshot.count(RuntimeHealthService.State.HEALTHY),
+                snapshot.attentionCount(),
+                snapshot.count(RuntimeHealthService.State.DISABLED),
+                snapshot.waitingCount()).getString()).append("\n\n");
+
+        for (RuntimeHealthService.SubsystemStatus status : snapshot.subsystems()) {
+            String stateKey = status.state().name().toLowerCase(Locale.ROOT);
+            report.append(Component.translatable("screen.fiximizer.health.subsystem." + status.id()).getString())
+                    .append(" — ")
+                    .append(Component.translatable("screen.fiximizer.health.state." + stateKey).getString())
+                    .append('\n');
+            report.append("  ").append(status.reason()).append('\n');
+            if (!status.fallback().isBlank()) {
+                report.append("  ")
+                        .append(Component.translatable("screen.fiximizer.health.fallback").getString())
+                        .append(": ").append(status.fallback()).append('\n');
+            }
+            report.append("  ")
+                    .append(Component.translatable("screen.fiximizer.health.transition").getString())
+                    .append(": ").append(status.lastTransitionEpochMillis()).append('\n');
+            if (status.userActionRequired()) {
+                report.append("  ")
+                        .append(Component.translatable("screen.fiximizer.health.action_required").getString())
+                        .append('\n');
+            }
+            report.append('\n');
+        }
+
+        minecraft.keyboardHandler.setClipboard(report.toString());
+        healthCopyButton.setMessage(Component.translatable("screen.fiximizer.health_copied"));
+        if (minecraft.player != null) {
+            minecraft.player.sendSystemMessage(Component.translatable(
+                    "screen.fiximizer.health.copied_message",
+                    snapshot.count(RuntimeHealthService.State.HEALTHY),
+                    snapshot.attentionCount(),
+                    snapshot.subsystems().size()
+            ));
+        }
+    }
+
     private void previewDiagnosticBundle() {
         Minecraft minecraft = Minecraft.getInstance();
         DiagnosticBundleService.Preview preview =
@@ -556,6 +609,7 @@ public final class FiximizerScreen extends Screen {
         refreshButton.visible = overview;
         dumpDiagnosticsButton.visible = overview;
         dumpDiagnosticsButton.active = StallWatchdog.enabled();
+        healthCopyButton.visible = overview;
         bundleExportButton.visible = overview;
         bundleExportButton.active = !bundleExportRunning;
         startProfileButton.visible = overview;
@@ -900,6 +954,14 @@ public final class FiximizerScreen extends Screen {
                 Component.literal(lastDump.isBlank()
                         ? Component.translatable("screen.fiximizer.watchdog_no_report").getString()
                         : lastDump));
+        y += 15;
+
+        RuntimeHealthService.Snapshot health = RuntimeHealthService.snapshot();
+        drawCompactValue(graphics, "screen.fiximizer.health_summary", y,
+                health.count(RuntimeHealthService.State.HEALTHY),
+                health.attentionCount(),
+                health.count(RuntimeHealthService.State.DISABLED),
+                health.waitingCount());
     }
 
     private void drawCompactValue(
