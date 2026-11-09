@@ -17,7 +17,7 @@ The game server binds to loopback only and uses a dedicated test port. A random,
 
 ### Client
 
-The Linux client test launches the isolated `runSmokeClient` configuration under Xvfb with Openbox as a lightweight window manager. The test activates the Minecraft window so focus-dependent client ticks can advance; OpenAL uses its null driver because CI has no physical audio device. It passes only when:
+The Linux client test launches the isolated `runSmokeClient` configuration under Xvfb with Openbox as a lightweight window manager. The test activates the Minecraft window so focus-dependent client ticks can advance; OpenAL uses its null driver because CI has no physical audio device. MIT-SHM is disabled for this Xvfb display to avoid X11 shared-memory drawable teardown races when the client closes. It passes only when:
 - the client-side Fiximizer entrypoint registers its dashboard;
 - the client reaches the title screen and records 40 stable client ticks;
 - the test sends a window-close event and the Gradle runtime exits successfully.
