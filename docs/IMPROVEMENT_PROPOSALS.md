@@ -242,7 +242,7 @@ The order for these independent lines should be chosen by the maintainer after r
 | 1 | Validate/review Startup Optimizer branch | It already has a focused implementation and tests |
 | 2 | Diagnostic Bundle | Implemented in `feature/diagnostic-bundle`; awaiting CI and review |
 | 3 | Runtime Health Check | Implemented in `feature/runtime-health-check`; awaiting CI and review |
-| 4 | Benchmark Engine | Next measurement foundation for later optimizations |
+| 4 | Benchmark Engine | Implemented in `feature/benchmark-engine`; awaiting CI and review |
 | 5 | Memory candidate experiment | Proceed only after retained-heap profiling |
 | 6 | Network telemetry refinement | Correct metric semantics before deeper pipeline work |
 | 7 | Compatibility capability registry | Consolidates per-feature conflict handling |

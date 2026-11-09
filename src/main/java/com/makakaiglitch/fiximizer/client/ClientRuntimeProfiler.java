@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.benchmark.BenchmarkEngine;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
 import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import net.neoforged.api.distmarker.Dist;
@@ -34,7 +35,7 @@ public final class ClientRuntimeProfiler {
     public static void onRenderFramePre(RenderFrameEvent.Pre event) {
         StallWatchdog.beginRenderFrame();
         synchronizeEnabledState();
-        if (lastKnownEnabled) {
+        if (lastKnownEnabled || BenchmarkEngine.isCollecting()) {
             renderStartedAtNanos = System.nanoTime();
         }
     }
@@ -45,8 +46,12 @@ public final class ClientRuntimeProfiler {
         synchronizeEnabledState();
         long startedAt = renderStartedAtNanos;
         renderStartedAtNanos = 0L;
-        if (lastKnownEnabled && startedAt != 0L) {
-            RENDER_WINDOW.record(Math.max(0L, System.nanoTime() - startedAt));
+        if (startedAt != 0L) {
+            long duration = Math.max(0L, System.nanoTime() - startedAt);
+            if (lastKnownEnabled) {
+                RENDER_WINDOW.record(duration);
+            }
+            BenchmarkEngine.recordRenderSample(duration);
         }
     }
 
@@ -54,7 +59,7 @@ public final class ClientRuntimeProfiler {
     public static void onClientTickPre(ClientTickEvent.Pre event) {
         StallWatchdog.beginClientTick();
         synchronizeEnabledState();
-        if (lastKnownEnabled) {
+        if (lastKnownEnabled || BenchmarkEngine.isCollecting()) {
             clientTickStartedAtNanos = System.nanoTime();
         }
     }
@@ -65,8 +70,12 @@ public final class ClientRuntimeProfiler {
         synchronizeEnabledState();
         long startedAt = clientTickStartedAtNanos;
         clientTickStartedAtNanos = 0L;
-        if (lastKnownEnabled && startedAt != 0L) {
-            CLIENT_TICK_WINDOW.record(Math.max(0L, System.nanoTime() - startedAt));
+        if (startedAt != 0L) {
+            long duration = Math.max(0L, System.nanoTime() - startedAt);
+            if (lastKnownEnabled) {
+                CLIENT_TICK_WINDOW.record(duration);
+            }
+            BenchmarkEngine.recordClientTickSample(duration);
         }
     }
 

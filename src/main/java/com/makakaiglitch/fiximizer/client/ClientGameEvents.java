@@ -2,6 +2,7 @@ package com.makakaiglitch.fiximizer.client;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.benchmark.BenchmarkEngine;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.profiler.FlightRecorderService;
 import com.makakaiglitch.fiximizer.network.NetworkTelemetryService;
@@ -39,6 +40,7 @@ public final class ClientGameEvents {
     public static void onClientTick(ClientTickEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
         StartupOptimizer.onClientTick(minecraft);
+        BenchmarkEngine.tick();
         NetworkTelemetryService.tick();
 
         if (StartupOptimizer.completed()) {

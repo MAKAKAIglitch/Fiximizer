@@ -1,6 +1,7 @@
 package com.makakaiglitch.fiximizer.diagnostics;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.benchmark.BenchmarkEngine;
 
 /**
  * Measures complete logical-server tick wall-clock duration on the integrated
@@ -19,7 +20,7 @@ public final class ServerTickProfiler {
 
     public static void beginTick() {
         synchronizeEnabledState();
-        if (lastKnownEnabled) {
+        if (lastKnownEnabled || BenchmarkEngine.isCollecting()) {
             tickStartedAtNanos = System.nanoTime();
         }
     }
@@ -28,11 +29,15 @@ public final class ServerTickProfiler {
         long startedAt = tickStartedAtNanos;
         tickStartedAtNanos = 0L;
 
-        if (startedAt == 0L || !lastKnownEnabled) {
+        if (startedAt == 0L) {
             return;
         }
 
-        WINDOW.record(Math.max(0L, System.nanoTime() - startedAt));
+        long duration = Math.max(0L, System.nanoTime() - startedAt);
+        if (lastKnownEnabled) {
+            WINDOW.record(duration);
+        }
+        BenchmarkEngine.recordServerTickSample(duration);
     }
 
     /**
