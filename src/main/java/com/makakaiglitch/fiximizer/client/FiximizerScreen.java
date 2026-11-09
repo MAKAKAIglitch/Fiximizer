@@ -520,6 +520,9 @@ public final class FiximizerScreen extends Screen {
             updateIntegrationButtons();
             integrationButtonsSynchronized = true;
         }
+        if (selectedTab == Tab.MEMORY) {
+            memoryStats = MemoryOptimizer.stringSnapshot();
+        }
     }
 
     private void updateIntegrationButtons() {
@@ -705,14 +708,6 @@ public final class FiximizerScreen extends Screen {
                         ? "screen.fiximizer.enabled"
                         : "screen.fiximizer.disabled")
         );
-    }
-
-    @Override
-    public void tick() {
-        super.tick();
-        if (selectedTab == Tab.MEMORY) {
-            memoryStats = MemoryOptimizer.stringSnapshot();
-        }
     }
 
     @Override
