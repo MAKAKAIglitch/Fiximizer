@@ -36,6 +36,7 @@
 - [Profiles and adaptive scheduler](#profiles-and-adaptive-scheduler)
 - [Memory optimizer](#memory-optimizer)
 - [Diagnostics and reports](#diagnostics-and-reports)
+  - [Diagnostic bundle](#diagnostic-bundle)
 - [Optional mod integrations](#optional-mod-integrations)
 - [GPU, OpenCL and VRAM](#gpu-opencl-and-vram)
 - [Compatibility](#compatibility)
@@ -209,6 +210,14 @@ Mod attribution and candidate ranking are **heuristics for investigation**, not 
 | Suggested JVM arguments | `config/fiximizer-jvm-arguments.txt` |
 
 The incident HTML report is self-contained and uses local files only; it does not load remote scripts, fonts or services.
+
+### Diagnostic bundle
+
+The Overview tab can export a local ZIP bundle for bug reports. Before exporting, it shows the exact files that will be included and the data categories omitted by default. The bundle contains selected system, performance, aggregate network and startup data, plus bounded optional excerpts from the latest log and stall report.
+
+The exporter excludes the mod inventory, chat, packet payloads, player identifiers, server addresses, IP addresses, full local paths and raw JFR recordings. It does not upload anything. Text excerpts are filtered and the archive has strict entry/size limits and bounded retention. **Review the archive before sharing it**; automated redaction is a defence-in-depth measure, not a guarantee for arbitrary third-party logs.
+
+See [Diagnostic Bundle format and privacy notes](docs/DIAGNOSTIC_BUNDLE.md). Archives are saved to `logs/fiximizer/diagnostic-bundles/`.
 
 ## Optional mod integrations
 
