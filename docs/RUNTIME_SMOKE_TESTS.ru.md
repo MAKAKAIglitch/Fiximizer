@@ -17,7 +17,7 @@ Runtime smoke-тесты запускают настоящий NeoForge runtime.
 
 ### Клиент
 
-Тест Linux-клиента запускает отдельную конфигурацию `runSmokeClient` под Xvfb с Openbox в качестве лёгкого оконного менеджера. Окно Minecraft явно получает фокус, чтобы тики клиента не останавливались из-за потери фокуса; для OpenAL включается null-драйвер, поскольку у CI нет физического аудиоустройства. Успех подтверждается, только если:
+Тест Linux-клиента запускает отдельную конфигурацию `runSmokeClient` под Xvfb с Openbox в качестве лёгкого оконного менеджера. Окно Minecraft явно получает фокус, чтобы тики клиента не останавливались из-за потери фокуса; для OpenAL включается null-драйвер, поскольку у CI нет физического аудиоустройства. MIT-SHM отключается в Xvfb, чтобы избежать гонки X11 с уничтожением drawable при закрытии окна. Успех подтверждается, только если:
 - клиентский entrypoint Fiximizer регистрирует панель управления;
 - клиент достигает главного меню и фиксирует 40 стабильных клиентских тиков;
 - тест отправляет окну событие закрытия, после чего Gradle runtime завершается с кодом 0.
@@ -35,7 +35,7 @@ python scripts/runtime_smoke.py server
 Клиент под Linux с установленными Xvfb, Openbox и xdotool:
 
 ```shell
-ALSOFT_DRIVERS=null xvfb-run -a -s "-screen 0 1280x720x24" sh -c 'openbox --sm-disable >/tmp/fiximizer-openbox.log 2>&1 & sleep 2; exec python3 scripts/runtime_smoke.py client'
+ALSOFT_DRIVERS=null xvfb-run -a -s "-screen 0 1280x720x24 -extension MIT-SHM" sh -c 'openbox --sm-disable >/tmp/fiximizer-openbox.log 2>&1 & sleep 2; exec python3 scripts/runtime_smoke.py client'
 ```
 
 Gradle-конфигурации используют отдельные каталоги внутри `runs/`; созданные миры, EULA, логи и клиентские настройки не попадают в git.
