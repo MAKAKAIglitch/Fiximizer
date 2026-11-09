@@ -63,6 +63,7 @@ public final class DiagnosticBundleService {
                 "system.json",
                 "performance.json",
                 "network.json",
+                "health.json",
                 "startup.txt"
         ));
 
@@ -96,12 +97,16 @@ public final class DiagnosticBundleService {
         entries.put("performance.json", utf8(performanceJson()));
         entries.put("network.json", utf8(networkJson()));
 
+        DiagnosticTextRedactor.RedactionResult health = DiagnosticTextRedactor.redact(
+                RuntimeHealthService.toJson(RuntimeHealthService.snapshot()), playerName);
+        entries.put("health.json", utf8(limitText(health.text(), MAX_INCIDENT_BYTES)));
+
         DiagnosticTextRedactor.RedactionResult startup =
                 DiagnosticTextRedactor.redact(StartupProfiler.createReport(), playerName);
         entries.put("startup.txt", utf8(limitText(startup.text(), MAX_INCIDENT_BYTES)));
 
-        int redactions = startup.redactedOccurrences();
-        int omittedChatLines = startup.omittedChatLines();
+        int redactions = startup.redactedOccurrences() + health.redactedOccurrences();
+        int omittedChatLines = startup.omittedChatLines() + health.omittedChatLines();
 
         DiagnosticTextRedactor.RedactionResult errors = latestErrors(gameDirectory, playerName);
         if (errors != null) {
