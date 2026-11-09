@@ -15,29 +15,66 @@ import java.util.stream.Collectors;
 public final class ModIntegrationManager {
     private static volatile List<IntegrationStatus> statuses = List.of();
     private static volatile Set<String> activeModIds = Set.of();
+    private static volatile boolean initialized;
+    private static volatile boolean lastRefreshSucceeded;
 
     private ModIntegrationManager() {
     }
 
+    /**
+     * Called after the client reaches a stable title screen/world, or directly
+     * when the user explicitly requests a refresh from the dashboard.
+     *
+     * A failed optional scan is isolated: it clears stale integration state,
+     * records a failed result, and never prevents Minecraft from continuing.
+     */
     public static synchronized void refresh() {
-        List<IntegrationStatus> detected = CompatibilityDetector.detect();
-        Set<String> active = detected.stream()
-                .filter(IntegrationStatus::active)
-                .map(IntegrationStatus::detectedModId)
-                .collect(Collectors.toUnmodifiableSet());
+        initialized = false;
+        lastRefreshSucceeded = false;
+        statuses = List.of();
+        activeModIds = Set.of();
 
-        statuses = detected;
-        activeModIds = active;
+        try {
+            List<IntegrationStatus> detected = CompatibilityDetector.detect();
+            Set<String> active = detected.stream()
+                    .filter(IntegrationStatus::active)
+                    .map(IntegrationStatus::detectedModId)
+                    .collect(Collectors.toUnmodifiableSet());
 
-        for (IntegrationStatus status : detected) {
-            if (status.active()) {
-                Fiximizer.LOGGER.info(
-                        "Optional integration enabled for detected mod: {} {}",
-                        status.detectedModId(),
-                        status.version()
-                );
+            statuses = List.copyOf(detected);
+            activeModIds = active;
+            lastRefreshSucceeded = true;
+
+            for (IntegrationStatus status : detected) {
+                if (status.active()) {
+                    Fiximizer.LOGGER.info(
+                            "Optional integration enabled for detected mod: {} {}",
+                            status.detectedModId(),
+                            status.version()
+                    );
+                }
             }
+        } catch (RuntimeException | LinkageError exception) {
+            // Do not keep old active IDs after a failed refresh: doing so could
+            // incorrectly activate an adapter using stale compatibility data.
+            statuses = List.of();
+            activeModIds = Set.of();
+            lastRefreshSucceeded = false;
+            Fiximizer.LOGGER.warn(
+                    "Optional mod compatibility detection failed; all optional integration gates remain closed.",
+                    exception
+            );
+        } finally {
+            initialized = true;
         }
+    }
+
+    public static boolean isInitialized() {
+        return initialized;
+    }
+
+    public static boolean lastRefreshSucceeded() {
+        return lastRefreshSucceeded;
     }
 
     /**

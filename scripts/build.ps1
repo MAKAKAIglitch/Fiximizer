@@ -37,7 +37,7 @@ function Invoke-JavaVersion([string] $Executable, [string[]] $Arguments) {
     }
 }
 
-function Get-JdkInfo([string] $Candidate) {
+function Get-JdkInfo([string] $Candidate, [int[]] $AllowedMajors = @(21, 25)) {
     if ([string]::IsNullOrWhiteSpace($Candidate)) {
         return $null
     }
@@ -66,9 +66,13 @@ function Get-JdkInfo([string] $Candidate) {
         $CompilerOutput = Invoke-JavaVersion $JavacExe @("-version")
         $VersionMatch = [regex]::Match($VersionOutput, 'version\s+"(?<major>\d+)')
         $CompilerMatch = [regex]::Match($CompilerOutput, 'javac\s+(?<major>\d+)')
-        if (!$VersionMatch.Success -or !$CompilerMatch.Success -or
-            [int]$VersionMatch.Groups["major"].Value -ne 21 -or
-            [int]$CompilerMatch.Groups["major"].Value -ne 21) {
+        if (!$VersionMatch.Success -or !$CompilerMatch.Success) {
+            return $null
+        }
+
+        $JavaMajor = [int]$VersionMatch.Groups["major"].Value
+        $CompilerMajor = [int]$CompilerMatch.Groups["major"].Value
+        if ($JavaMajor -ne $CompilerMajor -or $AllowedMajors -notcontains $JavaMajor) {
             return $null
         }
 
@@ -76,6 +80,7 @@ function Get-JdkInfo([string] $Candidate) {
             Home = (Resolve-Path -LiteralPath $Candidate).Path
             Java = $JavaExe
             Javac = $JavacExe
+            Major = $JavaMajor
             Version = $VersionOutput.Trim()
         }
     } catch {
@@ -83,7 +88,7 @@ function Get-JdkInfo([string] $Candidate) {
     }
 }
 
-function Find-Jdk21 {
+function Find-GradleRuntimeJdk {
     $Candidates = New-Object 'System.Collections.Generic.List[string]'
     $Seen = @{}
 
@@ -97,15 +102,17 @@ function Find-Jdk21 {
         }
     }
 
-    Add-Candidate $JdkInstallRoot
-    # Prefer the user's existing system-wide Temurin 21 installation when present.
-    Add-Candidate (Join-Path $env:ProgramFiles "Eclipse Adoptium\jdk-21.0.9.10-hotspot")
+    # Prefer the explicitly selected JDK / PATH runtime. Gradle may run on
+    # JDK 21 or 25; the Java 21 compiler toolchain is resolved separately.
     Add-Candidate $env:JAVA_HOME
 
     $PathJava = Get-Command java.exe -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($PathJava) {
         Add-Candidate $PathJava.Source
     }
+
+    Add-Candidate $JdkInstallRoot
+    Add-Candidate (Join-Path $env:ProgramFiles "Eclipse Adoptium\jdk-21.0.9.10-hotspot")
 
     $SearchRoots = @(
         (Join-Path $env:ProgramFiles "Eclipse Adoptium"),
@@ -127,7 +134,7 @@ function Find-Jdk21 {
     }
 
     foreach ($Candidate in $Candidates) {
-        $Jdk = Get-JdkInfo $Candidate
+        $Jdk = Get-JdkInfo -Candidate $Candidate -AllowedMajors @(21, 25)
         if ($Jdk) {
             return $Jdk
         }
@@ -141,8 +148,8 @@ function Find-Jdk21 {
                 $DetectedMatch = [regex]::Match($DetectedVersion, 'version\s+"(?<major>\d+)')
                 if ($DetectedMatch.Success) {
                     $DetectedMajor = [int]$DetectedMatch.Groups["major"].Value
-                    if ($DetectedMajor -ne 21) {
-                        Write-Warn "Found JDK $DetectedMajor at '$Candidate', but this project requires JDK 21. The existing Java installation will not be changed."
+                    if ($DetectedMajor -notin @(21, 25)) {
+                        Write-Warn "Found JDK $DetectedMajor at '$Candidate'. Gradle can run on JDK 21 or 25; the mod is still compiled for Java 21."
                     }
                 }
             } catch {
@@ -204,7 +211,7 @@ function Install-Temurin21 {
     }
 
     $ExtractedJdkHome = Split-Path (Split-Path $JavaFile.FullName -Parent) -Parent
-    $ExistingJdk = Get-JdkInfo $ExtractedJdkHome
+    $ExistingJdk = Get-JdkInfo -Candidate $ExtractedJdkHome -AllowedMajors @(21)
     if (!$ExistingJdk) {
         throw "The downloaded package is not a valid JDK 21 installation (javac.exe or version check failed)."
     }
@@ -218,7 +225,7 @@ function Install-Temurin21 {
     Remove-Item -LiteralPath $ExtractPath -Recurse -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $ArchivePath -Force -ErrorAction SilentlyContinue
 
-    $Installed = Get-JdkInfo $JdkInstallRoot
+    $Installed = Get-JdkInfo -Candidate $JdkInstallRoot -AllowedMajors @(21)
     if (!$Installed) {
         throw "JDK 21 was extracted, but the final installation check failed."
     }
@@ -231,14 +238,14 @@ try {
 
     Write-Host ""
     Write-Host " Fiximizer automatic builder" -ForegroundColor White
-    Write-Host " Minecraft 1.21.1 | NeoForge | Java 21" -ForegroundColor DarkGray
+    Write-Host " Minecraft 1.21.1 | NeoForge | Gradle JDK 21/25 | Java 21 target" -ForegroundColor DarkGray
     Write-Host ""
 
     if (!(Test-Path -LiteralPath (Join-Path $ProjectRoot "gradlew.bat"))) {
         throw "gradlew.bat is missing. Download or clone the complete Fiximizer repository."
     }
 
-    $Jdk = Find-Jdk21
+    $Jdk = Find-GradleRuntimeJdk
     if (!$Jdk) {
         $Jdk = Install-Temurin21
     }
@@ -246,8 +253,44 @@ try {
     $env:JAVA_HOME = $Jdk.Home
     $env:Path = (Join-Path $Jdk.Home "bin") + ";" + $env:Path
 
-    Write-Ok "Using JDK 21: $($Jdk.Home)"
+    Write-Ok "Running Gradle with JDK $($Jdk.Major): $($Jdk.Home)"
+    Write-Info "The mod remains Java 21 bytecode; Gradle resolves the Java 21 compiler toolchain separately."
     Write-Host $Jdk.Version
+
+    # Build and embed the optional Rust statistics backend when Cargo is already installed.
+    # The native feature is deliberately optional: failed/missing Cargo leaves Java fallback.
+    $NativeResourceDirectory = Join-Path $ProjectRoot "src\main\resources\assets\fiximizer\native\windows-x86_64"
+    $NativeLibrary = Join-Path $ProjectRoot "native\network\target\release\fiximizer_network_native.dll"
+    if (Test-Path -LiteralPath $NativeLibrary) {
+        Remove-Item -LiteralPath $NativeLibrary -Force -ErrorAction SilentlyContinue
+    }
+    if (Test-Path -LiteralPath $NativeResourceDirectory) {
+        Remove-Item -LiteralPath $NativeResourceDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    $CargoCommand = Get-Command cargo.exe -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($env:PROCESSOR_ARCHITECTURE -eq "AMD64" -and $CargoCommand) {
+        Write-Info "Building optional Rust network statistics backend..."
+        Push-Location $ProjectRoot
+        try {
+            & $CargoCommand.Source build --manifest-path (Join-Path $ProjectRoot "native\network\Cargo.toml") --release
+            $CargoExitCode = $LASTEXITCODE
+        } finally {
+            Pop-Location
+        }
+
+        if ($CargoExitCode -eq 0 -and (Test-Path -LiteralPath $NativeLibrary -PathType Leaf)) {
+            New-Item -ItemType Directory -Force -Path $NativeResourceDirectory | Out-Null
+            Copy-Item -LiteralPath $NativeLibrary -Destination $NativeResourceDirectory
+            Write-Ok "Rust network backend staged for windows-x86_64."
+        } else {
+            Write-Warn "Rust backend build failed or produced no library; continuing with the Java network backend."
+        }
+    } elseif (!$CargoCommand) {
+        Write-Warn "Cargo was not found; continuing with the Java network backend."
+    } else {
+        Write-Warn "Rust native backend is not packaged for this Windows architecture; using Java fallback."
+    }
 
     if (!$GradleArgs -or $GradleArgs.Count -eq 0) {
         $GradleArgs = @("build", "--build-cache", "--parallel")

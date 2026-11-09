@@ -1,0 +1,15 @@
+[package]
+name = "fiximizer-network-native"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "fiximizer_network_native"
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

@@ -34,6 +34,7 @@
 - [Features](#features)
 - [In-game dashboard](#in-game-dashboard)
 - [Profiles and adaptive scheduler](#profiles-and-adaptive-scheduler)
+- [Memory optimizer](#memory-optimizer)
 - [Diagnostics and reports](#diagnostics-and-reports)
 - [Optional mod integrations](#optional-mod-integrations)
 - [GPU, OpenCL and VRAM](#gpu-opencl-and-vram)
@@ -63,13 +64,14 @@ Fiximizer combines bounded runtime measurements, Java Flight Recorder (JFR), inc
 
 | Area | What is implemented |
 |---|---|
-| Runtime dashboard | Eight sections for overview, optimization, integrations, physics, JVM, GPU/VRAM, frames and server telemetry |
+| Runtime dashboard | Nine sections, including a dedicated Memory optimizer view |
 | Client measurements | `GameRenderer.render()` call duration and client tick duration, with rolling percentiles |
 | Integrated-server measurements | Full local single-player server tick duration and slow-tick counters |
 | Stall watchdog | Detects long-running client, render and integrated-server event spans; captures JVM thread snapshots |
 | JFR profiling | Bounded rolling recording, on-demand exports, CPU/allocation analysis and incident correlation |
 | Incident reports | Related snapshots, incident timeline, ranked investigative candidates and a self-contained local HTML overview |
 | Memory guard | Temporarily switches Fiximizer to its Memory Saver profile when configured memory-pressure conditions persist |
+| Memory optimizer | Opt-in bounded weak String canonicalization for selected integration metadata, live reuse counters and optional G1 JVM advice |
 | Adaptive scheduler | Queue-aware worker control, p95 timings and task counters for Fiximizer-owned work |
 | JVM advisor | Recommends `-Xms` / `-Xmx` values based on detected RAM and loaded mod count |
 | Optional integrations | Mod detection and independent gates for Create, Create Aeronautics, Sable, Distant Horizons and Voxy |
@@ -115,6 +117,7 @@ Its eight sections are:
 6. **GPU / VRAM** — GPU and OpenCL status, self-test and explicit VRAM cache controls.
 7. **Frames** — client render-call and client tick measurements.
 8. **Server** — integrated single-player server tick measurements.
+9. **Memory** — bounded string-sharing counters and optional G1 String Deduplication advice.
 
 Optional hardware probes and stall-watchdog startup are deferred until the title screen or a loaded world has been ticking for **40 stable client ticks** (about two seconds). This keeps optional diagnostics work out of the critical initial loading path.
 
@@ -147,6 +150,18 @@ This is a scheduler for independent Fiximizer tasks, not a general-purpose Minec
 The memory guard samples Java heap usage and available physical RAM. When configured pressure conditions persist, it temporarily switches Fiximizer to **Memory Saver**. Separate recovery thresholds and repeated samples help avoid rapid profile switching.
 
 When memory conditions recover, the previously selected profile is restored. The guard does not call `System.gc()`, unload objects owned by other mods or change the running JVM's heap limits.
+
+## Memory optimizer
+
+The Memory tab selects JVM-specific memory mechanisms from the **actually running runtime**, rather than assuming every Java vendor exposes the same features.
+
+- **JDK 25+ Compact Object Headers:** when the active VM exposes HotSpot's `UseCompactObjectHeaders` option, the class-count safety limit is not reached, and the feature is not already enabled, the JVM Advisor automatically includes `-XX:+UseCompactObjectHeaders` in the recommended arguments. This reduces object headers from 96/128 bits to 64 bits on supported 64-bit HotSpot builds. The option is applied only after restarting the game.
+- **Java 21 compatible fallback:** Java 21 does not expose the JDK 25 compact-header option. Fiximizer keeps Java 21 bytecode and uses its bounded explicit String canonicalization API; no Java 25-only classes or APIs are loaded.
+- **Optional G1 String Deduplication:** the JVM Advisor can add `-XX:+UseStringDeduplication` only when G1 is detected and the user enables the setting. It may add garbage-collection CPU work, so it is off by default.
+
+The explicit String table uses weak references, 16 buckets with four ways each (64 slots total), full string equality after hash matches, skips strings shorter than eight characters, and stops after three failed compare-and-set attempts. Under contention it bypasses the cache instead of spinning or blocking. It is created lazily and released when disabled; it never scans the heap, rewrites arbitrary Minecraft or third-party object graphs, or runs a recurring task.
+
+**Current scope is intentionally small:** the first adapter covers selected optional-mod metadata (IDs and version strings). It is an integration foundation, not a claim that the entire modpack heap is compressed. The dashboard counts only reuse of a different, equal String instance as a deduplication hit; seeing the same object again is not counted as saved memory. A zero-hit result means no saving has been observed. See [the Memory Optimizer implementation notes](docs/MEMORY_OPTIMIZER.md).
 
 ## Diagnostics and reports
 
@@ -245,7 +260,7 @@ GPU identification and total VRAM can be read through the game-provided API. Liv
 | Minecraft | Java Edition **1.21.1** |
 | Mod loader | **NeoForge 21.1.256 or newer compatible 21.1.x releases** |
 | Java runtime | **Java 21** |
-| Build JDK | **JDK 21** |
+| Build / Gradle runtime | **JDK 21 or 25** (Java 21 compiler toolchain) |
 | Optional integrations | Create, Create Aeronautics, Sable, Distant Horizons and Voxy |
 | OpenCL | An OpenCL-capable device and runtime supplied by the graphics driver; required only for GPU features |
 
@@ -276,7 +291,7 @@ Run this from the repository root:
 build.bat
 ~~~
 
-The builder searches for a full JDK 21. If none is available, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum and stores the isolated JDK in `.tools/jdk-21-temurin`. It does not change system Java settings.
+The builder accepts a full JDK 21 or 25 to run Gradle. If neither is available, it downloads Eclipse Temurin 21 from the official Adoptium API, verifies the SHA-256 checksum and stores the isolated fallback JDK in `.tools/jdk-21-temurin`. Gradle still compiles the mod with the Java 21 toolchain; system Java settings are not changed.
 
 Other examples:
 
@@ -300,11 +315,11 @@ Examples:
 ./build.sh runClient
 ~~~
 
-The Linux builder searches for a complete JDK 21, including common Prism Launcher locations. If none is available, it downloads Eclipse Temurin 21 for the detected CPU architecture, verifies the official SHA-256 checksum and stores the isolated JDK in `.tools/jdk-21-temurin`. It does not change system Java settings. See [BUILDING.md](BUILDING.md) for details.
+The Linux builder accepts a complete JDK 21 or 25 for Gradle, including common Prism Launcher locations. If neither is available, it downloads Eclipse Temurin 21 for the detected CPU architecture, verifies the official SHA-256 checksum and stores it as an isolated fallback in `.tools/jdk-21-temurin`. Compilation remains Java 21. See [BUILDING.md](BUILDING.md) for details.
 
 ### Any platform — Gradle Wrapper
 
-With JDK 21 installed:
+With JDK 21 or 25 installed as the Gradle runtime:
 
 ~~~bash
 # Windows
@@ -322,6 +337,7 @@ The [Build workflow](.github/workflows/build.yml) runs on pushes and pull reques
 
 - builds and tests against NeoForge 21.1.256 and 21.1.265 in its compatibility matrix;
 - builds the mod on Ubuntu and Windows with Java 21;
+- runs an additional Windows/Linux build-and-test matrix with Gradle on JDK 25 while preserving Java 21 bytecode;
 - validates the POSIX shell builder and runs the automatic Linux builder;
 - validates the PowerShell builder syntax and runs the automatic builder on Windows;
 - uploads the resulting JARs as workflow artifacts;
