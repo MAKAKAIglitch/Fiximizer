@@ -32,12 +32,19 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_MEMORY_GUARD;
     public static final ModConfigSpec.IntValue MEMORY_PRESSURE_THRESHOLD;
     public static final ModConfigSpec.IntValue MEMORY_RECOVERY_THRESHOLD;
+    public static final ModConfigSpec.BooleanValue ENABLE_STRING_CANONICALIZATION;
+    public static final ModConfigSpec.BooleanValue RECOMMEND_G1_STRING_DEDUP;
 
     public static final ModConfigSpec.BooleanValue ENABLE_CREATE_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_AERONAUTICS_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_SABLE_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_DH_INTEGRATION;
     public static final ModConfigSpec.BooleanValue ENABLE_VOXY_INTEGRATION;
+
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_TELEMETRY;
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_TCP_NODELAY;
+    public static final ModConfigSpec.BooleanValue ENABLE_NETWORK_NATIVE_BACKEND;
+    public static final ModConfigSpec.IntValue NETWORK_BACKEND_MODE;
 
     public static final ModConfigSpec.BooleanValue ENABLE_GPU_TELEMETRY;
     public static final ModConfigSpec.BooleanValue ENABLE_OPENCL_PROBE;
@@ -180,6 +187,19 @@ public final class FiximizerConfig {
                 .defineInRange("memoryRecoveryThresholdPercent", 70, 45, 80);
 
         BUILDER.pop();
+        BUILDER.push("memory");
+
+        ENABLE_STRING_CANONICALIZATION = BUILDER
+                .comment("Enable bounded, weak string canonicalization for explicitly submitted immutable integration metadata. No heap scanning or per-tick work.")
+                .translation("config.fiximizer.memory.string_dedup")
+                .define("stringCanonicalization", false);
+
+        RECOMMEND_G1_STRING_DEDUP = BUILDER
+                .comment("Add optional G1 String Deduplication to JVM argument recommendations. Requires G1 and a restart; it may add garbage-collection CPU work.")
+                .translation("config.fiximizer.memory.g1_string_dedup")
+                .define("recommendG1StringDeduplication", false);
+
+        BUILDER.pop();
         BUILDER.push("integrations");
 
         DETECT_COMPATIBLE_MODS = BUILDER
@@ -211,6 +231,29 @@ public final class FiximizerConfig {
                 .comment("Allow the Voxy integration to activate only when Voxy is installed.")
                 .translation("config.fiximizer.integrations.voxy")
                 .define("voxy", true);
+
+        BUILDER.pop();
+        BUILDER.push("network");
+
+        ENABLE_NETWORK_TELEMETRY = BUILDER
+                .comment("Enable passive client-side Netty byte and server-reported latency telemetry.")
+                .translation("config.fiximizer.network.telemetry")
+                .define("enableTelemetry", false);
+
+        ENABLE_NETWORK_TCP_NODELAY = BUILDER
+                .comment("Prefer TCP_NODELAY on the client socket when it is currently disabled and no external stack optimizer is detected.")
+                .translation("config.fiximizer.network.tcp_nodelay")
+                .define("preferTcpNoDelay", false);
+
+        ENABLE_NETWORK_NATIVE_BACKEND = BUILDER
+                .comment("Allow the optional Rust native backend for local network-statistics processing.")
+                .translation("config.fiximizer.network.native_backend")
+                .define("enableRustBackend", true);
+
+        NETWORK_BACKEND_MODE = BUILDER
+                .comment("Network statistics backend: 0 = automatic benchmark, 1 = Java, 2 = Rust.")
+                .translation("config.fiximizer.network.backend_mode")
+                .defineInRange("backendMode", 0, 0, 2);
 
         BUILDER.pop();
         BUILDER.push("gpu");

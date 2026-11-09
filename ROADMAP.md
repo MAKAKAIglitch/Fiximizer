@@ -125,11 +125,15 @@ Prioritize one measured bottleneck at a time. Candidate areas include:
 
 ##### Deduplicate immutable data
 
-- Prototype content-based canonicalization for high-frequency immutable values such as strings, resource identifiers, and other proven flyweight candidates.
+- [x] Add an opt-in bounded weak-reference String canonicalization API for explicitly submitted immutable integration metadata. The initial adapter is intentionally low-volume; this is not yet a pack-wide RAM optimization.
+- [ ] Expand canonicalization to resource identifiers and other high-frequency immutable values only after a real workload profile proves enough duplicate data to offset lookup and table costs.
 - Investigate NBT data at the tag/value level. Share only values and structures that are demonstrably immutable; do not share mutable compounds, lists, or backing arrays without copy-on-write or another explicit ownership model.
 - Investigate duplicate baked model data, vertex arrays, BakedQuad data, and VoxelShape-related structures. Share them only where the relevant API and every participating mod treat the data as immutable.
 - Use a hash as a lookup accelerator, then verify full content equality before reusing an object. A hash match alone is never sufficient.
-- Compare custom string canonicalization with JVM-provided G1 String Deduplication. Prefer the built-in JVM mechanism when it already addresses the measured case; expose a JVM Advisor recommendation rather than duplicating its work blindly.
+- [x] Add an opt-in JVM Advisor recommendation for G1 String Deduplication, guarded by detection of the active G1 collector and an explicit restart warning.
+- [x] Detect JDK 25+ HotSpot Compact Object Headers at runtime and recommend the JVM flag only when the option is exposed, not already enabled, and below the 4-million loaded-class limit.
+- [x] Keep the Java 21 bytecode path as the fallback and verify Gradle builds/tests with JDK 21 and JDK 25 runtimes.
+- [ ] Benchmark JVM-provided G1 String Deduplication against custom adapters. Prefer the built-in JVM mechanism when it already addresses the measured case; do not duplicate its work blindly.
 
 ##### Store data more compactly
 
@@ -326,15 +330,25 @@ No blanket rewrite is planned. Java remains the baseline; Kotlin and Rust are in
 
 The immediate engineering sequence is:
 
-1. Startup Profiler plus the first safe launch-time reductions.
-2. Low-allocation telemetry audit and hot-path cleanup.
-3. Adaptive Diagnostics with a visible overhead level.
-4. Repeatable benchmark/baseline export.
-5. The first evidence-backed optimization selected from a real modpack profile.
-6. A reusable optimization-policy and adapter architecture around that work.
-7. A Memory Profiler baseline followed by one narrowly scoped, opt-in deduplication experiment.
+1. Validate the integrated Startup Profiler and deferred startup path on Java 21 / NeoForge, keeping total JVM-to-title time separate from Fiximizer-owned phase durations.
+2. Keep Memory Optimizer's string sharing opt-in; measure retained-heap savings, lookup CPU and table overhead on representative modpacks before expanding its scope.
+3. Validate passive Network telemetry and compare Java/Rust processing end-to-end on packaged Windows/Linux targets; preserve the Java fallback and avoid treating server-reported ping as independent RTT.
+4. Add a local, privacy-reviewed Diagnostic Bundle that can be attached to bug reports or inspected by an AI assistant.
+5. Build a repeatable Benchmark Engine with versioned baselines, comparable scenarios, medians and tail percentiles.
+6. Add a Runtime Health Check that reports the state and capabilities of each Fiximizer subsystem.
+7. Run the combined CI matrix and client/server smoke tests for Startup, Memory and Network; verify feature-disabled behavior, fallback paths and compatibility with other mods.
+8. Select the first additional in-game optimization from a reproducible real-modpack profile, then measure its end-to-end benefit.
 
-Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration is a first-class goal, not an afterthought.
+Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration remains a first-class goal.
+
+## 8. Follow-up implementation specifications
+
+The audit-derived implementation proposals are maintained separately from this roadmap so they can be reviewed, changed and implemented independently:
+
+- [Improvement proposals and implementation plan](docs/IMPROVEMENT_PROPOSALS.md) — Diagnostic Bundle, Benchmark Engine, Runtime Health Check, Memory/Network follow-ups, compatibility and integration gates.
+- [Russian version](docs/IMPROVEMENT_PROPOSALS.ru.md).
+
+These documents describe planned work. They do not imply that the proposed features are already implemented or that any independent feature branch has been merged.
 
 ---
 
