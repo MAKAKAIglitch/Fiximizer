@@ -211,7 +211,7 @@ jobs:
           sudo apt-get install --yes xvfb xdotool openbox libgl1-mesa-dri
 
       - name: Run client startup smoke test
-        run: xvfb-run -a -s "-screen 0 1280x720x24" sh -c 'openbox --sm-disable >/tmp/fiximizer-openbox.log 2>&1 & sleep 2; exec python3 scripts/runtime_smoke.py client'
+        run: xvfb-run -a -s "-screen 0 1280x720x24 -extension MIT-SHM" sh -c 'openbox --sm-disable >/tmp/fiximizer-openbox.log 2>&1 & sleep 2; exec python3 scripts/runtime_smoke.py client'
 
   build-windows:
     runs-on: windows-latest
