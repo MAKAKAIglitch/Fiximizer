@@ -52,14 +52,22 @@ public record BenchmarkRuntimeSnapshot(
 
         long gcCount = 0L;
         long gcTime = 0L;
+        boolean gcCountAvailable = false;
+        boolean gcTimeAvailable = false;
         for (GarbageCollectorMXBean bean : ManagementFactory.getGarbageCollectorMXBeans()) {
-            if (bean.getCollectionCount() > 0L) {
-                gcCount += bean.getCollectionCount();
+            long count = bean.getCollectionCount();
+            long time = bean.getCollectionTime();
+            if (count >= 0L) {
+                gcCount += count;
+                gcCountAvailable = true;
             }
-            if (bean.getCollectionTime() > 0L) {
-                gcTime += bean.getCollectionTime();
+            if (time >= 0L) {
+                gcTime += time;
+                gcTimeAvailable = true;
             }
         }
+        if (!gcCountAvailable) gcCount = -1L;
+        if (!gcTimeAvailable) gcTime = -1L;
 
         SchedulerSnapshot scheduler = AdaptiveTaskScheduler.snapshot();
         var schedulerTelemetry = scheduler.telemetry();

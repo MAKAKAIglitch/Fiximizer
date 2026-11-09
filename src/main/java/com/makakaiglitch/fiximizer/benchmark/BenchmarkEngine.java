@@ -141,9 +141,9 @@ public final class BenchmarkEngine {
                 state,
                 session == null ? latestRun == null ? null : latestRun.scenario() : session.scenario,
                 remaining,
-                session == null ? 0 : session.render.sampleCount(),
-                session == null ? 0 : session.clientTick.sampleCount(),
-                session == null ? 0 : session.serverTick.sampleCount(),
+                session != null ? session.render.sampleCount() : latestRun == null ? 0 : latestRun.renderCall().sampleCount(),
+                session != null ? session.clientTick.sampleCount() : latestRun == null ? 0 : latestRun.clientTick().sampleCount(),
+                session != null ? session.serverTick.sampleCount() : latestRun == null ? 0 : latestRun.integratedServerTick().sampleCount(),
                 message,
                 lastSavedFile,
                 baselineSaveRunning
@@ -175,7 +175,6 @@ public final class BenchmarkEngine {
             baselineSaveRunning = false;
             if (error == null) {
                 message = "Baseline saved: " + path.getFileName();
-                lastSavedFile = path.toString();
             } else {
                 message = "Baseline save failed: " + safeMessage(error);
             }

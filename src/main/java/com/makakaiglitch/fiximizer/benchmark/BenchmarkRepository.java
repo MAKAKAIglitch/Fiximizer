@@ -123,7 +123,8 @@ public final class BenchmarkRepository {
         if (run == null || run.id() == null || run.id().isBlank()
                 || run.scenario() == null || run.environment() == null
                 || run.renderCall() == null || run.clientTick() == null
-                || run.integratedServerTick() == null) {
+                || run.integratedServerTick() == null
+                || run.runtimeBefore() == null || run.runtimeAfter() == null) {
             throw new IOException("The benchmark document is missing required fields.");
         }
     }
