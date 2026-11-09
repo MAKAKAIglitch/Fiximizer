@@ -333,7 +333,7 @@ The immediate engineering sequence is:
 1. Validate the integrated Startup Profiler and deferred startup path on Java 21 / NeoForge, keeping total JVM-to-title time separate from Fiximizer-owned phase durations.
 2. Keep Memory Optimizer's string sharing opt-in; measure retained-heap savings, lookup CPU and table overhead on representative modpacks before expanding its scope.
 3. Validate passive Network telemetry and compare Java/Rust processing end-to-end on packaged Windows/Linux targets; preserve the Java fallback and avoid treating server-reported ping as independent RTT.
-4. Add a local, privacy-reviewed Diagnostic Bundle that can be attached to bug reports or inspected by an AI assistant.
+4. Validate the local, privacy-reviewed Diagnostic Bundle in [draft PR #5](https://github.com/MAKAKAIglitch/Fiximizer/pull/5); its implementation is on `feature/diagnostic-bundle` and is not shipped until CI and review pass.
 5. Build a repeatable Benchmark Engine with versioned baselines, comparable scenarios, medians and tail percentiles.
 6. Add a Runtime Health Check that reports the state and capabilities of each Fiximizer subsystem.
 7. Run the combined CI matrix and client/server smoke tests for Startup, Memory and Network; verify feature-disabled behavior, fallback paths and compatibility with other mods.
