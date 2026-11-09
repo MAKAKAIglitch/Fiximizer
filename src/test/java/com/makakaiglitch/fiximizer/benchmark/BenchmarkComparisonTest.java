@@ -63,6 +63,34 @@ class BenchmarkComparisonTest {
     }
 
     @Test
+    void rejectsDifferentProtocolAndForgedCoverage() {
+        BenchmarkRun baseline = run("baseline", environment("0.14.0-alpha", "settings-a"),
+                stats(20, 40, 60), true);
+
+        BenchmarkRun differentProtocol = new BenchmarkRun(
+                baseline.schemaVersion(), "different-protocol",
+                baseline.startedAtEpochMillis(), baseline.measurementStartedAtEpochMillis(),
+                baseline.completedAtEpochMillis(), baseline.scenario(), baseline.environment(),
+                5, 60, baseline.renderCall(), baseline.clientTick(), baseline.integratedServerTick(),
+                baseline.runtimeBefore(), baseline.runtimeAfter(), true, "claimed valid"
+        );
+        assertFalse(BenchmarkComparison.compare(baseline, differentProtocol).compatible());
+
+        BenchmarkSampleWindow.Statistics tooFew = new BenchmarkSampleWindow.Statistics(
+                5, 5L, 0L, 20.0, 1.0, 10.0, 18.0, 24.0, 30.0, 40.0
+        );
+        BenchmarkRun forgedValid = new BenchmarkRun(
+                baseline.schemaVersion(), "forged-valid",
+                baseline.startedAtEpochMillis(), baseline.measurementStartedAtEpochMillis(),
+                baseline.completedAtEpochMillis(), baseline.scenario(), baseline.environment(),
+                baseline.warmupSeconds(), baseline.measurementSeconds(), tooFew,
+                baseline.clientTick(), baseline.integratedServerTick(),
+                baseline.runtimeBefore(), baseline.runtimeAfter(), true, "claimed valid"
+        );
+        assertFalse(BenchmarkComparison.compare(baseline, forgedValid).compatible());
+    }
+
+    @Test
     void rejectsIncompleteRuns() {
         BenchmarkRun baseline = run("baseline", environment("0.14.0-alpha", "settings-a"),
                 stats(20, 40, 60), true);

@@ -3,7 +3,9 @@ package com.makakaiglitch.fiximizer.benchmark;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BenchmarkSampleWindowTest {
     @Test
@@ -47,11 +49,11 @@ class BenchmarkSampleWindowTest {
     @Test
     void clampsNegativeDurationsAndHandlesEmptyWindows() {
         BenchmarkSampleWindow window = new BenchmarkSampleWindow(2);
-        assertEquals(false, window.snapshot().hasSamples());
+        assertFalse(window.snapshot().hasSamples());
         window.record(-100L);
 
         BenchmarkSampleWindow.Statistics result = window.snapshot();
-        assertEquals(true, result.hasSamples());
+        assertTrue(result.hasSamples());
         assertEquals(0.0, result.minMillis(), 0.0);
         assertEquals(0.0, result.p99Millis(), 0.0);
     }

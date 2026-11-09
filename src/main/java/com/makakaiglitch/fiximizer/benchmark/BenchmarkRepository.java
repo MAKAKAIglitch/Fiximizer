@@ -45,8 +45,8 @@ public final class BenchmarkRepository {
 
     public static Path saveBaseline(Path gameDirectory, BenchmarkRun run) throws IOException {
         requireValidRunObject(run);
-        if (!run.valid()) {
-            throw new IOException("An invalid or incomplete run cannot be saved as a baseline.");
+        if (!run.valid() || !run.usesCurrentProtocol() || !run.hasMinimumCoverage()) {
+            throw new IOException("Only complete runs with the supported protocol and minimum sample coverage can become baselines.");
         }
         Path directory = directory(gameDirectory);
         Files.createDirectories(directory);
@@ -67,6 +67,10 @@ public final class BenchmarkRepository {
             BenchmarkRun run = read(path);
             if (run.schemaVersion() != BenchmarkRun.CURRENT_SCHEMA_VERSION
                     || !run.valid()
+                    || !run.usesCurrentProtocol()
+                    || !run.hasMinimumCoverage()
+                    || run.warmupSeconds() != candidate.warmupSeconds()
+                    || run.measurementSeconds() != candidate.measurementSeconds()
                     || run.scenario() != candidate.scenario()
                     || !run.compatibilityFingerprint().equals(candidate.compatibilityFingerprint())) {
                 return Optional.empty();
@@ -82,6 +86,8 @@ public final class BenchmarkRepository {
         BenchmarkRun imported = read(sourceFile);
         requireValidRunObject(imported);
         if (!imported.valid()
+                || !imported.usesCurrentProtocol()
+                || !imported.hasMinimumCoverage()
                 || imported.schemaVersion() != BenchmarkRun.CURRENT_SCHEMA_VERSION) {
             throw new IOException("The selected file is not a valid supported benchmark run.");
         }

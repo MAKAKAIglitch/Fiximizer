@@ -1,10 +1,8 @@
 package com.makakaiglitch.fiximizer.benchmark;
 
-import com.makakaiglitch.fiximizer.Fiximizer;
 import com.makakaiglitch.fiximizer.scheduler.AdaptiveTaskScheduler;
 import com.makakaiglitch.fiximizer.scheduler.TaskPriority;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -69,7 +67,9 @@ public final class BenchmarkEngine {
         }
 
         activeSession = new Session(gameDirectory.toAbsolutePath().normalize(), scenario, environment);
+        latestRun = null;
         latestComparison = null;
+        lastSavedFile = "";
         message = "Warm-up started. Keep the selected scene unchanged.";
         state = State.WARMING_UP;
         return true;
@@ -141,9 +141,12 @@ public final class BenchmarkEngine {
                 state,
                 session == null ? latestRun == null ? null : latestRun.scenario() : session.scenario,
                 remaining,
-                session != null ? session.render.sampleCount() : latestRun == null ? 0 : latestRun.renderCall().sampleCount(),
-                session != null ? session.clientTick.sampleCount() : latestRun == null ? 0 : latestRun.clientTick().sampleCount(),
-                session != null ? session.serverTick.sampleCount() : latestRun == null ? 0 : latestRun.integratedServerTick().sampleCount(),
+                session != null ? session.render.sampleCount()
+                        : latestRun == null ? 0 : latestRun.renderCall().sampleCount(),
+                session != null ? session.clientTick.sampleCount()
+                        : latestRun == null ? 0 : latestRun.clientTick().sampleCount(),
+                session != null ? session.serverTick.sampleCount()
+                        : latestRun == null ? 0 : latestRun.integratedServerTick().sampleCount(),
                 message,
                 lastSavedFile,
                 baselineSaveRunning

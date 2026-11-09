@@ -20,8 +20,12 @@ public record BenchmarkComparison(
                 || candidate.schemaVersion() != BenchmarkRun.CURRENT_SCHEMA_VERSION) {
             return incompatible("The benchmark schema version is not supported.");
         }
-        if (!baseline.valid() || !candidate.valid()) {
+        if (!baseline.valid() || !candidate.valid()
+                || !baseline.hasMinimumCoverage() || !candidate.hasMinimumCoverage()) {
             return incompatible("Both runs must meet the minimum sample requirements.");
+        }
+        if (!baseline.usesCurrentProtocol() || !candidate.usesCurrentProtocol()) {
+            return incompatible("Both runs must use the supported 10-second warm-up and 30-second measurement protocol.");
         }
         if (baseline.scenario() != candidate.scenario()) {
             return incompatible("The selected scenarios differ.");

@@ -1236,6 +1236,20 @@ public final class FiximizerScreen extends Screen {
                     : Path.of(status.savedFile()).getFileName().toString();
             drawCompactValue(graphics, "screen.fiximizer.benchmark.result_path", panelTop + 213,
                     savedName);
+            BenchmarkRun completedRun = BenchmarkEngine.latestRun();
+            if (completedRun != null) {
+                var before = completedRun.runtimeBefore();
+                var after = completedRun.runtimeAfter();
+                String gcDelta = before.gcCollectionTimeMillis() < 0L
+                        || after.gcCollectionTimeMillis() < 0L
+                        ? "n/a"
+                        : Long.toString(after.gcCollectionTimeMillis() - before.gcCollectionTimeMillis());
+                drawCompactValue(graphics, "screen.fiximizer.benchmark.runtime",
+                        panelTop + 228,
+                        DiagnosticsService.formatBytes(before.heapUsedBytes()),
+                        DiagnosticsService.formatBytes(after.heapUsedBytes()),
+                        gcDelta);
+            }
         }
 
         BenchmarkRun run = BenchmarkEngine.latestRun();

@@ -315,14 +315,15 @@
   "screen.fiximizer.benchmark.state.cancelled": "Отменено",
   "screen.fiximizer.benchmark.state.failed": "Ошибка",
   "screen.fiximizer.benchmark.remaining": "Осталось: %s с",
-  "screen.fiximizer.benchmark.live_samples": "Выборки: render %s | тик клиента %s | тик сервера %s",
-  "screen.fiximizer.benchmark.result_path": "Сохранённый результат: %s",
+  "screen.fiximizer.benchmark.live_samples": "Выборки: render %s | клиент %s | сервер %s",
+  "screen.fiximizer.benchmark.result_path": "Файл запуска: %s",
   "screen.fiximizer.benchmark.no_saved_result": "Файл ещё не сохранён",
   "screen.fiximizer.benchmark.no_result": "Результатов ещё нет. Запусти замер, чтобы создать baseline.",
-  "screen.fiximizer.benchmark.render_result": "Render-call: %s выборок | p50 %s мс | p95 %s мс | p99 %s мс",
-  "screen.fiximizer.benchmark.client_result": "Тик клиента: %s выборок | p50 %s мс | p95 %s мс | p99 %s мс",
-  "screen.fiximizer.benchmark.server_result": "Тик сервера: %s выборок | p50 %s мс | p95 %s мс | p99 %s мс",
-  "screen.fiximizer.benchmark.comparison": "Render p95 относительно baseline: %s%s мс (%s)",
+  "screen.fiximizer.benchmark.render_result": "Render: %s выборок | p50 %s | p95 %s | p99 %s мс",
+  "screen.fiximizer.benchmark.client_result": "Тик клиента: %s выборок | p50 %s | p95 %s | p99 %s мс",
+  "screen.fiximizer.benchmark.server_result": "Тик сервера: %s выборок | p50 %s | p95 %s | p99 %s мс",
+  "screen.fiximizer.benchmark.comparison": "Разница Render p95: %s%s мс (%s)",
   "screen.fiximizer.benchmark.incomplete": "Недостаточно выборок: такой результат нельзя использовать как baseline.",
-  "screen.fiximizer.benchmark.start_failed": "Не удалось запустить бенчмарк: %s"
+  "screen.fiximizer.benchmark.start_failed": "Не удалось запустить бенчмарк: %s",
+  "screen.fiximizer.benchmark.runtime": "Heap: %s → %s | изменение времени GC: %s мс"
 }
