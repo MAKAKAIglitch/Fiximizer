@@ -29,6 +29,22 @@ neoForge {
             server()
             programArgument '--nogui'
         }
+
+        // Isolated run directories keep CI smoke worlds and settings out of
+        // developer runs and make their startup inputs deterministic.
+        smokeServer {
+            server()
+            gameDirectory = project.file('runs/smoke-server')
+            programArgument '--nogui'
+            ideName = ''
+        }
+
+        smokeClient {
+            client()
+            gameDirectory = project.file('runs/smoke-client')
+            programArguments = ['--width', '1280', '--height', '720']
+            ideName = ''
+        }
     }
 
     mods {

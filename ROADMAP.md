@@ -330,13 +330,14 @@ No blanket rewrite is planned. Java remains the baseline; Kotlin and Rust are in
 
 The immediate engineering sequence is:
 
+0. Automate Runtime Smoke Tests: a dedicated-server boot on Windows/Linux and a Linux/Xvfb client boot that checks the 40-stable-tick milestone and clean shutdown. Specification: [Runtime Smoke Tests](docs/RUNTIME_SMOKE_TESTS.md).
 1. Validate the integrated Startup Profiler and deferred startup path on Java 21 / NeoForge, keeping total JVM-to-title time separate from Fiximizer-owned phase durations.
 2. Keep Memory Optimizer's string sharing opt-in; measure retained-heap savings, lookup CPU and table overhead on representative modpacks before expanding its scope.
 3. Validate passive Network telemetry and compare Java/Rust processing end-to-end on packaged Windows/Linux targets; preserve the Java fallback and avoid treating server-reported ping as independent RTT.
 4. Add a local, privacy-reviewed Diagnostic Bundle that can be attached to bug reports or inspected by an AI assistant.
 5. Build a repeatable Benchmark Engine with versioned baselines, comparable scenarios, medians and tail percentiles.
 6. Add a Runtime Health Check that reports the state and capabilities of each Fiximizer subsystem.
-7. Run the combined CI matrix and client/server smoke tests for Startup, Memory and Network; verify feature-disabled behavior, fallback paths and compatibility with other mods.
+7. Extend smoke coverage to world loading, enabled/disabled optimizer paths, fallbacks and representative modpack compatibility.
 8. Select the first additional in-game optimization from a reproducible real-modpack profile, then measure its end-to-end benefit.
 
 Kotlin modules, Rust native code, broad loader support, and automatic GPU acceleration are introduced only when they prove useful—not as rewrites for their own sake. Startup acceleration remains a first-class goal.
