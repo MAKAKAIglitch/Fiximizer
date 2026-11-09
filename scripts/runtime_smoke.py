@@ -198,14 +198,13 @@ def stop_server(process: subprocess.Popen[str], rcon_password: str) -> None:
         raise SmokeFailure(f"dedicated server returned exit code {return_code}")
 
 
-def close_client_window() -> None:
+def find_client_window(timeout_seconds: int = 20) -> str:
     if not os.environ.get("DISPLAY"):
         raise SmokeFailure("client smoke test requires DISPLAY; run it under xvfb-run")
     if shutil.which("xdotool") is None:
-        raise SmokeFailure("client smoke test requires xdotool to close the test window")
+        raise SmokeFailure("client smoke test requires xdotool")
 
-    deadline = time.monotonic() + 20
-    window_id = None
+    deadline = time.monotonic() + timeout_seconds
     while time.monotonic() < deadline:
         result = subprocess.run(
             ["xdotool", "search", "--onlyvisible", "--name", "Minecraft"],
@@ -215,13 +214,35 @@ def close_client_window() -> None:
         )
         matches = [item.strip() for item in result.stdout.splitlines() if item.strip()]
         if matches:
-            window_id = matches[-1]
-            break
+            return matches[-1]
         time.sleep(0.5)
 
-    if window_id is None:
-        raise SmokeFailure("Minecraft reached the startup log marker but no visible client window was found")
+    raise SmokeFailure("Minecraft logged its client entrypoint but no visible client window was found")
 
+
+def activate_client_window(window_id: str) -> None:
+    # Xvfb alone does not provide a window manager or keyboard focus. CI starts
+    # Openbox so Minecraft's normal focus-dependent client ticks can advance.
+    result = subprocess.run(
+        ["xdotool", "windowactivate", "--sync", window_id],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise SmokeFailure(f"could not activate the Minecraft window: {result.stderr.strip()}")
+
+    focus = subprocess.run(
+        ["xdotool", "windowfocus", "--sync", window_id],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if focus.returncode != 0:
+        raise SmokeFailure(f"could not focus the Minecraft window: {focus.stderr.strip()}")
+
+
+def close_client_window(window_id: str) -> None:
     close_result = subprocess.run(
         ["xdotool", "windowclose", window_id],
         check=False,
@@ -245,21 +266,28 @@ def run_smoke(mode: str, startup_timeout: int) -> None:
                 "Done (",
                 "For help, type",
             )
-        else:
-            markers = (
-                "Fiximizer menu registered in the mod list.",
-                "Deferred startup services scheduled after 40 stable client ticks.",
-            )
-
-        wait_for_markers(process, output_queue, markers, startup_timeout)
-
-        if mode == "server":
+            wait_for_markers(process, output_queue, markers, startup_timeout)
             print("[runtime-smoke] Dedicated server reached Done; requesting clean shutdown.", flush=True)
             assert rcon_password is not None
             stop_server(process, rcon_password)
         else:
+            wait_for_markers(
+                process,
+                output_queue,
+                ("Fiximizer menu registered in the mod list.",),
+                startup_timeout,
+            )
+            window_id = find_client_window()
+            activate_client_window(window_id)
+            print("[runtime-smoke] Client window focused; waiting for 40 stable client ticks.", flush=True)
+            wait_for_markers(
+                process,
+                output_queue,
+                ("Deferred startup services scheduled after 40 stable client ticks.",),
+                90,
+            )
             print("[runtime-smoke] Client reached the title-screen stable-tick milestone; closing window.", flush=True)
-            close_client_window()
+            close_client_window(window_id)
             try:
                 return_code = process.wait(timeout=90)
             except subprocess.TimeoutExpired as exc:
