@@ -244,7 +244,7 @@ Rust backend только рассчитывает статистику для �
 | 1 | Проверить и подготовить Startup Optimizer | В отдельной ветке уже есть узкая реализация и тесты |
 | 2 | Diagnostic Bundle | Реализован в `feature/diagnostic-bundle`; ожидает CI и ревью |
 | 3 | Runtime Health Check | Реализован в `feature/runtime-health-check`; ожидает CI и ревью |
-| 4 | Benchmark Engine | Следующая измерительная основа для дальнейших оптимизаций |
+| 4 | Benchmark Engine | Реализован в `feature/benchmark-engine`; ожидает CI и ревью |
 | 5 | Эксперимент с Memory-кандидатом | Только после профилирования retained heap |
 | 6 | Уточнение Network Telemetry | Сначала исправить семантику метрик |
 | 7 | Реестр возможностей совместимости | Объединит проверки конфликтов на уровне отдельных функций |

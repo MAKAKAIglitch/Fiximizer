@@ -335,7 +335,7 @@ The immediate engineering sequence is:
 3. Validate passive Network telemetry and compare Java/Rust processing end-to-end on packaged Windows/Linux targets; preserve the Java fallback and avoid treating server-reported ping as independent RTT.
 4. Validate the local, privacy-reviewed Diagnostic Bundle in [open PR #5](https://github.com/MAKAKAIglitch/Fiximizer/pull/5); its implementation is on `feature/diagnostic-bundle` and is not shipped until CI and review pass.
 5. Implement Runtime Health Check with passive subsystem states, transition timestamps and a sanitized `health.json` export on `feature/runtime-health-check`; it is not shipped until CI and review pass.
-6. Build a repeatable Benchmark Engine with versioned baselines, comparable scenarios, medians and tail percentiles.
+6. Validate the first repeatable Benchmark Engine iteration in [PR #7](https://github.com/MAKAKAIglitch/Fiximizer/pull/7), including same-environment baseline matching and manual workload repeatability; it is not shipped until CI and review pass.
 7. Run the combined CI matrix and client/server smoke tests for Startup, Memory and Network; verify feature-disabled behavior, fallback paths and compatibility with other mods.
 8. Select the first additional in-game optimization from a reproducible real-modpack profile, then measure its end-to-end benefit.
 

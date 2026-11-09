@@ -4,6 +4,7 @@ import com.makakaiglitch.fiximizer.benchmark.BenchmarkComparison;
 import com.makakaiglitch.fiximizer.benchmark.BenchmarkEngine;
 import com.makakaiglitch.fiximizer.benchmark.BenchmarkEnvironment;
 import com.makakaiglitch.fiximizer.benchmark.BenchmarkRun;
+import com.makakaiglitch.fiximizer.benchmark.BenchmarkSampleWindow;
 import com.makakaiglitch.fiximizer.benchmark.BenchmarkScenario;
 import com.makakaiglitch.fiximizer.compat.CompatibilityDetector;
 import com.makakaiglitch.fiximizer.compat.IntegrationStatus;
@@ -699,6 +700,9 @@ public final class FiximizerScreen extends Screen {
         BenchmarkRun latestBenchmark = BenchmarkEngine.latestRun();
         benchmarkBaselineButton.active = latestBenchmark != null && latestBenchmark.valid()
                 && !benchmarkActive && !benchmarkSnapshot.baselineSaveRunning();
+        benchmarkBaselineButton.setMessage(Component.translatable(benchmarkSnapshot.baselineSaveRunning()
+                ? "screen.fiximizer.benchmark.baseline_saving"
+                : "screen.fiximizer.benchmark.set_baseline"));
         benchmarkPathButton.active = !benchmarkSnapshot.savedFile().isBlank();
 
         for (Button button : integrationButtons) {
@@ -733,6 +737,9 @@ public final class FiximizerScreen extends Screen {
                     && snapshot.state() != BenchmarkEngine.State.RECORDING
                     && snapshot.state() != BenchmarkEngine.State.SAVING
                     && !snapshot.baselineSaveRunning();
+            benchmarkBaselineButton.setMessage(Component.translatable(snapshot.baselineSaveRunning()
+                    ? "screen.fiximizer.benchmark.baseline_saving"
+                    : "screen.fiximizer.benchmark.set_baseline"));
             benchmarkPathButton.active = !snapshot.savedFile().isBlank();
         }
     }
