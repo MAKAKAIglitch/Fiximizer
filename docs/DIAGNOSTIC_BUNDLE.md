@@ -8,7 +8,7 @@ The dashboard shows the planned archive entries and privacy exclusions before th
 
 ## Included data
 
-- \`manifest.json\`: schema version, Fiximizer/Java/OS versions, entry names and redaction counters.
+- \`manifest.json\`: schema version, Minecraft/NeoForge/Fiximizer/Java/OS versions, entry names and redaction counters.
 - \`system.json\`: Java runtime, OS family/architecture, processor count, heap limit and garbage-collector names.
 - \`performance.json\`: heap and CPU samples, current optimization profile, memory-guard state and aggregate Fiximizer scheduler/string-cache counters.
 - \`network.json\`: aggregate traffic counters and server-reported latency statistics only.

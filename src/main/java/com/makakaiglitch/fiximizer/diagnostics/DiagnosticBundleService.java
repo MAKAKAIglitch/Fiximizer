@@ -10,6 +10,7 @@ import com.makakaiglitch.fiximizer.scheduler.OptimizationProfileManager;
 import com.makakaiglitch.fiximizer.scheduler.SchedulerSnapshot;
 import com.makakaiglitch.fiximizer.scheduler.TaskPriority;
 import com.makakaiglitch.fiximizer.startup.StartupProfiler;
+import net.minecraft.SharedConstants;
 import net.neoforged.fml.ModList;
 
 import java.io.IOException;
@@ -216,9 +217,9 @@ public final class DiagnosticBundleService {
     }
 
     private static String manifestJson(int redactions, int omittedChatLines, java.util.Set<String> entryNames) {
-        String version = ModList.get().getModContainerById(Fiximizer.MOD_ID)
-                .map(container -> container.getModInfo().getVersion().toString())
-                .orElse("unknown");
+        String version = modVersion(Fiximizer.MOD_ID);
+        String neoForgeVersion = modVersion("neoforge");
+        String minecraftVersion = SharedConstants.getCurrentVersion().getName();
         List<String> omitted = List.of(
                 "mod inventory",
                 "chat and packet payloads",
@@ -231,6 +232,8 @@ public final class DiagnosticBundleService {
                 + "  \"schemaVersion\": 1,\n"
                 + "  \"createdAt\": " + jsonString(Instant.now().toString()) + ",\n"
                 + "  \"fiximizerVersion\": " + jsonString(version) + ",\n"
+                + "  \"minecraftVersion\": " + jsonString(minecraftVersion) + ",\n"
+                + "  \"neoForgeVersion\": " + jsonString(neoForgeVersion) + ",\n"
                 + "  \"javaVersion\": " + jsonString(property("java.version")) + ",\n"
                 + "  \"osName\": " + jsonString(property("os.name")) + ",\n"
                 + "  \"entries\": " + stringArray(new ArrayList<>(entryNames)) + ",\n"
@@ -349,6 +352,12 @@ public final class DiagnosticBundleService {
         } catch (IOException exception) {
             return Long.MIN_VALUE;
         }
+    }
+
+    private static String modVersion(String modId) {
+        return ModList.get().getModContainerById(modId)
+                .map(container -> container.getModInfo().getVersion().toString())
+                .orElse("unknown");
     }
 
     private static String property(String key) {
