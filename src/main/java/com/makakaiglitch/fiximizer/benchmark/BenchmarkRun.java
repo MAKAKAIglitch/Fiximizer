@@ -16,6 +16,8 @@ public record BenchmarkRun(
         BenchmarkSampleWindow.Statistics renderCall,
         BenchmarkSampleWindow.Statistics clientTick,
         BenchmarkSampleWindow.Statistics integratedServerTick,
+        BenchmarkRuntimeSnapshot runtimeBefore,
+        BenchmarkRuntimeSnapshot runtimeAfter,
         boolean valid,
         String validationMessage
 ) {

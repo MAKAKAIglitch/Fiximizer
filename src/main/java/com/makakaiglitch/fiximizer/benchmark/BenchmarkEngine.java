@@ -90,7 +90,7 @@ public final class BenchmarkEngine {
         }
 
         if (state == State.RECORDING && now >= session.measurementEndNanos) {
-            complete(session, now);
+            complete(session);
         }
     }
 
@@ -141,9 +141,9 @@ public final class BenchmarkEngine {
                 state,
                 session == null ? latestRun == null ? null : latestRun.scenario() : session.scenario,
                 remaining,
-                session == null ? 0 : session.render.snapshot().sampleCount(),
-                session == null ? 0 : session.clientTick.snapshot().sampleCount(),
-                session == null ? 0 : session.serverTick.snapshot().sampleCount(),
+                session == null ? 0 : session.render.sampleCount(),
+                session == null ? 0 : session.clientTick.sampleCount(),
+                session == null ? 0 : session.serverTick.sampleCount(),
                 message,
                 lastSavedFile,
                 baselineSaveRunning
@@ -183,14 +183,14 @@ public final class BenchmarkEngine {
         return true;
     }
 
-    private static void complete(Session session, long completedAtNanos) {
+    private static void complete(Session session) {
         synchronized (BenchmarkEngine.class) {
             if (activeSession != session || state != State.RECORDING) {
                 return;
             }
             session.stopAcceptingSamples();
             activeSession = null;
-            BenchmarkRun run = session.finish(completedAtNanos);
+            BenchmarkRun run = session.finish();
             latestRun = run;
             state = State.SAVING;
             message = run.valid()
@@ -243,6 +243,7 @@ public final class BenchmarkEngine {
         private final Path gameDirectory;
         private final BenchmarkScenario scenario;
         private final BenchmarkEnvironment environment;
+        private final BenchmarkRuntimeSnapshot runtimeBefore = BenchmarkRuntimeSnapshot.capture();
         private final long startedAtEpochMillis = System.currentTimeMillis();
         private final long startedAtNanos = System.nanoTime();
         private final long measurementStartNanos = startedAtNanos
@@ -254,7 +255,6 @@ public final class BenchmarkEngine {
 
         private volatile boolean acceptingSamples;
         private long measurementStartedAtEpochMillis;
-        private long measurementStartedAtNanos;
         private long measurementEndNanos;
 
         private Session(Path gameDirectory, BenchmarkScenario scenario, BenchmarkEnvironment environment) {
@@ -264,7 +264,6 @@ public final class BenchmarkEngine {
         }
 
         private void beginMeasurement(long now) {
-            measurementStartedAtNanos = now;
             measurementStartedAtEpochMillis = System.currentTimeMillis();
             measurementEndNanos = now + TimeUnit.SECONDS.toNanos(MEASUREMENT_SECONDS);
             acceptingSamples = true;
@@ -299,7 +298,7 @@ public final class BenchmarkEngine {
             return Math.max(0L, (remaining + 999_999_999L) / 1_000_000_000L);
         }
 
-        private BenchmarkRun finish(long completedAtNanos) {
+        private BenchmarkRun finish() {
             BenchmarkSampleWindow.Statistics renderStats = render.snapshot();
             BenchmarkSampleWindow.Statistics clientStats = clientTick.snapshot();
             BenchmarkSampleWindow.Statistics serverStats = serverTick.snapshot();
@@ -324,6 +323,8 @@ public final class BenchmarkEngine {
                     renderStats,
                     clientStats,
                     serverStats,
+                    runtimeBefore,
+                    BenchmarkRuntimeSnapshot.capture(),
                     enoughSamples,
                     validation
             );

@@ -39,6 +39,9 @@ public record BenchmarkEnvironment(
     public static BenchmarkEnvironment capture(Minecraft minecraft) {
         ModList modList = ModList.get();
         List<String> descriptors = modList.getMods().stream()
+                .filter(info -> !"fiximizer".equals(info.getModId())
+                        && !"minecraft".equals(info.getModId())
+                        && !"neoforge".equals(info.getModId()))
                 .map(info -> info.getModId() + ":" + info.getVersion())
                 .sorted()
                 .toList();
@@ -67,7 +70,14 @@ public record BenchmarkEnvironment(
                 Boolean.toString(FiximizerConfig.ENABLE_MEMORY_GUARD.get()),
                 Boolean.toString(FiximizerConfig.ENABLE_STRING_CANONICALIZATION.get()),
                 Boolean.toString(FiximizerConfig.ENABLE_NETWORK_TELEMETRY.get()),
-                Boolean.toString(FiximizerConfig.ENABLE_GPU_TELEMETRY.get())
+                Boolean.toString(FiximizerConfig.ENABLE_NETWORK_NATIVE_BACKEND.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_GPU_TELEMETRY.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_OPENCL_PROBE.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_GPU_BENCHMARK.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_GPU_SPILL.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_JFR_PROFILING.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_STALL_WATCHDOG.get()),
+                Boolean.toString(FiximizerConfig.ENABLE_STALL_JFR.get())
         );
         String settingsFingerprint = digest(settings);
         String hardwareFingerprint = digest(String.join("|",

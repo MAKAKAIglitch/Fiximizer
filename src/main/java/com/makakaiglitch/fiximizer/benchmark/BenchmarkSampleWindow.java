@@ -30,6 +30,10 @@ public final class BenchmarkSampleWindow {
         totalRecorded++;
     }
 
+    public synchronized int sampleCount() {
+        return size;
+    }
+
     public synchronized Statistics snapshot() {
         if (size == 0) {
             return Statistics.empty(totalRecorded);
