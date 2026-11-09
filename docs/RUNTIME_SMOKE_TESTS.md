@@ -6,14 +6,14 @@ The runtime smoke tests launch the actual NeoForge development runtime. They com
 
 ### Dedicated server
 
-The test launches the isolated `runSmokeServer` configuration on Windows and Linux. It prepares a disposable directory under `runs/smoke-server`, accepts the Minecraft EULA only in that test directory, and writes a small local-only flat-world configuration.
+The test launches the isolated `runSmokeServer` configuration on Windows and Linux. It prepares a disposable directory under `runs/smoke-server`, accepts the Minecraft EULA only in that test directory, and writes a small local-only world configuration with short view and simulation distances.
 
 The test passes only when:
 - the Fiximizer common mod entrypoint logs that it is loading;
 - the dedicated server reaches its normal `Done` startup message;
 - the server accepts the console `stop` command and exits successfully.
 
-The server binds to loopback only and uses a dedicated test port. It does not connect to a public server.
+The game server binds to loopback only and uses a dedicated test port. A random, one-run RCON password is generated for the test; RCON also binds to loopback and is used only to send the clean shutdown command. It does not connect to a public server.
 
 ### Client
 
