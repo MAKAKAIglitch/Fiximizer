@@ -207,6 +207,12 @@ public final class RuntimeHealthService {
         FlightRecorderService.State recordingState = FlightRecorderService.state();
         String rolling = FlightRecorderService.rollingStatus();
         if (recordingState == FlightRecorderService.State.FAILED) {
+            if (FlightRecorderService.rollingActive()) {
+                return status("jfr", State.DEGRADED,
+                        "Manual JFR recording failed: " + FlightRecorderService.message()
+                                + "; the rolling stall buffer is still active.",
+                        "Rolling JFR snapshots and text-based watchdog reports remain available.", true);
+            }
             return status("jfr", State.FAILED,
                     FlightRecorderService.message(),
                     "Text-based watchdog reports and ordinary diagnostics remain available.", true);
@@ -313,9 +319,15 @@ public final class RuntimeHealthService {
         String detail = NetworkBackendSelector.status();
         String lower = detail.toLowerCase(Locale.ROOT);
         if (lower.contains("unavailable") || lower.contains("failed")
-                || lower.contains("error") || lower.contains("fallback")) {
+                || lower.contains("error") || lower.contains("fallback")
+                || lower.contains("could not start")) {
             return status("network_backend", State.DEGRADED, detail,
                     "The Java statistics implementation remains available.", false);
+        }
+        if (!NetworkBackendSelector.isInitialized()) {
+            return status("network_backend", State.NOT_STARTED,
+                    "Network statistics backend selection has not been requested yet.",
+                    "The Java implementation remains available as the baseline.", false);
         }
         return status("network_backend", State.HEALTHY,
                 NetworkBackendSelector.selected().name() + " backend: " + detail,

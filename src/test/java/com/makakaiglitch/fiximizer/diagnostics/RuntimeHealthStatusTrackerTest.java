@@ -51,7 +51,7 @@ class RuntimeHealthStatusTrackerTest {
     }
 
     @Test
-    void tracksEverySubsystemWithoutSharingMutableState() {
+    void preservesInputOrderForMultipleSubsystems() {
         Map<String, RuntimeHealthService.SubsystemStatus> previous = new LinkedHashMap<>();
 
         List<RuntimeHealthService.SubsystemStatus> result = RuntimeHealthService.trackForTests(

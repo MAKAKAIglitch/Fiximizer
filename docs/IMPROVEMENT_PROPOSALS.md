@@ -240,9 +240,9 @@ The order for these independent lines should be chosen by the maintainer after r
 | Order | Work item | Reason |
 |---:|---|---|
 | 1 | Validate/review Startup Optimizer branch | It already has a focused implementation and tests |
-| 2 | Diagnostic Bundle | Makes future bug reports and code review much more actionable |
-| 3 | Runtime Health Check | Exposes fallback and subsystem failures clearly |
-| 4 | Benchmark Engine | Establishes evidence for all later optimizations |
+| 2 | Diagnostic Bundle | Implemented in `feature/diagnostic-bundle`; awaiting CI and review |
+| 3 | Runtime Health Check | Implemented in `feature/runtime-health-check`; awaiting CI and review |
+| 4 | Benchmark Engine | Next measurement foundation for later optimizations |
 | 5 | Memory candidate experiment | Proceed only after retained-heap profiling |
 | 6 | Network telemetry refinement | Correct metric semantics before deeper pipeline work |
 | 7 | Compatibility capability registry | Consolidates per-feature conflict handling |

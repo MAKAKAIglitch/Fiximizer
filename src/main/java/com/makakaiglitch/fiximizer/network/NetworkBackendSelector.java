@@ -178,6 +178,7 @@ public final class NetworkBackendSelector {
     }
 
     public static boolean isRunning() { return RUNNING.get(); }
+    public static boolean isInitialized() { return STARTED.get() && !RUNNING.get(); }
     public static Backend selected() { return selected; }
     public static String status() { return status; }
     public static long javaMedianNanos() { return javaNanos; }
