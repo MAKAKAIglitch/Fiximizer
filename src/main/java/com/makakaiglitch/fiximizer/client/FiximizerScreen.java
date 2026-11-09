@@ -7,6 +7,7 @@ import com.makakaiglitch.fiximizer.compat.sable.RollingPhysicsWindow;
 import com.makakaiglitch.fiximizer.compat.sable.SablePhysicsProfiler;
 import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
+import com.makakaiglitch.fiximizer.diagnostics.DiagnosticBundleService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
@@ -42,6 +43,7 @@ import com.makakaiglitch.fiximizer.util.TextSanitizer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.ModConfigSpec;
@@ -92,6 +94,8 @@ public final class FiximizerScreen extends Screen {
     private Button serverTickProfilerButton;
     private Button copyStartupReportButton;
     private Button dumpDiagnosticsButton;
+    private Button bundleExportButton;
+    private boolean bundleExportRunning;
     private Button networkTelemetryButton;
     private Button networkBackendButton;
     private Button networkNativeBackendButton;
@@ -208,6 +212,11 @@ public final class FiximizerScreen extends Screen {
                     }
                 }
         ).bounds(contentLeft + 284, panelTop + 272, 86, 20).build());
+
+        bundleExportButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.bundle_export"),
+                button -> previewDiagnosticBundle()
+        ).bounds(contentLeft, panelTop + 296, 340, 20).build());
 
         profileButton = addRenderableWidget(Button.builder(
                 profileButtonLabel(),
@@ -415,9 +424,80 @@ public final class FiximizerScreen extends Screen {
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.done"),
                 button -> onClose()
-        ).bounds(panelLeft + 456, panelTop + 312, 88, 20).build());
+        ).bounds(panelLeft + 456, panelTop + 326, 88, 20).build());
 
         updateVisibility();
+    }
+
+    private void previewDiagnosticBundle() {
+        Minecraft minecraft = Minecraft.getInstance();
+        DiagnosticBundleService.Preview preview =
+                DiagnosticBundleService.preview(minecraft.gameDirectory.toPath());
+        String includedFiles = String.join("\n", preview.entries());
+        Component message = Component.translatable(
+                "screen.fiximizer.bundle_preview_message",
+                includedFiles
+        );
+
+        minecraft.setScreen(new ConfirmScreen(
+                confirmed -> {
+                    minecraft.setScreen(this);
+                    if (!confirmed || bundleExportRunning) {
+                        return;
+                    }
+
+                    bundleExportRunning = true;
+                    bundleExportButton.active = false;
+                    bundleExportButton.setMessage(Component.translatable("screen.fiximizer.bundle_working"));
+
+                    try {
+                        DiagnosticBundleService.exportAsync(
+                                minecraft.gameDirectory.toPath(),
+                                minecraft.getUser().getName()
+                        ).whenComplete((result, error) -> minecraft.execute(() -> {
+                            bundleExportRunning = false;
+                            if (bundleExportButton != null) {
+                                bundleExportButton.active = true;
+                                if (error == null) {
+                                    bundleExportButton.setMessage(Component.translatable(
+                                            "screen.fiximizer.bundle_export"
+                                    ));
+                                } else {
+                                    bundleExportButton.setMessage(Component.translatable(
+                                            "screen.fiximizer.bundle_failed",
+                                            error.getClass().getSimpleName()
+                                    ));
+                                }
+                            }
+
+                            if (minecraft.player != null) {
+                                if (error == null) {
+                                    minecraft.player.sendSystemMessage(Component.translatable(
+                                            "screen.fiximizer.bundle_saved",
+                                            result.fileName(),
+                                            result.entryCount(),
+                                            result.redactedOccurrences()
+                                    ));
+                                } else {
+                                    minecraft.player.sendSystemMessage(Component.translatable(
+                                            "screen.fiximizer.bundle_failed",
+                                            error.getClass().getSimpleName()
+                                    ));
+                                }
+                            }
+                        }));
+                    } catch (RuntimeException exception) {
+                        bundleExportRunning = false;
+                        bundleExportButton.active = true;
+                        bundleExportButton.setMessage(Component.translatable(
+                                "screen.fiximizer.bundle_failed",
+                                exception.getClass().getSimpleName()
+                        ));
+                    }
+                },
+                Component.translatable("screen.fiximizer.bundle_preview_title"),
+                message
+        ));
     }
 
     private Button createIntegrationButton(
@@ -476,6 +556,8 @@ public final class FiximizerScreen extends Screen {
         refreshButton.visible = overview;
         dumpDiagnosticsButton.visible = overview;
         dumpDiagnosticsButton.active = StallWatchdog.enabled();
+        bundleExportButton.visible = overview;
+        bundleExportButton.active = !bundleExportRunning;
         startProfileButton.visible = overview;
         stopProfileButton.visible = overview;
         profileButton.visible = performance;

@@ -253,5 +253,11 @@
   "screen.fiximizer.gpu_test_result": "Upload: %s ms | kernel: %s ms | download: %s ms",
   "screen.fiximizer.gpu_test_total": "GPU end-to-end: %s ms | CPU: %s ms | speedup: %s×",
   "screen.fiximizer.vram_spill": "Managed cache pool: %s budget | %s stored | %s blocks",
-  "screen.fiximizer.vram_spill_note": "Only explicitly managed disposable cache data can use this pool. World and gameplay state are never stored there."
+  "screen.fiximizer.vram_spill_note": "Only explicitly managed disposable cache data can use this pool. World and gameplay state are never stored there.",
+  "screen.fiximizer.bundle_export": "Export diagnostic bundle",
+  "screen.fiximizer.bundle_preview_title": "Review diagnostic bundle",
+  "screen.fiximizer.bundle_preview_message": "Files to be included in this local archive:\\n%s\\n\\nExcluded by default: mod inventory, chat, packet payloads, player UUIDs and names, server addresses, local paths, and raw JFR recordings. Nothing is uploaded. Continue?",
+  "screen.fiximizer.bundle_working": "Preparing diagnostic bundle...",
+  "screen.fiximizer.bundle_saved": "Saved locally: %s (%s files, %s redactions)",
+  "screen.fiximizer.bundle_failed": "Could not create diagnostic bundle (%s)"
 }
