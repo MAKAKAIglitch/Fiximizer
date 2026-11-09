@@ -75,6 +75,16 @@ def prepare_server_directory() -> str:
     return rcon_password
 
 
+def prepare_client_directory() -> None:
+    run_directory = ROOT / "runs" / "smoke-client"
+    run_directory.mkdir(parents=True, exist_ok=True)
+    options_file = run_directory / "options.txt"
+    existing = options_file.read_text(encoding="utf-8") if options_file.exists() else ""
+    options = [line for line in existing.splitlines() if not line.startswith("pauseOnLostFocus:")]
+    options.append("pauseOnLostFocus:false")
+    options_file.write_text("\n".join(options) + "\n", encoding="utf-8")
+
+
 def start_process(mode: str, log_path: Path) -> tuple[subprocess.Popen[str], queue.Queue[str | None]]:
     task = "runSmokeServer" if mode == "server" else "runSmokeClient"
     command = gradle_command(task)
@@ -255,6 +265,8 @@ def close_client_window(window_id: str) -> None:
 
 def run_smoke(mode: str, startup_timeout: int) -> None:
     rcon_password = prepare_server_directory() if mode == "server" else None
+    if mode == "client":
+        prepare_client_directory()
 
     log_path = ROOT / "build" / "runtime-smoke" / f"{mode}.log"
     process, output_queue = start_process(mode, log_path)
