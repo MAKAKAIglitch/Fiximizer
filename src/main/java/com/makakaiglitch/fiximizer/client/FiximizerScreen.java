@@ -1062,7 +1062,8 @@ public final class FiximizerScreen extends Screen {
         EntityWorkloadProfiler.Snapshot entitySnapshot = EntityWorkloadProfiler.snapshot();
         graphics.drawString(this.font,
                 Component.translatable("screen.fiximizer.entity_workload_heading",
-                        entitySnapshot.sampledServerTicks()),
+                        entitySnapshot.sampledServerTicks(),
+                        entitySnapshot.trackedEntityTypes()),
                 contentLeft,
                 panelTop + 243,
                 0xFFFFFFFF);
@@ -1082,11 +1083,11 @@ public final class FiximizerScreen extends Screen {
         } else {
             int row = 0;
             for (EntityWorkloadProfiler.TypeSnapshot type : entitySnapshot.topTypes()) {
-                if (row >= 2) {
+                if (row >= 3) {
                     break;
                 }
-                String typeName = type.entityType().length() > 40
-                        ? type.entityType().substring(0, 37) + "..."
+                String typeName = type.entityType().length() > 26
+                        ? type.entityType().substring(0, 23) + "..."
                         : type.entityType();
                 graphics.drawString(this.font,
                         Component.translatable("screen.fiximizer.entity_workload_type",
@@ -1095,9 +1096,17 @@ public final class FiximizerScreen extends Screen {
                                 String.format(Locale.ROOT, "%.1f", type.totalMillis()),
                                 String.format(Locale.ROOT, "%.2f", type.p95MillisPerSampledTick())),
                         contentLeft,
-                        panelTop + 261 + row * 15,
+                        panelTop + 261 + row * 13,
                         0xFFB9C9DC);
                 row++;
+            }
+            if (entitySnapshot.untrackedEntityTicks() > 0L) {
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.entity_workload_untracked",
+                                entitySnapshot.untrackedEntityTicks()),
+                        contentLeft,
+                        panelTop + 302,
+                        0xFFFFB85C);
             }
             if (row == 0) {
                 graphics.drawString(this.font,

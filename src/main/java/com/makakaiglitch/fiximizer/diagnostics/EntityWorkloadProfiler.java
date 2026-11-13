@@ -18,7 +18,7 @@ import java.util.Map;
  */
 public final class EntityWorkloadProfiler {
     public static final int SAMPLE_INTERVAL_TICKS = 20;
-    private static final int MAX_ENTITY_TYPES = 128;
+    private static final int MAX_ENTITY_TYPES = 512;
     private static final int MAX_DISPLAY_TYPES = 8;
 
     private static final ThreadLocal<IdentityHashMap<Entity, Long>> START_TIMES =
@@ -140,7 +140,7 @@ public final class EntityWorkloadProfiler {
      * Synchronizes the profiler toggle on the server thread. Disabling clears
      * only telemetry; it does not touch entities or world state.
      */
-    public static void synchronizeEnabledState() {
+    private static void synchronizeEnabledState() {
         boolean enabled = FiximizerConfig.ENABLE_ENTITY_WORKLOAD_PROFILING.get();
         if (enabled == lastKnownEnabled) {
             return;
