@@ -253,14 +253,26 @@ def activate_client_window(window_id: str) -> None:
 
 
 def close_client_window(window_id: str) -> None:
+    active_window = subprocess.run(
+        ["xdotool", "getactivewindow"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if active_window.returncode != 0 or active_window.stdout.strip() != window_id:
+        raise SmokeFailure("Minecraft is not the active window; refusing to send the close shortcut elsewhere")
+
+    # Ask the window manager to close Minecraft normally. xdotool windowclose
+    # can destroy the X11 drawable immediately, racing the render thread and
+    # producing BadDrawable during GLFW shutdown on headless CI.
     close_result = subprocess.run(
-        ["xdotool", "windowclose", window_id],
+        ["xdotool", "key", "--clearmodifiers", "alt+F4"],
         check=False,
         capture_output=True,
         text=True,
     )
     if close_result.returncode != 0:
-        raise SmokeFailure(f"could not send a close event to the Minecraft window: {close_result.stderr.strip()}")
+        raise SmokeFailure(f"could not send Alt+F4 to the Minecraft window: {close_result.stderr.strip()}")
 
 
 def run_smoke(mode: str, startup_timeout: int) -> None:
