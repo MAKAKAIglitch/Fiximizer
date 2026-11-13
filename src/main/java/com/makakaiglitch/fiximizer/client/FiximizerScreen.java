@@ -9,6 +9,7 @@ import com.makakaiglitch.fiximizer.compat.ModIntegrationManager;
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsService;
 import com.makakaiglitch.fiximizer.diagnostics.DiagnosticsSnapshot;
+import com.makakaiglitch.fiximizer.diagnostics.EntityWorkloadProfiler;
 import com.makakaiglitch.fiximizer.diagnostics.RollingDurationWindow;
 import com.makakaiglitch.fiximizer.diagnostics.ServerTickProfiler;
 import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
@@ -90,6 +91,7 @@ public final class FiximizerScreen extends Screen {
     private Button gpuSpillLimitButton;
     private Button frameProfilerButton;
     private Button serverTickProfilerButton;
+    private Button entityWorkloadProfilerButton;
     private Button copyStartupReportButton;
     private Button dumpDiagnosticsButton;
     private Button networkTelemetryButton;
@@ -337,6 +339,14 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 122, 340, 20).build());
 
+        entityWorkloadProfilerButton = addRenderableWidget(Button.builder(
+                entityWorkloadProfilerLabel(),
+                button -> {
+                    toggleConfig(FiximizerConfig.ENABLE_ENTITY_WORKLOAD_PROFILING);
+                    entityWorkloadProfilerButton.setMessage(entityWorkloadProfilerLabel());
+                }
+        ).bounds(contentLeft, panelTop + 145, 340, 20).build());
+
         networkTelemetryButton = addRenderableWidget(Button.builder(
                 networkTelemetryLabel(),
                 button -> {
@@ -488,6 +498,7 @@ public final class FiximizerScreen extends Screen {
         gpuTestButton.visible = gpu;
         frameProfilerButton.visible = frames;
         serverTickProfilerButton.visible = server;
+        entityWorkloadProfilerButton.visible = server;
         networkTelemetryButton.visible = network;
         networkBackendButton.visible = network;
         networkNativeBackendButton.visible = network;
@@ -655,6 +666,15 @@ public final class FiximizerScreen extends Screen {
         return Component.translatable(
                 "screen.fiximizer.server_profiler_toggle",
                 Component.translatable(FiximizerConfig.ENABLE_SERVER_TICK_PROFILING.get()
+                        ? "screen.fiximizer.enabled"
+                        : "screen.fiximizer.disabled")
+        );
+    }
+
+    private Component entityWorkloadProfilerLabel() {
+        return Component.translatable(
+                "screen.fiximizer.entity_workload_toggle",
+                Component.translatable(FiximizerConfig.ENABLE_ENTITY_WORKLOAD_PROFILING.get()
                         ? "screen.fiximizer.enabled"
                         : "screen.fiximizer.disabled")
         );
@@ -992,61 +1012,110 @@ public final class FiximizerScreen extends Screen {
                 contentWidth - 8,
                 0xFFB9C9DC);
 
+        drawSectionTitle(graphics,
+                "screen.fiximizer.server_tick_title",
+                panelTop + 170);
+
         if (!FiximizerConfig.ENABLE_SERVER_TICK_PROFILING.get()) {
             graphics.drawString(this.font,
                     Component.translatable("screen.fiximizer.server_profiler_disabled"),
                     contentLeft,
-                    panelTop + 158,
+                    panelTop + 189,
                     0xFFFFB85C);
-            return;
+        } else {
+            RollingDurationWindow.Snapshot snapshot = ServerTickProfiler.snapshot();
+            if (!snapshot.hasSamples()) {
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.server_profiler_waiting"),
+                        contentLeft,
+                        panelTop + 189,
+                        0xFF9FB3C8);
+            } else {
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.server_stats",
+                                snapshot.sampleCount(),
+                                String.format(Locale.ROOT, "%.2f", snapshot.averageMillis()),
+                                String.format(Locale.ROOT, "%.2f", snapshot.p50Millis())),
+                        contentLeft,
+                        panelTop + 189,
+                        0xFFFFFFFF);
+
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.server_percentiles",
+                                String.format(Locale.ROOT, "%.2f", snapshot.p95Millis()),
+                                String.format(Locale.ROOT, "%.2f", snapshot.p99Millis()),
+                                String.format(Locale.ROOT, "%.2f", snapshot.peakMillis())),
+                        contentLeft,
+                        panelTop + 207,
+                        0xFFB9C9DC);
+
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.server_stalls",
+                                snapshot.over50Millis(),
+                                snapshot.over100Millis()),
+                        contentLeft,
+                        panelTop + 225,
+                        0xFFB9C9DC);
+            }
         }
 
-        drawSectionTitle(graphics,
-                "screen.fiximizer.server_tick_title",
-                panelTop + 151);
-
-        RollingDurationWindow.Snapshot snapshot = ServerTickProfiler.snapshot();
-        if (!snapshot.hasSamples()) {
-            graphics.drawString(this.font,
-                    Component.translatable("screen.fiximizer.server_profiler_waiting"),
-                    contentLeft,
-                    panelTop + 174,
-                    0xFF9FB3C8);
-            return;
-        }
-
+        EntityWorkloadProfiler.Snapshot entitySnapshot = EntityWorkloadProfiler.snapshot();
         graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.server_stats",
-                        snapshot.sampleCount(),
-                        String.format(Locale.ROOT, "%.2f", snapshot.averageMillis()),
-                        String.format(Locale.ROOT, "%.2f", snapshot.p50Millis())),
+                Component.translatable("screen.fiximizer.entity_workload_heading",
+                        entitySnapshot.sampledServerTicks(),
+                        entitySnapshot.trackedEntityTypes()),
                 contentLeft,
-                panelTop + 174,
+                panelTop + 243,
                 0xFFFFFFFF);
 
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.server_percentiles",
-                        String.format(Locale.ROOT, "%.2f", snapshot.p95Millis()),
-                        String.format(Locale.ROOT, "%.2f", snapshot.p99Millis()),
-                        String.format(Locale.ROOT, "%.2f", snapshot.peakMillis())),
-                contentLeft,
-                panelTop + 192,
-                0xFFB9C9DC);
-
-        graphics.drawString(this.font,
-                Component.translatable("screen.fiximizer.server_stalls",
-                        snapshot.over50Millis(),
-                        snapshot.over100Millis()),
-                contentLeft,
-                panelTop + 210,
-                0xFFB9C9DC);
-
-        drawWrapped(graphics,
-                Component.translatable("screen.fiximizer.server_budget"),
-                contentLeft,
-                panelTop + 239,
-                contentWidth - 8,
-                0xFF9FB3C8);
+        if (!FiximizerConfig.ENABLE_ENTITY_WORKLOAD_PROFILING.get()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.entity_workload_disabled"),
+                    contentLeft,
+                    panelTop + 261,
+                    0xFFFFB85C);
+        } else if (!entitySnapshot.hasSamples()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.entity_workload_waiting"),
+                    contentLeft,
+                    panelTop + 261,
+                    0xFF9FB3C8);
+        } else {
+            int row = 0;
+            for (EntityWorkloadProfiler.TypeSnapshot type : entitySnapshot.topTypes()) {
+                if (row >= 3) {
+                    break;
+                }
+                String typeName = type.entityType().length() > 26
+                        ? type.entityType().substring(0, 23) + "..."
+                        : type.entityType();
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.entity_workload_type",
+                                typeName,
+                                type.entityTicks(),
+                                String.format(Locale.ROOT, "%.1f", type.totalMillis()),
+                                String.format(Locale.ROOT, "%.2f", type.p95MillisPerSampledTick())),
+                        contentLeft,
+                        panelTop + 261 + row * 13,
+                        0xFFB9C9DC);
+                row++;
+            }
+            if (entitySnapshot.untrackedEntityTicks() > 0L) {
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.entity_workload_untracked",
+                                entitySnapshot.untrackedEntityTicks()),
+                        contentLeft,
+                        panelTop + 302,
+                        0xFFFFB85C);
+            }
+            if (row == 0) {
+                graphics.drawString(this.font,
+                        Component.translatable("screen.fiximizer.entity_workload_waiting"),
+                        contentLeft,
+                        panelTop + 261,
+                        0xFF9FB3C8);
+            }
+        }
     }
 
     private void drawFrames(GuiGraphics graphics) {
@@ -1059,28 +1128,44 @@ public final class FiximizerScreen extends Screen {
                 0xFFB9C9DC);
 
         drawSectionTitle(graphics, "screen.fiximizer.frame_render_title", panelTop + 151);
-        drawTimingRows(
-                graphics,
-                ClientRuntimeProfiler.renderSnapshot(),
-                panelTop + 170,
-                "screen.fiximizer.frame_waiting",
-                "screen.fiximizer.frame_stats",
-                "screen.fiximizer.frame_percentiles",
-                "screen.fiximizer.frame_slow",
-                false
-        );
+        drawCompactTimingRow(graphics, ClientRuntimeProfiler.renderSnapshot(),
+                panelTop + 170, "screen.fiximizer.frame_waiting");
 
-        drawSectionTitle(graphics, "screen.fiximizer.frame_tick_title", panelTop + 224);
-        drawTimingRows(
-                graphics,
-                ClientRuntimeProfiler.clientTickSnapshot(),
-                panelTop + 243,
-                "screen.fiximizer.tick_waiting",
-                "screen.fiximizer.tick_stats",
-                "screen.fiximizer.tick_percentiles",
-                "screen.fiximizer.tick_slow",
-                true
-        );
+        drawSectionTitle(graphics, "screen.fiximizer.frame_pacing_title", panelTop + 190);
+        drawCompactTimingRow(graphics, ClientRuntimeProfiler.frameIntervalSnapshot(),
+                panelTop + 209, "screen.fiximizer.frame_pacing_waiting");
+
+        drawSectionTitle(graphics, "screen.fiximizer.frame_tick_title", panelTop + 229);
+        drawCompactTimingRow(graphics, ClientRuntimeProfiler.clientTickSnapshot(),
+                panelTop + 248, "screen.fiximizer.tick_waiting");
+    }
+
+    private void drawCompactTimingRow(
+            GuiGraphics graphics,
+            RollingDurationWindow.Snapshot snapshot,
+            int y,
+            String waitingKey
+    ) {
+        if (!FiximizerConfig.ENABLE_FRAME_TIME_PROFILING.get()) {
+            graphics.drawString(this.font,
+                    Component.translatable("screen.fiximizer.frame_profiler_disabled"),
+                    contentLeft, y, 0xFFFFB85C);
+            return;
+        }
+        if (!snapshot.hasSamples()) {
+            graphics.drawString(this.font,
+                    Component.translatable(waitingKey),
+                    contentLeft, y, 0xFF9FB3C8);
+            return;
+        }
+
+        graphics.drawString(this.font,
+                Component.translatable("screen.fiximizer.frame_compact_stats",
+                        snapshot.sampleCount(),
+                        String.format(Locale.ROOT, "%.2f", snapshot.averageMillis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p95Millis()),
+                        String.format(Locale.ROOT, "%.2f", snapshot.p99Millis())),
+                contentLeft, y, 0xFFB9C9DC);
     }
 
     private void drawTimingRows(

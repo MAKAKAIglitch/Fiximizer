@@ -114,6 +114,35 @@ jobs:
       - name: Build and test against selected NeoForge
         run: ./gradlew build --no-daemon -Pneo_version=${{ matrix.neo-version }}
 
+  runtime-smoke-server:
+    name: Dedicated server runtime smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run dedicated server smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: python3 scripts/runtime_smoke.py server
+
+      - name: Run dedicated server smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: python scripts/runtime_smoke.py server
+
   build-linux:
     runs-on: ubuntu-latest
     steps:

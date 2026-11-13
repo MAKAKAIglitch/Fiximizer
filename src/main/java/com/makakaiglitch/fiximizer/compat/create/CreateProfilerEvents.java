@@ -1,6 +1,7 @@
 package com.makakaiglitch.fiximizer.compat.create;
 
 import com.makakaiglitch.fiximizer.Fiximizer;
+import com.makakaiglitch.fiximizer.diagnostics.EntityWorkloadProfiler;
 import com.makakaiglitch.fiximizer.diagnostics.ServerTickProfiler;
 import com.makakaiglitch.fiximizer.diagnostics.StallWatchdog;
 import net.neoforged.api.distmarker.Dist;
@@ -21,24 +22,28 @@ public final class CreateProfilerEvents {
     @SubscribeEvent
     public static void onServerTickPre(ServerTickEvent.Pre event) {
         StallWatchdog.beginServerTick();
-        ServerTickProfiler.beginTick();
         CreateContraptionProfiler.beginServerTick();
+        EntityWorkloadProfiler.beginServerTick();
+        ServerTickProfiler.beginTick();
     }
 
     @SubscribeEvent
     public static void onServerTickPost(ServerTickEvent.Post event) {
-        StallWatchdog.endServerTick();
         ServerTickProfiler.endTick();
+        StallWatchdog.endServerTick();
         CreateContraptionProfiler.endServerTick();
+        EntityWorkloadProfiler.endServerTick();
     }
 
     @SubscribeEvent
     public static void onEntityTickPre(EntityTickEvent.Pre event) {
+        EntityWorkloadProfiler.beginEntityTick(event.getEntity());
         CreateContraptionProfiler.beginEntityTick(event.getEntity());
     }
 
     @SubscribeEvent
     public static void onEntityTickPost(EntityTickEvent.Post event) {
+        EntityWorkloadProfiler.endEntityTick(event.getEntity());
         CreateContraptionProfiler.endEntityTick(event.getEntity());
     }
 }

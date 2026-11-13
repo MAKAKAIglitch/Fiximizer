@@ -21,6 +21,9 @@ telemetry plus a manual OpenCL correctness benchmark. It does not automatically
 rewrite or optimize arbitrary third-party mod code.
 '''
 
+[[mixins]]
+config="fiximizer.mixins.json"
+
 [[dependencies.${mod_id}]]
 modId="neoforge"
 type="required"
