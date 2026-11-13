@@ -1,37 +1,211 @@
-name: Build and test
+name: Build
 
 on:
   push:
-    branches:
-      - main
-      - "feature/**"
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: build-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  build:
+  unit-tests:
+    name: Unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Run JUnit tests (Linux)
+        if: runner.os == 'Linux'
+        run: ./gradlew test --no-daemon
+
+      - name: Run JUnit tests (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\gradlew.bat test --no-daemon
+
+      - name: Upload JUnit results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: junit-results-${{ matrix.os }}
+          path: build/test-results/test/*.xml
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build-with-jdk25:
+    name: Build + tests on JDK 25 (${{ matrix.os }}) with Java 21 bytecode
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Gradle runtime JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Show Gradle runtime
+        run: java -version
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build and test using JDK 25
+        if: runner.os == 'Linux'
+        run: ./gradlew build --no-daemon
+
+      - name: Build and test using JDK 25
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: .\gradlew.bat build --no-daemon
+
+  resource-integrity:
+    name: Resource and translation integrity
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Validate locale resources
+        run: python3 scripts/verify_resources.py
+
+      - name: Validate Linux builder syntax
+        run: sh -n ./build.sh
+
+  compatibility-matrix:
+    name: NeoForge compatibility (${{ matrix.neo-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        neo-version: ['21.1.256', '21.1.265']
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: '21'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
-      - name: Build and run tests
-        run: ./gradlew build --no-daemon
+      - name: Build and test against selected NeoForge
+        run: ./gradlew build --no-daemon -Pneo_version=${{ matrix.neo-version }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Rust (Linux native network backend)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust network backend
+        run: cargo test --manifest-path native/network/Cargo.toml
+
+      - name: Build Rust network backend
+        run: cargo build --manifest-path native/network/Cargo.toml --release
+
+      - name: Stage Rust network backend
+        run: |
+          mkdir -p src/main/resources/assets/fiximizer/native/linux-x86_64
+          cp native/network/target/release/libfiximizer_network_native.so src/main/resources/assets/fiximizer/native/linux-x86_64/
+
+      - name: Validate Linux builder syntax
+        run: sh -n ./build.sh
+
+      - name: Run automatic Linux builder
+        run: ./build.sh build --no-daemon
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v7
+        with:
+          name: Fiximizer-0.14.0-alpha-linux
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Install Rust (Windows native network backend)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust network backend
+        run: cargo test --manifest-path native/network/Cargo.toml
+
+      - name: Build Rust network backend
+        run: cargo build --manifest-path native/network/Cargo.toml --release
+
+      - name: Stage Rust network backend
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "src/main/resources/assets/fiximizer/native/windows-x86_64" | Out-Null
+          Copy-Item "native/network/target/release/fiximizer_network_native.dll" "src/main/resources/assets/fiximizer/native/windows-x86_64/"
+
+      - name: Validate PowerShell builder syntax
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD\scripts\build.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | Format-List
+            exit 1
+          }
+
+      - name: Run automatic Fiximizer builder
+        shell: powershell
+        run: .\scripts\build.ps1 build --no-daemon
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          name: Fiximizer-0.14.0-alpha-windows
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 14
