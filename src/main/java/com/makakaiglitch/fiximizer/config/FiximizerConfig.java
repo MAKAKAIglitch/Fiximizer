@@ -15,6 +15,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.IntValue MAX_PROFILE_SECONDS;
     public static final ModConfigSpec.BooleanValue ENABLE_FRAME_TIME_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_SERVER_TICK_PROFILING;
+    public static final ModConfigSpec.BooleanValue ENABLE_ENTITY_WORKLOAD_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_STALL_WATCHDOG;
     public static final ModConfigSpec.IntValue STALL_THRESHOLD_MS;
     public static final ModConfigSpec.IntValue STALL_REPEAT_INTERVAL_MS;
@@ -99,6 +100,11 @@ public final class FiximizerConfig {
                 .comment("Measure integrated single-player server tick wall-clock duration.")
                 .translation("config.fiximizer.profiler.server_tick")
                 .define("enableServerTickTiming", true);
+
+        ENABLE_ENTITY_WORKLOAD_PROFILING = BUILDER
+                .comment("Measure Entity.tick() costs by entity type on every twentieth integrated-server tick. Uses bounded in-memory windows and never changes entity behavior.")
+                .translation("config.fiximizer.profiler.entity_workload")
+                .define("enableEntityWorkloadProfiling", true);
 
         BUILDER.pop();
         BUILDER.push("watchdog");
