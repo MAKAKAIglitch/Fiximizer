@@ -30,6 +30,14 @@ neoForge {
             server()
             programArgument '--nogui'
         }
+
+        // Disposable dedicated-server runtime test; isolated from normal development runs.
+        smokeServer {
+            server()
+            gameDirectory = project.file('runs/smoke-server')
+            programArgument '--nogui'
+            ideName = ''
+        }
     }
 
     mods {
