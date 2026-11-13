@@ -263,5 +263,6 @@
   "screen.fiximizer.gpu_test_result": "Передача: %s мс | ядро: %s мс | чтение результата: %s мс",
   "screen.fiximizer.gpu_test_total": "Полное время GPU: %s мс | CPU: %s мс | ускорение: %s×",
   "screen.fiximizer.vram_spill": "Пул управляемого кэша: лимит %s | занято %s | блоков %s",
-  "screen.fiximizer.vram_spill_note": "Пул используется только для явно управляемых временных данных кэша. Состояние мира и игровая логика здесь не хранятся."
+  "screen.fiximizer.vram_spill_note": "Пул используется только для явно управляемых временных данных кэша. Состояние мира и игровая логика здесь не хранятся.",
+  "config.fiximizer.profiler.ai_throttle_interval": "Интервал полной проверки AI мобов (2 — ваниль, 4 или 8 тиков)"
 }
