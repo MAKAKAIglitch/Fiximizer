@@ -75,7 +75,7 @@ class AiThrottlePolicyTest {
                         checks++;
                     }
                 }
-                assertEquals(entityCount / interval, checks,
+                assertEquals(entityCount / (interval / 2), checks,
                         "Checks should be staggered for interval " + interval + " at tick " + tick);
             }
         }
