@@ -13,8 +13,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Samples full Entity.tick() durations on every twentieth integrated-server
- * tick. This profiler is observational: it never cancels or delays entity work.
+ * Samples the server entity-tick path exposed by NeoForge's EntityTickEvent
+ * on every twentieth integrated-server tick. Passenger tickRiding() calls
+ * are not exposed by that event and are outside this first profiler version.
+ *
+ * This profiler is observational: it never cancels or delays entity work.
  */
 public final class EntityWorkloadProfiler {
     public static final int SAMPLE_INTERVAL_TICKS = 20;
@@ -65,7 +68,7 @@ public final class EntityWorkloadProfiler {
      * records timestamps; all other calls return immediately.
      */
     public static void beginEntityTick(Entity entity) {
-        if (!sampleThisTick || !(entity.level() instanceof ServerLevel)) {
+        if (!(entity.level() instanceof ServerLevel) || !sampleThisTick) {
             return;
         }
         START_TIMES.get().put(entity, System.nanoTime());
@@ -75,7 +78,7 @@ public final class EntityWorkloadProfiler {
      * Called from EntityTickEvent.Post after Entity.tick() completed.
      */
     public static void endEntityTick(Entity entity) {
-        if (!sampleThisTick || !(entity.level() instanceof ServerLevel)) {
+        if (!(entity.level() instanceof ServerLevel) || !sampleThisTick) {
             return;
         }
 
