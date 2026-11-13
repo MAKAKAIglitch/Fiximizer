@@ -141,7 +141,7 @@
   "screen.fiximizer.frame_render_title": "Время вызова GameRenderer.render()",
   "screen.fiximizer.frame_pacing_title": "Интервал между кадрами (frame pacing)",
   "screen.fiximizer.frame_pacing_waiting": "Ожидание интервалов между кадрами...",
-  "screen.fiximizer.frame_compact_stats": "Замеров: %s | среднее: %s мс | p95: %s | p99: %s мс",
+  "screen.fiximizer.frame_compact_stats": "Замеров: %s | среднее: %s мс | p95: %s мс | p99: %s мс",
   "screen.fiximizer.frame_tick_title": "Время клиентского тика",
   "screen.fiximizer.frame_waiting": "Ожидание замеров рендера...",
   "screen.fiximizer.tick_waiting": "Ожидание замеров клиентского тика...",
