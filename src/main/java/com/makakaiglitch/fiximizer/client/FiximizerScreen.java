@@ -23,6 +23,7 @@ import com.makakaiglitch.fiximizer.gpu.OpenClService;
 import com.makakaiglitch.fiximizer.memory.MemoryOptimizer;
 import com.makakaiglitch.fiximizer.memory.RuntimeMemoryCapabilities;
 import com.makakaiglitch.fiximizer.memory.StringDeduplicator;
+import com.makakaiglitch.fiximizer.network.CpuSimdBenchmarkService;
 import com.makakaiglitch.fiximizer.network.NetworkBackendSelector;
 import com.makakaiglitch.fiximizer.network.NetworkCompatibilityDetector;
 import com.makakaiglitch.fiximizer.network.NetworkTelemetryService;
@@ -56,6 +57,7 @@ public final class FiximizerScreen extends Screen {
     private enum Tab {
         OVERVIEW,
         PERFORMANCE,
+        CPU_SIMD,
         INTEGRATIONS,
         PHYSICS,
         JVM,
@@ -86,6 +88,7 @@ public final class FiximizerScreen extends Screen {
     private Button g1StringDedupButton;
     private Button detectModsButton;
     private Button gpuTestButton;
+    private Button cpuSimdBenchmarkButton;
     private Button gpuSpillButton;
     private Button gpuSpillLimitButton;
     private Button frameProfilerButton;
@@ -131,52 +134,57 @@ public final class FiximizerScreen extends Screen {
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_performance"),
                 button -> selectTab(Tab.PERFORMANCE)
-        ).bounds(navX, navY + 25, navWidth, 22).build()));
+        ).bounds(navX, navY + 23, navWidth, 22).build()));
+
+        tabButtons.add(addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.tab_cpu_simd"),
+                button -> selectTab(Tab.CPU_SIMD)
+        ).bounds(navX, navY + 46, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_integrations"),
                 button -> selectTab(Tab.INTEGRATIONS)
-        ).bounds(navX, navY + 50, navWidth, 22).build()));
+        ).bounds(navX, navY + 69, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_physics"),
                 button -> selectTab(Tab.PHYSICS)
-        ).bounds(navX, navY + 75, navWidth, 22).build()));
+        ).bounds(navX, navY + 92, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_jvm"),
                 button -> selectTab(Tab.JVM)
-        ).bounds(navX, navY + 100, navWidth, 22).build()));
+        ).bounds(navX, navY + 115, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_gpu"),
                 button -> selectTab(Tab.GPU)
-        ).bounds(navX, navY + 125, navWidth, 22).build()));
+        ).bounds(navX, navY + 138, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_frames"),
                 button -> selectTab(Tab.FRAMES)
-        ).bounds(navX, navY + 150, navWidth, 22).build()));
+        ).bounds(navX, navY + 161, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_server"),
                 button -> selectTab(Tab.SERVER)
-        ).bounds(navX, navY + 175, navWidth, 22).build()));
+        ).bounds(navX, navY + 184, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_memory"),
                 button -> selectTab(Tab.MEMORY)
-        ).bounds(navX, navY + 200, navWidth, 22).build()));
+        ).bounds(navX, navY + 207, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_network"),
                 button -> selectTab(Tab.NETWORK)
-        ).bounds(navX, navY + 225, navWidth, 22).build()));
+        ).bounds(navX, navY + 230, navWidth, 22).build()));
 
         tabButtons.add(addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.tab_startup"),
                 button -> selectTab(Tab.STARTUP)
-        ).bounds(navX, navY + 250, navWidth, 22).build()));
+        ).bounds(navX, navY + 253, navWidth, 22).build()));
 
         refreshButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.fiximizer.refresh"),
@@ -412,6 +420,20 @@ public final class FiximizerScreen extends Screen {
                 }
         ).bounds(contentLeft, panelTop + 272, 340, 20).build());
 
+        cpuSimdBenchmarkButton = addRenderableWidget(Button.builder(
+                Component.translatable("screen.fiximizer.simd_test_button"),
+                button -> {
+                    if (!CpuSimdBenchmarkService.runAsync()) {
+                        cpuSimdBenchmarkButton.setMessage(Component.translatable(
+                                CpuSimdBenchmarkService.isRunning()
+                                        ? "screen.fiximizer.simd_running"
+                                        : "screen.fiximizer.simd_test_button"));
+                    } else {
+                        cpuSimdBenchmarkButton.setMessage(Component.translatable("screen.fiximizer.simd_test_started"));
+                    }
+                }
+        ).bounds(contentLeft, panelTop + 272, 340, 20).build());
+
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.done"),
                 button -> onClose()
@@ -464,6 +486,7 @@ public final class FiximizerScreen extends Screen {
 
         boolean overview = selectedTab == Tab.OVERVIEW;
         boolean performance = selectedTab == Tab.PERFORMANCE;
+        boolean cpuSimd = selectedTab == Tab.CPU_SIMD;
         boolean integrations = selectedTab == Tab.INTEGRATIONS;
         boolean jvm = selectedTab == Tab.JVM;
         boolean gpu = selectedTab == Tab.GPU;
@@ -480,6 +503,10 @@ public final class FiximizerScreen extends Screen {
         stopProfileButton.visible = overview;
         profileButton.visible = performance;
         memoryGuardButton.visible = performance;
+        cpuSimdBenchmarkButton.visible = cpuSimd;
+        cpuSimdBenchmarkButton.active = !CpuSimdBenchmarkService.isRunning();
+        cpuSimdBenchmarkButton.setMessage(Component.translatable(CpuSimdBenchmarkService.isRunning()
+                ? "screen.fiximizer.simd_running" : "screen.fiximizer.simd_test_button"));
         detectModsButton.visible = integrations;
         copyJvmButton.visible = jvm;
         saveJvmButton.visible = jvm;
@@ -522,6 +549,11 @@ public final class FiximizerScreen extends Screen {
         }
         if (selectedTab == Tab.MEMORY) {
             memoryStats = MemoryOptimizer.stringSnapshot();
+        }
+        if (cpuSimdBenchmarkButton != null && selectedTab == Tab.CPU_SIMD) {
+            cpuSimdBenchmarkButton.active = !CpuSimdBenchmarkService.isRunning();
+            cpuSimdBenchmarkButton.setMessage(Component.translatable(CpuSimdBenchmarkService.isRunning()
+                    ? "screen.fiximizer.simd_running" : "screen.fiximizer.simd_test_button"));
         }
     }
 
@@ -734,6 +766,7 @@ public final class FiximizerScreen extends Screen {
         switch (selectedTab) {
             case OVERVIEW -> drawOverview(graphics);
             case PERFORMANCE -> drawPerformance(graphics);
+            case CPU_SIMD -> drawCpuSimd(graphics);
             case INTEGRATIONS -> drawIntegrations(graphics);
             case PHYSICS -> drawPhysics(graphics);
             case JVM -> drawJvm(graphics);
@@ -1178,6 +1211,60 @@ public final class FiximizerScreen extends Screen {
                 panelTop + 280,
                 contentWidth - 8,
                 0xFF9FB3C8);
+    }
+
+    private void drawCpuSimd(GuiGraphics graphics) {
+        drawSectionTitle(graphics, "screen.fiximizer.simd_title", panelTop + 60);
+        drawWrapped(graphics,
+                Component.translatable("screen.fiximizer.simd_intro"),
+                contentLeft,
+                panelTop + 82,
+                contentWidth - 8,
+                0xFFB9C9DC);
+
+        CpuSimdBenchmarkService.Snapshot snapshot = CpuSimdBenchmarkService.snapshot();
+        int y = panelTop + 132;
+        drawCompactValue(graphics, "screen.fiximizer.simd_state",
+                y, Component.translatable(snapshot.state().translationKey()));
+        y += 18;
+
+        if (snapshot.state() == CpuSimdBenchmarkService.State.COMPLETE
+                || snapshot.state() == CpuSimdBenchmarkService.State.FAILED) {
+            drawCompactValue(graphics, "screen.fiximizer.simd_features",
+                    y,
+                    Component.translatable(snapshot.avx2Supported()
+                            ? "screen.fiximizer.simd_yes" : "screen.fiximizer.simd_no"),
+                    Component.translatable(snapshot.fmaSupported()
+                            ? "screen.fiximizer.simd_yes" : "screen.fiximizer.simd_no"));
+            y += 18;
+        }
+
+        if (snapshot.state() == CpuSimdBenchmarkService.State.COMPLETE) {
+            drawCompactValue(graphics, "screen.fiximizer.simd_path", y, snapshot.pathLabel());
+            y += 18;
+            drawCompactValue(graphics, "screen.fiximizer.simd_timing",
+                    y,
+                    formatCpuSimdTime(snapshot.scalarMedianNanos()),
+                    formatCpuSimdTime(snapshot.dispatchedMedianNanos()));
+            y += 18;
+            drawCompactValue(graphics, "screen.fiximizer.simd_speedup",
+                    y, String.format(Locale.ROOT, "%.2f", snapshot.speedup()));
+            y += 18;
+            drawCompactValue(graphics, "screen.fiximizer.simd_correctness",
+                    y, Component.translatable(snapshot.correct()
+                            ? "screen.fiximizer.simd_passed" : "screen.fiximizer.simd_failed"));
+        } else if (!snapshot.details().isBlank()) {
+            drawWrapped(graphics,
+                    Component.translatable("screen.fiximizer.simd_details", snapshot.details()),
+                    contentLeft,
+                    y + 2,
+                    contentWidth - 8,
+                    0xFFFFC078);
+        }
+    }
+
+    private String formatCpuSimdTime(long nanos) {
+        return nanos < 0L ? "—" : String.format(Locale.ROOT, "%.3f", nanos / 1_000_000.0);
     }
 
     private void drawIntegrations(GuiGraphics graphics) {

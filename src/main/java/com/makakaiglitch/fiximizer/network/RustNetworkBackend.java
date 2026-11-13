@@ -51,6 +51,57 @@ final class RustNetworkBackend {
         }
     }
 
+    int simdAbiVersion() {
+        try {
+            return api.fiximizer_simd_backend_abi();
+        } catch (LinkageError | RuntimeException exception) {
+            return -1;
+        }
+    }
+
+    int simdFeatureFlags() {
+        try {
+            return api.fiximizer_simd_feature_flags();
+        } catch (LinkageError | RuntimeException exception) {
+            return -1;
+        }
+    }
+
+    boolean computeSimdScalar(float[] initial, float[] multiplier, float[] addend,
+                              float[] output, int iterations) {
+        if (!validSimdArrays(initial, multiplier, addend, output, iterations)) return false;
+        try {
+            return api.fiximizer_simd_compute_scalar(
+                    initial, multiplier, addend, output, initial.length, iterations) == 0;
+        } catch (LinkageError | RuntimeException exception) {
+            return false;
+        }
+    }
+
+    int computeSimdAuto(float[] initial, float[] multiplier, float[] addend,
+                        float[] output, int iterations) {
+        if (!validSimdArrays(initial, multiplier, addend, output, iterations)) return -1;
+        try {
+            return api.fiximizer_simd_compute_auto(
+                    initial, multiplier, addend, output, initial.length, iterations);
+        } catch (LinkageError | RuntimeException exception) {
+            return -1;
+        }
+    }
+
+    private static boolean validSimdArrays(float[] initial, float[] multiplier,
+                                           float[] addend, float[] output, int iterations) {
+        return initial != null
+                && multiplier != null
+                && addend != null
+                && output != null
+                && initial.length > 0
+                && initial.length == multiplier.length
+                && initial.length == addend.length
+                && initial.length == output.length
+                && iterations > 0;
+    }
+
     private static String platformId() throws IOException {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         String arch = System.getProperty("os.arch", "").toLowerCase(Locale.ROOT);
@@ -78,5 +129,11 @@ final class RustNetworkBackend {
     private interface NativeApi extends Library {
         int fiximizer_network_backend_abi();
         int fiximizer_network_summarize(long[] samples, int length, long[] output);
+        int fiximizer_simd_backend_abi();
+        int fiximizer_simd_feature_flags();
+        int fiximizer_simd_compute_scalar(float[] initial, float[] multiplier, float[] addend,
+                                          float[] output, int length, int iterations);
+        int fiximizer_simd_compute_auto(float[] initial, float[] multiplier, float[] addend,
+                                        float[] output, int length, int iterations);
     }
 }
