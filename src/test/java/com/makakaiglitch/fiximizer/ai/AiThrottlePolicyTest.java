@@ -16,17 +16,17 @@ class AiThrottlePolicyTest {
     }
 
     @Test
-    void fourTickIntervalIsStaggeredByEntityId() {
-        assertTrue(AiThrottlePolicy.shouldRunFullCheck(5, 3, 4));
-        assertFalse(AiThrottlePolicy.shouldRunFullCheck(3, 3, 4));
+    void fourTickIntervalIsStaggeredWithinVanillaFullCheckSlots() {
+        assertTrue(AiThrottlePolicy.shouldRunFullCheck(2, 3, 4));
         assertFalse(AiThrottlePolicy.shouldRunFullCheck(4, 3, 4));
+        assertFalse(AiThrottlePolicy.shouldRunFullCheck(5, 3, 4));
     }
 
     @Test
-    void eightTickIntervalIsStaggeredByEntityId() {
-        assertTrue(AiThrottlePolicy.shouldRunFullCheck(5, 3, 8));
-        assertFalse(AiThrottlePolicy.shouldRunFullCheck(9, 3, 8));
-        assertFalse(AiThrottlePolicy.shouldRunFullCheck(11, 3, 8));
+    void eightTickIntervalIsStaggeredWithinVanillaFullCheckSlots() {
+        assertTrue(AiThrottlePolicy.shouldRunFullCheck(2, 3, 8));
+        assertFalse(AiThrottlePolicy.shouldRunFullCheck(6, 3, 8));
+        assertFalse(AiThrottlePolicy.shouldRunFullCheck(8, 3, 8));
     }
 
     @Test
@@ -41,13 +41,14 @@ class AiThrottlePolicyTest {
         assertEquals(2, AiThrottlePolicy.normalizeInterval(7));
         assertTrue(AiThrottlePolicy.shouldRunFullCheck(5, 3, 7));
     }
+
     @Test
     void fullChecksKeepTheRequestedIntervalAtVanillaFullCheckSlots() {
         for (int entityId = 1; entityId <= 32; entityId++) {
             for (int interval : new int[]{4, 8}) {
                 List<Long> fullCheckTicks = new ArrayList<>();
                 for (long tick = 2; tick < 256; tick++) {
-                    boolean vanillaFullCheckSlot = Math.floorMod(tick + entityId, 2) == 0;
+                    boolean vanillaFullCheckSlot = tick % 2L == 0L;
                     if (vanillaFullCheckSlot
                             && AiThrottlePolicy.shouldRunFullCheck(tick, entityId, interval)) {
                         fullCheckTicks.add(tick);
@@ -67,12 +68,10 @@ class AiThrottlePolicyTest {
     void fullChecksAreEvenlyDistributedAcrossEntityIds() {
         int entityCount = 64;
         for (int interval : new int[]{4, 8}) {
-            for (long tick = 2; tick < 32; tick++) {
+            for (long tick = 2; tick < 32; tick += 2) {
                 int checks = 0;
                 for (int entityId = 1; entityId <= entityCount; entityId++) {
-                    boolean vanillaFullCheckSlot = Math.floorMod(tick + entityId, 2) == 0;
-                    if (vanillaFullCheckSlot
-                            && AiThrottlePolicy.shouldRunFullCheck(tick, entityId, interval)) {
+                    if (AiThrottlePolicy.shouldRunFullCheck(tick, entityId, interval)) {
                         checks++;
                     }
                 }
@@ -81,5 +80,4 @@ class AiThrottlePolicyTest {
             }
         }
     }
-
 }
