@@ -16,6 +16,7 @@ public final class FiximizerConfig {
     public static final ModConfigSpec.BooleanValue ENABLE_FRAME_TIME_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_SERVER_TICK_PROFILING;
     public static final ModConfigSpec.BooleanValue ENABLE_ENTITY_WORKLOAD_PROFILING;
+    public static final ModConfigSpec.ConfigValue<Integer> AI_THROTTLE_INTERVAL;
     public static final ModConfigSpec.BooleanValue ENABLE_STALL_WATCHDOG;
     public static final ModConfigSpec.IntValue STALL_THRESHOLD_MS;
     public static final ModConfigSpec.IntValue STALL_REPEAT_INTERVAL_MS;
@@ -105,6 +106,11 @@ public final class FiximizerConfig {
                 .comment("Measure Entity.tick() costs by entity type on every twentieth integrated-server tick. Uses bounded in-memory windows and never changes entity behavior.")
                 .translation("config.fiximizer.profiler.entity_workload")
                 .define("enableEntityWorkloadProfiling", true);
+
+        AI_THROTTLE_INTERVAL = BUILDER
+                .comment("Full mob goal-selector checks: 2 = vanilla, 4 or 8 = less frequent new-goal checks. Running goals still tick every AI tick.")
+                .translation("config.fiximizer.profiler.ai_throttle_interval")
+                .defineInList("aiThrottleInterval", 2, java.util.List.of(2, 4, 8));
 
         BUILDER.pop();
         BUILDER.push("watchdog");

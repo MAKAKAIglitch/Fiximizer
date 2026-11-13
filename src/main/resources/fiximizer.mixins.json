@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8.5",
+  "package": "com.makakaiglitch.fiximizer.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "MobAiThrottleMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

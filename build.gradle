@@ -15,6 +15,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 
 repositories {
     mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/repository/maven-public/' }
 }
 
 neoForge {
@@ -42,6 +43,10 @@ neoForge {
 // NeoForge runs above, so keep additionalRuntimeClasspath declarations below
 // the neoForge block. Jar-in-Jar packages each required runtime library.
 dependencies {
+    // NeoForge supplies Mixin at runtime; compile against its API and run the AP only.
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
     // Minecraft 1.21.1 already provides OSHI 6.4.10 and JNA 5.14.0.
     // Compile against the game-provided OSHI API rather than embedding another
     // com.github.oshi module, which breaks ModLauncher module resolution.

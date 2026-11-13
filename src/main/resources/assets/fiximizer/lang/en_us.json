@@ -141,7 +141,7 @@
   "screen.fiximizer.frame_render_title": "GameRenderer.render() duration",
   "screen.fiximizer.frame_pacing_title": "Frame pacing (time between frames)",
   "screen.fiximizer.frame_pacing_waiting": "Waiting for frame interval samples...",
-  "screen.fiximizer.frame_compact_stats": "Samples: %s | average: %s ms | p95: %s | p99: %s ms",
+  "screen.fiximizer.frame_compact_stats": "Samples: %s | average: %s ms | p95: %s ms | p99: %s ms",
   "screen.fiximizer.frame_tick_title": "Client tick duration",
   "screen.fiximizer.frame_waiting": "Waiting for render samples...",
   "screen.fiximizer.tick_waiting": "Waiting for client tick samples...",
