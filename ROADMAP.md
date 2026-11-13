@@ -263,6 +263,18 @@ The first optimization targets will be selected from reproducible profiles of re
 - Use OpenCL only when the complete workload is faster and correct on supported devices.
 - Evaluate Rust/JNI only for a measured CPU bottleneck where native interop produces a meaningful end-to-end gain.
 
+#### CPU SIMD and runtime feature dispatch (AVX2/FMA)
+
+- Add optional SIMD acceleration for large, independent, CPU-bound batches owned by Fiximizer or a specific adapter. Candidate workloads include bulk numeric transforms and aggregation/statistics; choose targets from JFR/profiling evidence rather than assuming that SIMD will accelerate arbitrary Minecraft or third-party mod code.
+- Detect CPU **and operating-system** support at runtime. Check AVX2 and FMA separately: FMA is a distinct feature and must not be assumed just because AVX2 is present.
+- Keep a portable baseline implementation and compile specialized x86-64 paths separately. Dispatch to the best supported path (for example, AVX2+FMA, AVX2 without FMA, or the portable path) only after runtime feature checks. Do not build the whole distributed native library with `-C target-cpu=native` or otherwise make the maintainer's CPU the minimum requirement.
+- For optional Rust compute modules, use runtime feature detection and narrowly scoped target-feature functions. For JVM-owned code, first measure what HotSpot already optimizes; evaluate the Java Vector API only where it is compatible with the supported JDK/launcher matrix. Do not require experimental JVM flags or incubator modules for every player.
+- Use FMA only for operations that genuinely benefit from fused multiply-add. Test floating-point results with explicit tolerances where fused rounding changes the final bits; retain a non-FMA path where exact behavior is required.
+- Pass sufficiently large batches of primitive data across JNI/FFI. Include packing, copying, native-call overhead, synchronization, and unpacking in measurements; do not call native code once per entity, packet, or game tick.
+- Operate on immutable snapshots or data explicitly owned by Fiximizer. Preserve Minecraft thread affinity and never mutate live world/game state from a native worker merely to increase parallelism.
+- Keep scalar/portable fallback available when AVX2/FMA is missing, the native library is unavailable, or a specialized path fails validation. Feature detection and fallback must not prevent the game from launching.
+- Benchmark correctness and end-to-end performance on representative modpacks, including allocation rate, CPU overhead, frame/tick percentiles, and the cost of data transfer. Enable an accelerated path automatically only when repeated tests show a real gain beyond measurement noise.
+
 **Done when:** an accelerated path is measurably faster for a real Fiximizer-owned or adapter-owned workload, has correctness tests, and degrades safely when the device or native runtime is unavailable.
 
 ### Phase 6 — Broader platform and version support
