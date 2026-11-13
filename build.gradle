@@ -91,9 +91,16 @@ tasks.named('processResources', ProcessResources).configure {
     }
 }
 
+def mixinRefmapFile = layout.buildDirectory.file('classes/java/main/fiximizer.refmap.json')
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release = 21
+    options.compilerArgs += ["-AoutRefMapFile=${mixinRefmapFile.get().asFile}"]
+}
+
+tasks.named('compileJava', JavaCompile).configure {
+    outputs.file(mixinRefmapFile)
 }
 
 tasks.withType(Test).configureEach {
