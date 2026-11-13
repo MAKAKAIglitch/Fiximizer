@@ -22,17 +22,17 @@ public final class CreateProfilerEvents {
     @SubscribeEvent
     public static void onServerTickPre(ServerTickEvent.Pre event) {
         StallWatchdog.beginServerTick();
-        ServerTickProfiler.beginTick();
         CreateContraptionProfiler.beginServerTick();
         EntityWorkloadProfiler.beginServerTick();
+        ServerTickProfiler.beginTick();
     }
 
     @SubscribeEvent
     public static void onServerTickPost(ServerTickEvent.Post event) {
-        EntityWorkloadProfiler.endServerTick();
-        StallWatchdog.endServerTick();
         ServerTickProfiler.endTick();
+        StallWatchdog.endServerTick();
         CreateContraptionProfiler.endServerTick();
+        EntityWorkloadProfiler.endServerTick();
     }
 
     @SubscribeEvent

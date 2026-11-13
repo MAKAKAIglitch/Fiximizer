@@ -158,7 +158,7 @@
   "screen.fiximizer.entity_workload_waiting": "Ожидание первой выборки сущностей...",
   "screen.fiximizer.entity_workload_disabled": "Профилирование сущностей выключено.",
   "screen.fiximizer.entity_workload_type": "%s: %s тиков | %s мс суммарно | p95 %s мс",
-  "screen.fiximizer.entity_workload_untracked": "Не учтено тиков сущностей из-за лимита типов: %s",
+  "screen.fiximizer.entity_workload_untracked": "Не учтено из-за лимита типов: %s",
   "screen.fiximizer.tab_server": "Сервер",
   "screen.fiximizer.server_title": "Нагрузка интегрированного сервера",
   "screen.fiximizer.server_intro": "Измеряется полная длительность серверного тика между событиями ServerTickEvent.Pre и Post. Доступно в одиночном мире.",

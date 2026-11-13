@@ -158,7 +158,7 @@
   "screen.fiximizer.entity_workload_waiting": "Waiting for the first entity sample...",
   "screen.fiximizer.entity_workload_disabled": "Entity workload profiling is disabled.",
   "screen.fiximizer.entity_workload_type": "%s: %s ticks | %s ms total | p95 %s ms",
-  "screen.fiximizer.entity_workload_untracked": "Entity ticks not tracked because the type limit was reached: %s",
+  "screen.fiximizer.entity_workload_untracked": "Untracked entity ticks (type limit): %s",
   "screen.fiximizer.tab_server": "Server",
   "screen.fiximizer.server_title": "Integrated server workload",
   "screen.fiximizer.server_intro": "Measures the full server tick between ServerTickEvent.Pre and Post. Available in a local single-player world.",
