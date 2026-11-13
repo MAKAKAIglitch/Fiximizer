@@ -2,9 +2,9 @@ package com.makakaiglitch.fiximizer.diagnostics;
 
 import com.makakaiglitch.fiximizer.config.FiximizerConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,7 +32,7 @@ public final class EntityWorkloadProfiler {
     private static int serverTickCounter;
     private static int sampledServerTicks;
     private static boolean sampleThisTick;
-    private static long untrackedEntityTypes;
+    private static long untrackedEntityTicks;
     private static volatile Snapshot latest = Snapshot.empty();
 
     private EntityWorkloadProfiler() {
@@ -53,7 +53,6 @@ public final class EntityWorkloadProfiler {
         serverTickCounter++;
         sampleThisTick = serverTickCounter % SAMPLE_INTERVAL_TICKS == 0;
         if (!sampleThisTick) {
-            START_TIMES.remove();
             return;
         }
 
@@ -86,12 +85,23 @@ public final class EntityWorkloadProfiler {
         }
 
         EntityType<?> type = entity.getType();
-        MutableTickCost cost = CURRENT_TICK.get(type);
-        if (cost == null) {
-            if (CURRENT_TICK.size() >= MAX_ENTITY_TYPES && !WINDOWS.containsKey(type)) {
-                untrackedEntityTypes++;
+        RollingEntityTypeWindow typeWindow = WINDOWS.get(type);
+        if (typeWindow == null) {
+            if (WINDOWS.size() >= MAX_ENTITY_TYPES) {
+                untrackedEntityTicks++;
                 return;
             }
+
+            typeWindow = new RollingEntityTypeWindow();
+            int previousSamples = Math.min(sampledServerTicks, RollingEntityTypeWindow.DEFAULT_CAPACITY);
+            for (int index = 0; index < previousSamples; index++) {
+                typeWindow.record(0L, 0L, 0L);
+            }
+            WINDOWS.put(type, typeWindow);
+        }
+
+        MutableTickCost cost = CURRENT_TICK.get(type);
+        if (cost == null) {
             cost = new MutableTickCost();
             CURRENT_TICK.put(type, cost);
         }
@@ -111,17 +121,6 @@ public final class EntityWorkloadProfiler {
         }
         sampleThisTick = false;
         START_TIMES.get().clear();
-
-        for (Map.Entry<EntityType<?>, MutableTickCost> entry : CURRENT_TICK.entrySet()) {
-            if (!WINDOWS.containsKey(entry.getKey()) && WINDOWS.size() < MAX_ENTITY_TYPES) {
-                RollingEntityTypeWindow window = new RollingEntityTypeWindow();
-                int previousSamples = Math.min(sampledServerTicks, RollingEntityTypeWindow.DEFAULT_CAPACITY);
-                for (int index = 0; index < previousSamples; index++) {
-                    window.record(0L, 0L, 0L);
-                }
-                WINDOWS.put(entry.getKey(), window);
-            }
-        }
 
         for (Map.Entry<EntityType<?>, RollingEntityTypeWindow> entry : WINDOWS.entrySet()) {
             MutableTickCost cost = CURRENT_TICK.get(entry.getKey());
@@ -183,7 +182,7 @@ public final class EntityWorkloadProfiler {
         return new Snapshot(
                 Math.min(sampledServerTicks, RollingEntityTypeWindow.DEFAULT_CAPACITY),
                 WINDOWS.size(),
-                untrackedEntityTypes,
+                untrackedEntityTicks,
                 List.copyOf(topTypes)
         );
     }
@@ -192,7 +191,7 @@ public final class EntityWorkloadProfiler {
         serverTickCounter = 0;
         sampledServerTicks = 0;
         sampleThisTick = false;
-        untrackedEntityTypes = 0L;
+        untrackedEntityTicks = 0L;
         CURRENT_TICK.clear();
         WINDOWS.clear();
         START_TIMES.remove();
@@ -202,7 +201,7 @@ public final class EntityWorkloadProfiler {
     public record Snapshot(
             int sampledServerTicks,
             int trackedEntityTypes,
-            long untrackedEntityTypes,
+            long untrackedEntityTicks,
             List<TypeSnapshot> topTypes
     ) {
         private static Snapshot empty() {

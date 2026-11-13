@@ -12,18 +12,22 @@ import net.neoforged.neoforge.client.event.RenderFrameEvent;
 
 /**
  * Passive client workload telemetry.
- * RenderFrameEvent surrounds GameRenderer.render(); ClientTickEvent surrounds
- * the client tick. Timings are wall-clock durations, not GPU execution time.
+ * RenderFrameEvent surrounds GameRenderer.render(); frame intervals are
+ * measured between consecutive RenderFrameEvent.Pre callbacks. These are
+ * wall-clock measurements and do not represent GPU execution time.
  */
 @EventBusSubscriber(modid = Fiximizer.MOD_ID, value = Dist.CLIENT)
 public final class ClientRuntimeProfiler {
     private static final RollingDurationWindow RENDER_WINDOW =
+            new RollingDurationWindow(RollingDurationWindow.DEFAULT_CAPACITY);
+    private static final RollingDurationWindow FRAME_INTERVAL_WINDOW =
             new RollingDurationWindow(RollingDurationWindow.DEFAULT_CAPACITY);
     private static final RollingDurationWindow CLIENT_TICK_WINDOW =
             new RollingDurationWindow(RollingDurationWindow.DEFAULT_CAPACITY);
 
     // These events and the dashboard run on the client thread.
     private static long renderStartedAtNanos;
+    private static long lastFrameStartedAtNanos;
     private static long clientTickStartedAtNanos;
     private static boolean lastKnownEnabled = true;
 
@@ -35,7 +39,13 @@ public final class ClientRuntimeProfiler {
         StallWatchdog.beginRenderFrame();
         synchronizeEnabledState();
         if (lastKnownEnabled) {
-            renderStartedAtNanos = System.nanoTime();
+            long now = System.nanoTime();
+            long previousFrameStartedAt = lastFrameStartedAtNanos;
+            if (previousFrameStartedAt != 0L) {
+                FRAME_INTERVAL_WINDOW.record(Math.max(0L, now - previousFrameStartedAt));
+            }
+            lastFrameStartedAtNanos = now;
+            renderStartedAtNanos = now;
         }
     }
 
@@ -82,15 +92,21 @@ public final class ClientRuntimeProfiler {
 
         lastKnownEnabled = enabled;
         renderStartedAtNanos = 0L;
+        lastFrameStartedAtNanos = 0L;
         clientTickStartedAtNanos = 0L;
         if (!enabled) {
             RENDER_WINDOW.reset();
+            FRAME_INTERVAL_WINDOW.reset();
             CLIENT_TICK_WINDOW.reset();
         }
     }
 
     public static RollingDurationWindow.Snapshot renderSnapshot() {
         return RENDER_WINDOW.snapshot();
+    }
+
+    public static RollingDurationWindow.Snapshot frameIntervalSnapshot() {
+        return FRAME_INTERVAL_WINDOW.snapshot();
     }
 
     public static RollingDurationWindow.Snapshot clientTickSnapshot() {

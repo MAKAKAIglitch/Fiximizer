@@ -37,9 +37,11 @@ public final class RollingEntityTypeWindow {
         long safeElapsed = Math.max(0L, elapsedNanos);
         long safePeak = Math.max(0L, peakEntityNanosInTick);
 
+        boolean recomputePeak = false;
         if (size == entityCounts.length) {
             totalEntityTicks -= entityCounts[cursor];
             totalNanos -= tickNanos[cursor];
+            recomputePeak = peakEntityNanos[cursor] == peakEntityNanosInWindow;
         } else {
             size++;
         }
@@ -51,9 +53,13 @@ public final class RollingEntityTypeWindow {
         totalNanos += safeElapsed;
         cursor = (cursor + 1) % entityCounts.length;
 
-        peakEntityNanosInWindow = 0L;
-        for (long sample : peakEntityNanos) {
-            peakEntityNanosInWindow = Math.max(peakEntityNanosInWindow, sample);
+        if (recomputePeak) {
+            peakEntityNanosInWindow = 0L;
+            for (int index = 0; index < size; index++) {
+                peakEntityNanosInWindow = Math.max(peakEntityNanosInWindow, peakEntityNanos[index]);
+            }
+        } else {
+            peakEntityNanosInWindow = Math.max(peakEntityNanosInWindow, safePeak);
         }
 
         latest = buildSnapshot();
