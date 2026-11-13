@@ -13,13 +13,19 @@ public final class AiThrottlePolicy {
     }
 
     /**
-     * Called only at vanilla full-check call sites (normally every second tick).
+     * Called only at vanilla full-check call sites (every second entity tick).
+     * Converts the entity tick into a full-check slot before applying the
+     * interval, so entity-ID staggering cannot exclude half of the mobs.
      * Keeps vanilla startup checks and staggers longer intervals by entity ID.
      */
     public static boolean shouldRunFullCheck(long tickCount, int entityId, int interval) {
         int normalized = normalizeInterval(interval);
-        return normalized == 2
-                || tickCount <= 1L
-                || Math.floorMod(tickCount + (long) entityId, normalized) == 0L;
+        if (normalized == 2 || tickCount <= 1L) {
+            return true;
+        }
+
+        long fullCheckSlot = tickCount / 2L;
+        int fullCheckInterval = normalized / 2;
+        return Math.floorMod(fullCheckSlot + (long) entityId, fullCheckInterval) == 0L;
     }
 }
