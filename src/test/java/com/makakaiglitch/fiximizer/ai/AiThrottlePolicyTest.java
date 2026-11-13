@@ -2,6 +2,9 @@ package com.makakaiglitch.fiximizer.ai;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class AiThrottlePolicyTest {
@@ -38,4 +41,45 @@ class AiThrottlePolicyTest {
         assertEquals(2, AiThrottlePolicy.normalizeInterval(7));
         assertTrue(AiThrottlePolicy.shouldRunFullCheck(5, 3, 7));
     }
+    @Test
+    void fullChecksKeepTheRequestedIntervalAtVanillaFullCheckSlots() {
+        for (int entityId = 1; entityId <= 32; entityId++) {
+            for (int interval : new int[]{4, 8}) {
+                List<Long> fullCheckTicks = new ArrayList<>();
+                for (long tick = 2; tick < 256; tick++) {
+                    boolean vanillaFullCheckSlot = Math.floorMod(tick + entityId, 2) == 0;
+                    if (vanillaFullCheckSlot
+                            && AiThrottlePolicy.shouldRunFullCheck(tick, entityId, interval)) {
+                        fullCheckTicks.add(tick);
+                    }
+                }
+
+                for (int index = 1; index < fullCheckTicks.size(); index++) {
+                    assertEquals(interval,
+                            fullCheckTicks.get(index) - fullCheckTicks.get(index - 1),
+                            "Unexpected interval for entity " + entityId);
+                }
+            }
+        }
+    }
+
+    @Test
+    void fullChecksAreEvenlyDistributedAcrossEntityIds() {
+        int entityCount = 64;
+        for (int interval : new int[]{4, 8}) {
+            for (long tick = 2; tick < 32; tick++) {
+                int checks = 0;
+                for (int entityId = 1; entityId <= entityCount; entityId++) {
+                    boolean vanillaFullCheckSlot = Math.floorMod(tick + entityId, 2) == 0;
+                    if (vanillaFullCheckSlot
+                            && AiThrottlePolicy.shouldRunFullCheck(tick, entityId, interval)) {
+                        checks++;
+                    }
+                }
+                assertEquals(entityCount / interval, checks,
+                        "Checks should be staggered for interval " + interval + " at tick " + tick);
+            }
+        }
+    }
+
 }
